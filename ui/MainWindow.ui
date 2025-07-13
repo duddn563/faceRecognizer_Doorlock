@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>800</width><height>480</height></rect>
+  </property>
+  <property name="windowTitle"><string>Face Doorlock</string></property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="mainVerticalLayout">
+    <item>
+     <layout class="QHBoxLayout" name="mainContentLayout">
+      <item>
+       <widget class="QLabel" name="cameraLabel">
+        <property name="minimumSize"><size><width>640</width><height>480</height></size></property>
+        <property name="scaledContents"><bool>true</bool></property>
+        <property name="text"><string/></property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="rightPanelLayout">
+        <item>
+         <widget class="QPushButton" name="registerButton">
+          <property name="text"><string>등록 시작</string></property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="clearButton">
+          <property name="text"><string>사용자 초기화</string></property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btnShowUsers">
+          <property name="text"><string>사용자 목록</string></property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="showUserImages">
+          <property name="text"><string>사용자 이미지 목록</string></property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="ExitButton">
+          <property name="text"><string>종료</string></property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="recognitionLabel">
+          <property name="text"><string>😶 인식 대기 중...</string></property>
+          <property name="alignment"><set>Qt::AlignCenter</set></property>
+          <property name="styleSheet">
+           <string notr="true">font-size: 16px; color: #3498db; font-weight: bold;</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
+

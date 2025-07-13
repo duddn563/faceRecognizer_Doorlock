@@ -1,0 +1,692 @@
+// -------------------- gui/MainWindow.cpp --------------------
+#include "MainWindow.hpp"
+
+
+// 저장된 얼굴 매핑: label -> gray face image
+map<int, vector<Mat>> storedFaces;
+
+std::vector<UserData> storedUsers;
+
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
+{
+		setupUi();
+		setupQTimer();
+
+		openCamera();
+
+		createLBPH();
+		loadFaceCascade();
+		loadEyesCascade();
+
+		registerExistingUser();
+
+		setupFdUltrasonic();
+		setupDdUltrasonic();
+
+}
+
+void MainWindow::openCamera()
+{
+    cap.open(CAM_NUM);
+    if (!cap.isOpened()) {
+        QMessageBox::critical(this, "Error", "카메라를 열 수 없습니다.");
+				Logger::writef("[%s] Camera open was failed(cam %d)!!\n", __func__, CAM_NUM);
+        exit(1);
+    }
+
+		Logger::writef("[%s] Camera open was successfully(cam %d)!!\n", __func__, CAM_NUM);
+		return;
+}
+
+void MainWindow::setupUi()
+{
+		ui = new Ui::MainWindow;
+
+		ui->setupUi(this);
+
+		// QLabel이 크기에 맞춰 자동 리사이징 되도록 설정
+    ui->cameraLabel->setScaledContents(true);
+
+    // 창을 모니터 크기에 맞게 최소로 표시
+    this->setMinimumSize(640, 480);
+		
+		ui->statusbar->setStyleSheet(STATUS_BAR_STYLE);
+		ui->cameraLabel->setStyleSheet(CAM_LABEL_STYLE);
+
+		ui->registerButton->setStyleSheet(BTN_STYLE);
+		ui->clearButton->setStyleSheet(BTN_STYLE);
+		ui->btnShowUsers->setStyleSheet(BTN_STYLE);
+		ui->showUserImages->setStyleSheet(BTN_STYLE);
+
+		ui->ExitButton->setStyleSheet(BTN_STYLE);
+
+
+    connect(ui->registerButton, &QPushButton::clicked, this, &MainWindow::onRegisterFace);
+
+		connect(ui->clearButton, &QPushButton::clicked, this, &MainWindow::onClearUsers);
+
+		connect(ui->btnShowUsers, &QPushButton::clicked, this, &MainWindow::showUserList);
+
+		connect(ui->showUserImages, &QPushButton::clicked, this, &MainWindow::onShowUserImages);
+
+		connect(ui->ExitButton, &QPushButton::clicked, this, &MainWindow::onExitProgram);
+
+		return;
+}
+
+
+void MainWindow::setupFdUltrasonic()
+{
+		QThread *FD_ultrasonicThread = new QThread(this);
+
+    // 쓰레드 객체 생성
+		FD_UltrasonicWorker *FD_ultrasonicWorker = new FD_UltrasonicWorker();
+
+		// 워커를 쓰레드로 이동
+		FD_ultrasonicWorker->moveToThread(FD_ultrasonicThread);
+
+		// 시작되면 process() 실행
+		connect(FD_ultrasonicThread, &QThread::started, FD_ultrasonicWorker, &FD_UltrasonicWorker::FD_process);
+
+		// 신호 연결
+		connect(FD_ultrasonicWorker, &FD_UltrasonicWorker::personDetected, this, [this]() {
+				isFaceDetecting = true;
+				ui->statusbar->showMessage("사람 감지됨. 얼굴 인식 중...");
+		});
+
+		connect(FD_ultrasonicWorker, &FD_UltrasonicWorker::personLeft, this, [this]() {
+				isFaceDetecting = false;
+				ui->statusbar->showMessage("사람 없음. 대기 중...");
+		});
+
+		// 쓰레드 시작
+		Logger::writef("[%s] FD_Ultrasonic Thread start!!\n", __func__);
+		FD_ultrasonicThread->start();
+}
+
+void MainWindow::setupDdUltrasonic()
+{
+		QThread *DD_ultrasonicThread = new QThread(this);
+
+		DD_UltrasonicWorker *DD_ultrasonicWorker = new DD_UltrasonicWorker();
+
+		DD_ultrasonicWorker->moveToThread(DD_ultrasonicThread);
+
+		connect(DD_ultrasonicThread, &QThread::started, DD_ultrasonicWorker, &DD_UltrasonicWorker::DD_process);
+
+		connect(DD_ultrasonicWorker, &DD_UltrasonicWorker::doorDetected, this, [this]() {
+				isDoorDetecting = true;
+				//ui->statusbar2->showMessage("문이 닫혔있습니다..");
+		});
+
+		connect(DD_ultrasonicWorker, &DD_UltrasonicWorker::doorLeft, this, [this]() {
+				isDoorDetecting = false;
+				//ui->statusbar2->showMessage("문이 열려있습니다..");
+		});
+
+		Logger::writef("[%s] DD_Ultrasonic Thread start!!\n", __func__);
+		DD_ultrasonicThread->start();
+}
+
+void MainWindow::setupQTimer()
+{
+		timer = new QTimer(this);
+
+		// 타이머는 얼굴 감지 중일 때만 실행
+		connect(timer, &QTimer::timeout, this, [this]() {
+				if (isDoorDetecting) {
+						if (isFaceDetecting)
+								updateFrame();
+				}
+		});
+		timer->start(100);
+}
+
+void MainWindow::createLBPH()
+{
+		Logger::writef("[%s] LBPHFaceRecognizer loading...", __func__);
+
+		try {
+				faceRecognizer = face::LBPHFaceRecognizer::create();
+		} catch (Exception& e) {
+				qDebug() << "LBPHFaceRecognizer 생성 실패:" << e.what();
+				Logger::writef("[%s] LBPHFaceRecognizer loading failed...", __func__);
+		}
+}
+
+void MainWindow::loadFaceCascade()
+{
+		Logger::writef("[%s] face cascade loading...", __func__);
+
+		// 얼굴 인식용 분류기 로드
+    if (!faceCascade.load(HAARCASCADE_FRONTALFACE)) {
+				QMessageBox::critical(this, "Error", "얼굴 분류가 존재하지 않습니다.");
+				Logger::writef("[%s] 얼굴 분류기가 존재하지 않습니다.");
+				exit(1);
+		}
+}
+
+void MainWindow::loadEyesCascade()
+{
+		Logger::writef("[%s] Eys cascade loading...", __func__);
+
+		// 눈 인식용 분류기 로드
+		if (!eyeCascade.load(HAARCASCADE_EYE)) {
+				QMessageBox::critical(this, "Error", "눈 분류기가 존재하지 않습니다.");
+				Logger::writef("[%s] 눈분류기가 존재하지 않습니다...", __func__);
+				exit(1);
+		}
+}
+
+void MainWindow::registerExistingUser()
+{
+		vector<Mat> images;
+		vector<int> labels;
+
+		if (!fs::exists(USER_FACES_DIR)) {
+				fs::create_directory(USER_FACES_DIR);
+				Logger::writef("[%s] Create file(%s)", __func__, USER_FACES_DIR);
+		}
+
+
+		int rc = fs::is_directory(USER_FACES_DIR);
+		
+		if (rc == 1) {
+				// 기존 등록 사용자 얼굴 데이터 로드
+				for (const auto& entry : fs::directory_iterator(USER_FACES_DIR)) {
+						string fname = entry.path().filename().string();
+						// filename pattern: face_<label>_&.png
+						if (!fname.empty()) {
+								int label = stoi(fname.substr(5, fname.find('_', 5)-5));
+
+								Mat img = cv::imread(entry.path().string(), IMREAD_GRAYSCALE);
+								cv::resize(img, img, Size(200, 200));
+
+								storedFaces[label].push_back(img);
+								//cout << "label: " << label << endl;
+								images.push_back(img);
+								labels.push_back(label);
+						}
+				}
+				printf ("[%s] labels count: %d\n", __func__, labels.size());
+		}
+		else {
+				Logger::writef("[%s] Is not exists existing faces!!", __func__);
+				QMessageBox::information(this, "Error", "기존 등록된 얼굴이 없습니다.\n 얼굴을 새로 등록해주세요!\n");
+		}
+
+		Logger::writef("[%s] Load the existing face into program from %s!!", __func__, USER_FACES_DIR);
+
+		if (!images.empty()) faceRecognizer->train(images, labels);
+		else Logger::writef("[%s] Failed to existing faces train!!", __func__);
+
+		loadLabelMap();
+
+}
+
+bool MainWindow::isUserNameExists(const QString& name) 
+{
+		for (const auto& [label, storedName] : labelMap) {
+				if (QString::fromStdString(storedName) == name) return true;
+		}
+
+		return false;
+}
+
+void MainWindow::onClearUsers() {
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "모든 사용자 삭제", "모든 등록된 사용자 데이터를 삭제하시겠습니까?",
+                                  QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::Yes) {
+        clearAllUserData();
+        ui->statusbar->showMessage("모든 사용자 데이터가 삭제되었습니다.");
+    }
+}
+
+
+void MainWindow::clearAllUserData()
+{
+		// Delete face images
+		for (const auto& entry : fs::directory_iterator(USER_FACES_DIR)) {
+				if(entry.path().filename().string().find("face_") == 0) {
+						fs::remove(entry.path());
+				}
+		}
+
+		// Delete label map
+		if (access(USER_LABEL_FILE, F_OK) == 0) {
+				cout << "[" << __func__ << "] Clear user data file!!!" << endl;
+				fs::remove(USER_LABEL_FILE);
+				ifstream file(USER_LABEL_FILE);
+				file.close();
+		}
+
+		// Delete memory
+		storedFaces.clear();
+		labelMap.clear();
+
+		cout << "User data is initialized!!!" << endl;
+}
+
+MainWindow::~MainWindow() {
+    cap.release();  // 카메라 종료
+    delete ui;
+}
+
+int MainWindow::getNextLabel() {
+		// label.txt에서 마지막 라벨 읽기
+		ifstream ifs(USER_LABEL_FILE);
+		
+		// if not exist label.txt, Label.txt be create to /usr/local/etc/face_doorlock
+		if (!access(USER_LABEL_FILE, F_OK) == 0) {
+				ifstream file(USER_LABEL_FILE);
+				file.close();
+		}
+	
+
+		int maxLabel = 0;
+
+		if (ifs.is_open()) {
+				int lbl;
+				string name;
+				while (ifs >> lbl >> name) {
+						//cout << "name: " << name << ",  label: " << lbl << endl;
+						if (lbl > maxLabel) maxLabel = lbl;
+				}
+
+		}
+
+		return maxLabel + 1;
+}
+
+void MainWindow::loadLabelMap() 
+{
+		int rc = 0;
+
+		ifstream ifs(USER_LABEL_FILE);
+
+		rc = Utile::checkFileExist(USER_LABEL_FILE, R_OK + W_OK);
+		if (rc == -1) {
+				rc = Utile::createFile(USER_LABEL_FILE, R_OK + W_OK);
+				if (rc == -1) {
+						Logger::writef("[%s] Failed to create file(%s)\n", __func__, USER_LABEL_FILE);		
+						exit(1);
+				}
+		}
+
+		if (ifs.is_open()) {
+				int lbl;
+				string name;
+
+				while (ifs >> lbl >> name) {
+						labelMap[lbl] = name;
+				}
+		}
+}
+
+void MainWindow::saveLabelToFile(int label, const string &name) {
+		//if (access(USER_LABEL_FILE, F_OK) == 0) {
+				ofstream ofs (USER_LABEL_FILE, ios::app);
+				if (ofs.is_open()) ofs << label << " " << name << endl;
+		//}
+}
+	
+// 사용되고 있지 않음
+double MainWindow::getAverageSimilarity(const vector<Mat>& samples, const Mat& target)
+{
+		double total = 0;
+		int histSize = 256;										// 히스토그램 크기
+		float range[] = {0, 256};							// 픽셀 값 범위
+		const float* histRange[] = {range};		// 포인터 배열로 넘기기	
+
+		for (const auto& sample : samples) {
+				Mat hist1, hist2;
+
+				// sample 이미지 히스토그램 계산
+				calcHist(&sample, 1, 0, Mat(), hist1, 1, &histSize, histRange, true, false);
+				normalize(hist1, hist1, 0, 1, NORM_MINMAX);
+
+				// target 이미지 히스토그램 계산
+				calcHist(&target, 1, 0, Mat(), hist2, 1, &histSize, histRange, true, false);
+				normalize(hist2, hist2, 0, 1, NORM_MINMAX);
+
+				 // 두 히스토그램을 비교
+				total += compareHist(hist1, hist2, HISTCMP_CORREL);
+		}
+
+		return samples.empty() ? -1.0 : total / samples.size();
+}
+
+void MainWindow::onRegisterFace() 
+{
+		if (isRegistering) return;
+
+		userName = QInputDialog::getText(this, "사용자 등록", "이름을 입력하세요:");
+		if (userName.isEmpty()) return;
+
+		if (isUserNameExists(userName)) {
+				QMessageBox::warning(this, "중복 사용자", "이미 등록된 사용자 이름입니다.");
+				return;
+		}
+
+		currentLabel = getNextLabel();
+		captureCount = 0;
+		isRegistering = true;
+		ui->statusbar->showMessage("[등록 중]" + userName + ": 0/20");
+}
+
+void MainWindow::showUserList() 
+{
+		QString filePath = QString::fromStdString(USER_LABEL_FILE);
+		QFile file(filePath);
+
+		if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+				QMessageBox::warning(this, "오류",  "label.txt 파일을 열 수 없습니다.");
+				return;
+		}
+
+		QStringList users;
+		while (!file.atEnd()) {
+				QByteArray line = file.readLine();
+				QString str(line);
+				QStringList parts = str.trimmed().split(' ');
+				if (parts.size() >= 2) {
+						users.append(parts[0] + ": " + parts[1]);
+				}
+		}
+
+		if (users.isEmpty()) {
+				QMessageBox::information(this, "사용자 목록", "등록된 사용자가 없습니다.");
+		} else {
+				 QMessageBox::information(this, "사용자 목록", users.join("\n"));
+		}
+}
+
+void MainWindow::onExitProgram()
+{
+		QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(this, "프로그램 종료", "프로그램을 종료하시겠습니까?",
+                                  QMessageBox::Yes | QMessageBox::No);
+    if (reply == QMessageBox::Yes) {
+				exit(1);
+    }
+}
+
+void MainWindow::onShowUserImages()
+{
+		// Create new QDialog
+		QDialog *dialog = new QDialog(this);
+		dialog->setWindowTitle("등록된 사용자 이미지 목록");
+
+		// Show the image as a QListWidget
+		QListWidget *listWidget = new QListWidget(dialog);
+
+
+    // 🔴 QMap으로 원본 이미지 저장 (썸네일과 연동)
+    QMap<QListWidgetItem*, cv::Mat> originalImages;
+
+		   // storedFaces 맵 순회
+    for (const auto &entry : storedFaces) {
+        int label = entry.first;
+        const std::vector<cv::Mat> &faces = entry.second;
+
+        for (size_t i = 0; i < faces.size(); ++i) {
+            cv::Mat grayFace = faces[i];
+
+
+            // 🔴  그레이 이미지를 컬러(RGB)로 변환
+            cv::Mat colorFace;
+            cv::cvtColor(grayFace, colorFace, cv::COLOR_GRAY2BGR);
+
+            // 🔴  OpenCV Mat를 QImage로 변환
+            QImage img(colorFace.data,
+                        colorFace.cols,
+                        colorFace.rows,
+                        static_cast<int>(colorFace.step),
+                        QImage::Format_BGR888);
+
+            // 🔴  QPixmap으로 변환해서 QListWidget에 추가
+            QPixmap pixmap = QPixmap::fromImage(img).scaled(64, 64, Qt::KeepAspectRatio);
+            QListWidgetItem *item = new QListWidgetItem;
+            item->setIcon(QIcon(pixmap));
+            item->setText(QString("Label: %1 - #%2").arg(label).arg(i));
+            listWidget->addItem(item);
+
+            // 👉 원본 이미지 저장 (복사!)
+            originalImages[item] = colorFace.clone();
+        }
+    }
+
+		   // 🔴 2️⃣ 아이템 클릭 시 큰 이미지로 보기
+    connect(listWidget, &QListWidget::itemClicked, [=](QListWidgetItem *item){
+        // 원본 이미지 가져오기
+        cv::Mat colorFace = originalImages[item];
+
+        // QImage 변환
+        QImage img(colorFace.data,
+                    colorFace.cols,
+                    colorFace.rows,
+                    static_cast<int>(colorFace.step),
+                    QImage::Format_BGR888);
+
+        // 👉 QDialog로 큰 이미지 보기
+        QDialog *imageDialog = new QDialog(dialog);
+        imageDialog->setWindowTitle(item->text());
+
+        QLabel *imageLabel = new QLabel(imageDialog);
+        imageLabel->setPixmap(QPixmap::fromImage(img).scaled(500, 500, Qt::KeepAspectRatio));
+
+        QVBoxLayout *imageLayout = new QVBoxLayout(imageDialog);
+        imageLayout->addWidget(imageLabel);
+        imageDialog->setLayout(imageLayout);
+
+        imageDialog->exec();
+        delete imageDialog;
+    });
+
+    QVBoxLayout *layout = new QVBoxLayout(dialog);
+    layout->addWidget(listWidget);
+    dialog->setLayout(layout);
+
+    dialog->exec();
+    delete dialog;
+
+}
+
+// 사용되고 있지 않음 리구현예정
+bool MainWindow::isDuplicateFace(const Mat& newFace)
+{
+		if (!faceRecognizer || newFace.empty()) {
+        std::cerr << "[오류] 얼굴 인식기가 초기화되지 않았거나 입력 이미지가 비어 있습니다." << std::endl;
+        return false;
+    }
+
+    int predictedLabel = -1;
+    double confidence = 0.0;
+
+    // 예측 수행 (입력은 반드시 흑백이어야 함)
+    cv::Mat gray;
+    if (newFace.channels() == 3)
+        cv::cvtColor(newFace, gray, cv::COLOR_BGR2GRAY);
+    else
+        gray = newFace;
+
+		if (!storedFaces.empty()) {
+				faceRecognizer->predict(gray, predictedLabel, confidence);
+		}
+
+    std::cout << "예측된 라벨: " << predictedLabel << ", 신뢰도: " << confidence << std::endl;
+
+    // 신뢰도 기준으로 중복 여부 판단
+    const double DUPLICATE_THRESHOLD = 50.0; // 작을수록 엄격 (OpenCV LBPH 기준 50~100 적절)
+
+    return (confidence < DUPLICATE_THRESHOLD) && (confidence) && (predictedLabel != -1);
+}
+
+Mat MainWindow::alignAndNormalizeFace(const Mat& grayFrame, const Rect& faceRect)
+{
+		Mat faceROI = grayFrame(faceRect).clone();
+
+		// 눈 검출
+		vector<Rect> eyes;
+		eyeCascade.detectMultiScale(faceROI, eyes, 1.1, 10, 0, Size(20, 20));
+
+		if (eyes.size() < 2) return {};	 // 눈이 2개 미만이면 실패
+
+		// 눈 2개를 좌/우로 정렬
+		Point eye1 = (eyes[0].x < eyes[1].x) ? eyes[0].tl() : eyes[1].tl();
+		Point eye2 = (eyes[0].x < eyes[1].x) ? eyes[1].tl() : eyes[0].tl();
+
+		// 눈 중심 계산
+		eye1 += Point(eyes[0].width/2, eyes[0].height/2);
+		eye2 += Point(eyes[1].width/2, eyes[1].height/2);
+
+		// 각도 계산
+		double dy = eye2.y - eye1.y;
+		double dx = eye2.x - eye1.x;
+		double angle = atan2(dy, dx) * 180.0 / CV_PI;
+
+		// 얼굴 중앙 기준 회전
+		Point2f center(faceROI.cols/2.0F, faceROI.rows/2.0F);
+		Mat rot = getRotationMatrix2D(center, angle, 1.0);
+
+		Mat aligned;
+		warpAffine(faceROI, aligned, rot, faceROI.size());
+
+		// 밝기 보정 + 크기 조정
+		equalizeHist(aligned, aligned);
+		cv::resize(aligned, aligned, Size(200, 200));
+
+		//cout << "[" << __func__ << "] Face is aligned and normalized!!" << endl;
+		return aligned;
+}
+
+void MainWindow::updateFrame() {
+    Mat frame, gray;
+		Mat faceColor;
+
+    cap >> frame;
+    if (frame.empty()) return;
+
+		// 얼굴 인식용 흑백 이미지 생성
+    cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
+		equalizeHist(gray, gray);
+
+		// 얼굴 탐지
+		vector<Rect> faces;
+		faceCascade.detectMultiScale(
+				gray, faces,
+				1.1,					// scaleFactor: 이미지 크기를 줄여가며 탐지 (1.1~1.3 추천)					
+				5,						// minNeighbors: 최소 이웃 수 (값이 높을수록 정밀, 3~6 추천)
+				CASCADE_SCALE_IMAGE,
+				Size(100, 100) // 최소 얼굴 크기 설정 (너무 작으면 false positive 발생)			
+		);
+
+		for (const auto& face : faces) {
+
+				faceColor = frame(face);
+				Mat alignedFace = alignAndNormalizeFace(gray, face);
+				if (alignedFace.empty()) continue;
+
+				//Mat faceROI = gray(face);
+				//cv::resize(faceROI, faceROI, Size(200, 200));
+
+/*
+				// 얼굴 영역에서 눈 검출
+				vector<Rect> eyes;
+				eyeCascade.detectMultiScale(faceROI, eyes, 1.1, 10, 0, cv::Size(20, 20));
+				if (eyes.size() < 2) continue; // 눈이 2개 미만이면 false positive 제거
+				// 눈도 시각적으로 표시하고 싶으면 추가
+				for (const auto& eye : eyes) {
+						cv::Point eyeCenter(face.x + eye.x + eye.width / 2, face.y + eye.y + eye.height / 2);
+						int radius = cvRound((eye.width + eye.height) * 0.25);
+						cv::circle(frame, eyeCenter, radius, cv::Scalar(255, 0, 0), 2);
+				}
+*/
+				QString labelText;
+				Scalar boxColor;
+
+
+				if (!isRegistering) {
+						// 등록 모드가 아닐 때 등록된 사용자와 비교
+						int predictedLabel = -1;
+						double confidence = 999.0;
+
+						if (!storedFaces.empty()) {
+								faceRecognizer->predict(alignedFace, predictedLabel, confidence);
+						}
+
+						//cout << "[" << __func__ << "] predictedLabel: " << predictedLabel << "confidence: " << confidence << endl; 
+						if (confidence < 60.0 && labelMap.count(predictedLabel)) {
+								labelText = QString::fromStdString(labelMap[predictedLabel]);
+								boxColor = Scalar(0, 255, 0);
+						}
+						else {
+								labelText = "Unknown";
+								boxColor= Scalar(0, 0, 255);
+						}
+						rectangle(frame, face, boxColor, 2);
+
+						putText(frame, labelText.toStdString(), Point(face.x + 100, face.y + face.height + 20),
+										FONT_HERSHEY_SIMPLEX, 0.8, boxColor, 2);
+				}
+				else if (isRegistering) {
+						labelText = "Registering...";
+						boxColor = Scalar(255, 0, 0);
+
+						rectangle(frame, face, Scalar(255, 0, 0), 2);
+						putText(frame, labelText.toStdString(), Point(face.x, face.y + face.height + 20),
+										FONT_HERSHEY_SIMPLEX, 0.8, boxColor, 2);
+
+						//rectangle(frame, cv::Rect(0, 0, frame.cols - 1, frame.rows - 1), Scalar(0, 255, 0), 4);
+
+						if (captureCount == 0 && isDuplicateFace(alignedFace)) {
+								ui->statusbar->showMessage("이미 등록된 얼굴입니다.");
+								isRegistering = false;
+								return;
+						}
+
+						if (captureCount < 20) {
+								if (!fs::exists(USER_FACES_DIR)) 
+										fs::create_directory(USER_FACES_DIR);
+
+								string filename = CONF_PATH + string("data/face_") + to_string(currentLabel) + "_" + to_string(captureCount + 1) + ".png";
+								//if (!imwrite(filename, alignedFace)) {
+								if (!imwrite(filename, faceColor)) {
+									qDebug() << "이미지 저장 실패: " << QString::fromStdString(filename);
+								}
+								colorStoredFaces[currentLabel].push_back(faceColor);
+								storedFaces[currentLabel].push_back(alignedFace);
+								labelMap[currentLabel] = userName.toStdString();
+								captureCount++;
+								ui->statusbar->showMessage(QString("[등록중] %1: %2/20").arg(userName).arg(captureCount));
+								if (captureCount >= 20) {
+										saveLabelToFile(currentLabel, userName.toStdString());
+
+										vector<Mat> images;
+										vector<int> labels;
+										for (const auto& entry : storedFaces) {
+												for (const auto& img : entry.second) {
+														images.push_back(img);
+														labels.push_back(entry.first);
+												}
+										}
+
+										faceRecognizer->train(images, labels);
+										isRegistering = false;
+										ui->statusbar->showMessage("[등록 완료]" + userName);
+								}
+						}
+
+										}
+
+				//cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
+				QImage qimg(frame.data, frame.cols, frame.rows, frame.step, QImage::Format_BGR888);
+				ui->cameraLabel->setPixmap(QPixmap::fromImage(qimg));
+		}
+
+		cvtColor(frame, frame, COLOR_BGR2RGB);
+    //QImage qimg(frame.data, frame.cols, frame.rows, frame.step, QImage::Format_BGR888);
+    QImage qimg(frame.data, frame.cols, frame.rows, frame.step, QImage::Format_RGB888);
+    ui->cameraLabel->setPixmap(QPixmap::fromImage(qimg));
+}

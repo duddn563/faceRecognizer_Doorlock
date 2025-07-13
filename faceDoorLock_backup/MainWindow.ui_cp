@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+		<class>MainWindow</class>
+		<widget class="QMainWindow" name="MainWindow">
+				<property name="geometry">
+						<rect>
+								<x>0</x>
+								<y>0</y>
+								<width>800</width>
+								<height>480</height>
+						</rect>
+				</property>
+				<property name="windowTitle">
+						<string>Face Doorlock</string>
+				</property>
+				<widget class="QWidget" name="centralwidget">
+						<layout class="QHBoxLayout" name="mainLayout">
+								<!-- 좌측: 카메라 영역 -->
+								<item>
+										<widget class="QLabel" name="cameraLabel">
+												<property name="minimumSize">
+														<size>
+																<width>640</width>
+																<height>480</height>
+														</size>
+												</property>
+										</widget>
+								</item>
+
+								<!-- 우측: 버튼 영역 -->
+								<item>
+										<layout class="QVBoxLayout" name="rightPanelLayout">
+												<item>
+														<widget class="QPushButton" name="registerButton">
+																<property name="text">
+																		<string>등록 시작</string>
+																</property>
+																<property name="minimumSize">
+																		<size>
+																				<width>60</width>
+																				<height>40</height>
+																		</size>
+																</property>
+														</widget>
+												</item>
+												<item>
+														<widget class="QPushButton" name="clearButton">
+																<property name="text">
+																		<string>사용자 초기화</string>
+																</property>
+																<property name="minimumSize">
+																		<size>
+																				<width>60</width>
+																				<height>40</height>
+																		</size>
+																</property>
+														</widget>
+												</item>
+												<item>
+														<widget class="QPushButton" name="btnShowUsers">
+																<property name="text">
+																		<string>사용자 목록</string>
+																</property>
+																<property name="minimumSize">
+																		<size>
+																				<width>60</width>
+																				<height>40</height>
+																		</size>
+																</property>
+														</widget>
+												</item>
+												<item>
+														<widget class="QPushButton" name="ExitButton">
+																<property>
+																		<string>종료</string>
+																</property>
+																<property name="minimumSize">
+																		<size>
+																				<width>60</width>
+																				<height>40</height>
+																		</size>
+																</property>
+														</widget>
+												</item>
+										</layout>
+								</item>
+						</layout>
+				</widget>
+				<widget class="QMenuBar" name="menubar"/>
+				<widget class="QStatusBar" name="statusbar"/>
+		</widget>
+		<resources/>
+		<connections/>
+</ui>
+

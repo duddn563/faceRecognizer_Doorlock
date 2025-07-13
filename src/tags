@@ -1,0 +1,186 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_EXCMD	mixed	/number, pattern, mixed, or combineV2/
+!_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
+!_TAG_PROC_CWD	/root/trunk/faceRecognizer_Doorlock/src/	//
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	5.9.0	//
+ASSERT_PATH	services/FaceRecognitionService.hpp	/^#define ASSERT_PATH /;"	d
+BTN_STYLE	gui/styleConstants.hpp	/^const QString BTN_STYLE = R"($/;"	v	typeref:typename:const QString
+CAM_LABEL_STYLE	gui/styleConstants.hpp	/^const QString CAM_LABEL_STYLE = R"($/;"	v	typeref:typename:const QString
+CAM_NUM	services/FaceRecognitionService.hpp	/^#define CAM_NUM	/;"	d
+CONF_PATH	services/FaceRecognitionService.hpp	/^#define CONF_PATH	/;"	d
+ClickableLabel	gui/MainWindow.hpp	/^			explicit ClickableLabel(const QString& imagePath, QWidget* parent = nullptr)$/;"	f	class:ClickableLabel
+ClickableLabel	gui/MainWindow.hpp	/^class ClickableLabel : public QLabel {$/;"	c
+DEBUG	services/DoorSensorService.cpp	/^#define DEBUG$/;"	d	file:
+DEBUG	services/FaceSensorService.cpp	/^#define DEBUG$/;"	d	file:
+DETECTING_PERSON	faceRecognitionState.hpp	/^    DETECTING_PERSON,$/;"	e	enum:RecognitionState
+DOORSENSORSERVICE_H	services/DoorSensorService.hpp	/^#define DOORSENSORSERVICE_H$/;"	d
+DUPLICATEDFACE	faceRecognitionState.hpp	/^		DUPLICATEDFACE,$/;"	e	enum:RecognitionState
+DoorSensorPresenter	presenter/DoorSensorPresenter.cpp	/^DoorSensorPresenter::DoorSensorPresenter(DoorSensorService *service, MainWindow* view, QObject* /;"	f	class:DoorSensorPresenter
+DoorSensorPresenter	presenter/DoorSensorPresenter.hpp	/^class DoorSensorPresenter : public QObject {$/;"	c
+DoorSensorService	services/DoorSensorService.cpp	/^DoorSensorService::DoorSensorService(QObject *parent) : QObject(parent) $/;"	f	class:DoorSensorService
+DoorSensorService	services/DoorSensorService.hpp	/^class DoorSensorService : public QObject {$/;"	c
+ECHO_PIN	services/FaceSensorService.hpp	/^#define ECHO_PIN /;"	d
+EYESDETECTOR	services/FaceRecognitionService.hpp	/^#define EYESDETECTOR /;"	d
+FACEDETECTOR	services/FaceRecognitionService.hpp	/^#define FACEDETECTOR /;"	d
+FACERECOGNITIONSERVICE_H	services/FaceRecognitionService.hpp	/^#define FACERECOGNITIONSERVICE_H$/;"	d
+FACESENSORSERVICE_H	services/FaceSensorService.hpp	/^#define	FACESENSORSERVICE_H /;"	d
+FACE_MODEL_FILE	services/FaceRecognitionService.hpp	/^#define FACE_MODEL_FILE	/;"	d
+FaceRecognitionPresenter	presenter/FaceRecognitionPresenter.cpp	/^FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* service, MainWindow* /;"	f	class:FaceRecognitionPresenter
+FaceRecognitionPresenter	presenter/FaceRecognitionPresenter.hpp	/^class FaceRecognitionPresenter : public QObject {$/;"	c
+FaceRecognitionService	services/FaceRecognitionService.cpp	/^FaceRecognitionService::FaceRecognitionService(QObject* parent) : QObject(parent) $/;"	f	class:FaceRecognitionService
+FaceRecognitionService	services/FaceRecognitionService.hpp	/^class FaceRecognitionService : public QObject {$/;"	c
+FaceSensorPresenter	presenter/FaceSensorPresenter.cpp	/^FaceSensorPresenter::FaceSensorPresenter(FaceSensorService* service, MainWindow* view, QObject* /;"	f	class:FaceSensorPresenter
+FaceSensorPresenter	presenter/FaceSensorPresenter.hpp	/^class FaceSensorPresenter : public QObject {$/;"	c
+FaceSensorService	services/FaceSensorService.cpp	/^FaceSensorService::FaceSensorService(QObject *parent) : QObject(parent) {$/;"	f	class:FaceSensorService
+FaceSensorService	services/FaceSensorService.hpp	/^class FaceSensorService : public QObject {$/;"	c
+GlobalLogger	logger.hpp	/^namespace GlobalLogger {$/;"	n
+IDLE	faceRecognitionState.hpp	/^    IDLE,$/;"	e	enum:RecognitionState
+IDLE	gui/MainWindow.hpp	/^		IDLE,$/;"	e	enum:UiState
+LOG_CRITICAL	logger.hpp	/^#define LOG_CRITICAL(/;"	d
+LOG_DEBUG	logger.hpp	/^#define LOG_DEBUG(/;"	d
+LOG_DIR	logger.hpp	/^#define LOG_DIR	/;"	d
+LOG_FILE	logger.hpp	/^#define LOG_FILE	/;"	d
+LOG_INFO	logger.hpp	/^#define LOG_INFO(/;"	d
+LOG_WARN	logger.hpp	/^#define LOG_WARN(/;"	d
+Logger	logger.hpp	/^class Logger {$/;"	c
+MainPresenter	presenter/MainPresenter.cpp	/^MainPresenter::MainPresenter(MainWindow* view)$/;"	f	class:MainPresenter
+MainPresenter	presenter/MainPresenter.hpp	/^class MainPresenter : public QObject {$/;"	c
+MainWindow	gui/MainWindow.cpp	/^MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) $/;"	f	class:MainWindow
+MainWindow	gui/MainWindow.hpp	/^class MainWindow : public QMainWindow {$/;"	c
+PREVIEWING	gui/MainWindow.hpp	/^		PREVIEWING$/;"	e	enum:UiState
+RECOGNIZING_FACE	faceRecognitionState.hpp	/^    RECOGNIZING_FACE,$/;"	e	enum:RecognitionState
+REGISTERING	faceRecognitionState.hpp	/^    REGISTERING,$/;"	e	enum:RecognitionState
+REGISTERING	gui/MainWindow.hpp	/^		REGISTERING,$/;"	e	enum:UiState
+ROOT_PATH	services/FaceRecognitionService.hpp	/^#define ROOT_PATH	/;"	d
+RecognitionState	faceRecognitionState.hpp	/^enum class RecognitionState {$/;"	g
+SIG_PIN	services/DoorSensorService.hpp	/^#define SIG_PIN /;"	d
+STATUS_BAR_STYLE	gui/styleConstants.hpp	/^const QString STATUS_BAR_STYLE = R"($/;"	v	typeref:typename:const QString
+TRIG_PIN	services/FaceSensorService.hpp	/^#define TRIG_PIN /;"	d
+UNLOCKED	faceRecognitionState.hpp	/^    UNLOCKED$/;"	e	enum:RecognitionState
+USER_FACES_DIR	services/FaceRecognitionService.hpp	/^#define USER_FACES_DIR	/;"	d
+USER_FACES_DIR	services/UserImageService.cpp	/^#define USER_FACES_DIR /;"	d	file:
+USER_LABEL_FILE	services/FaceRecognitionService.hpp	/^#define USER_LABEL_FILE	/;"	d
+Ui	gui/MainWindow.hpp	/^namespace Ui { class MainWindow; }$/;"	n
+UiState	gui/MainWindow.hpp	/^enum class UiState {$/;"	g
+UserImage	services/UserImageService.hpp	/^struct UserImage {$/;"	s
+UserImageService	services/UserImageService.hpp	/^class UserImageService {$/;"	c
+Utile	util.hpp	/^class Utile {$/;"	c
+WINDOW_MIN_HEIGHT	gui/MainWindow.hpp	/^constexpr int WINDOW_MIN_HEIGHT = 600;$/;"	v	typeref:typename:int
+WINDOW_MIN_WIDTH	gui/MainWindow.hpp	/^constexpr int WINDOW_MIN_WIDTH = 900;$/;"	v	typeref:typename:int
+__anon5223f6a70102	gui/MainWindow.cpp	/^    auto safeConnect = [this](QPushButton* btn, auto slot, const QString& name) {$/;"	f	function:MainWindow::connectSignals	file:
+__anon5223f6a70202	gui/MainWindow.cpp	/^		connect(ui->showUserImages, &QPushButton::clicked, this, [=]() {$/;"	f	function:MainWindow::connectSignals	file:
+__anon5223f6a70302	gui/MainWindow.cpp	/^				QMetaObject::invokeMethod(faceRecognitionService, [this, name]() {$/;"	f	function:MainWindow::onRegisterFace	file:
+__anon5223f6a70402	gui/MainWindow.cpp	/^        connect(delBtn, &QPushButton::clicked, this, [=]() {$/;"	f	function:MainWindow::onShowUserImages	file:
+__anon5223f6a70502	gui/MainWindow.cpp	/^		connect(previewDialog, &QDialog::finished, this, [=]() {$/;"	f	function:MainWindow::showImagePreview	file:
+__anon5223f6a70602	gui/MainWindow.cpp	/^        connect(delBtn, &QPushButton::clicked, this, [=]() {$/;"	f	function:MainWindow::showUserImageGallery	file:
+__anon74a2dcc50102	presenter/FaceRecognitionPresenter.cpp	/^		connect(service, &FaceRecognitionService::frameReady, this, [=](const QImage& image) {$/;"	f	function:FaceRecognitionPresenter::FaceRecognitionPresenter	file:
+__anon74a2dcc50202	presenter/FaceRecognitionPresenter.cpp	/^		connect(service, &FaceRecognitionService::stateChanged, this, [=](RecognitionState state) {$/;"	f	function:FaceRecognitionPresenter::FaceRecognitionPresenter	file:
+__anon7d8912a30102	presenter/DoorSensorPresenter.cpp	/^		connect(service, &DoorSensorService::doorClosed, view, [=]() {$/;"	f	function:DoorSensorPresenter::DoorSensorPresenter	file:
+__anon7d8912a30202	presenter/DoorSensorPresenter.cpp	/^		connect(service, &DoorSensorService::doorOpened, view, [=]() {$/;"	f	function:DoorSensorPresenter::DoorSensorPresenter	file:
+__anon9def225e0102	presenter/FaceSensorPresenter.cpp	/^		connect(service, &FaceSensorService::personDetected, view, [=]() {$/;"	f	function:FaceSensorPresenter::FaceSensorPresenter	file:
+__anon9def225e0202	presenter/FaceSensorPresenter.cpp	/^		connect(service, &FaceSensorService::personLeft, view, [=]() {$/;"	f	function:FaceSensorPresenter::FaceSensorPresenter	file:
+alignAndNormalizeFace	services/FaceRecognitionService.cpp	/^Mat FaceRecognitionService::alignAndNormalizeFace(const Mat& grayFrame, const Rect& faceRect)$/;"	f	class:FaceRecognitionService	typeref:typename:Mat
+applyStyles	gui/MainWindow.cpp	/^void MainWindow::applyStyles() {$/;"	f	class:MainWindow	typeref:typename:void
+buttonList	gui/MainWindow.cpp	/^QList<QPushButton*> MainWindow::buttonList() const {$/;"	f	class:MainWindow	typeref:typename:QList<QPushButton * >
+cap	services/FaceRecognitionService.hpp	/^				VideoCapture cap;$/;"	m	class:FaceRecognitionService	typeref:typename:VideoCapture
+captureCount	services/FaceRecognitionService.hpp	/^				int captureCount = 0;$/;"	m	class:FaceRecognitionService	typeref:typename:int
+checkFileExist	util.cpp	/^int Utile::checkFileExist(const char* fileName, int mode)$/;"	f	class:Utile	typeref:typename:int
+connectSignals	gui/MainWindow.cpp	/^void MainWindow::connectSignals() {$/;"	f	class:MainWindow	typeref:typename:void
+createFile	util.cpp	/^int Utile::createFile(const char* fileName, int mode = 0)$/;"	f	class:Utile	typeref:typename:int
+createLBPH	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::createLBPH()$/;"	f	class:FaceRecognitionService	typeref:typename:void
+currentLabel	services/FaceRecognitionService.hpp	/^				int currentLabel = -1;$/;"	m	class:FaceRecognitionService	typeref:typename:int
+currentState	services/FaceRecognitionService.hpp	/^				RecognitionState currentState = RecognitionState::IDLE;$/;"	m	class:FaceRecognitionService	typeref:typename:RecognitionState
+currentUiState	gui/MainWindow.hpp	/^			UiState currentUiState = UiState::IDLE;$/;"	m	class:MainWindow	typeref:typename:UiState
+deleteImage	services/UserImageService.cpp	/^bool UserImageService::deleteImage(const QString& path)$/;"	f	class:UserImageService	typeref:typename:bool
+doorSensorPresenter	gui/MainWindow.hpp	/^			DoorSensorPresenter* doorSensorPresenter;$/;"	m	class:MainWindow	typeref:typename:DoorSensorPresenter *
+doorSensorStart	presenter/DoorSensorPresenter.cpp	/^void DoorSensorPresenter::doorSensorStart()$/;"	f	class:DoorSensorPresenter	typeref:typename:void
+drawCornerBox	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::drawCornerBox(Mat& img, Rect rect, Scalar color, int thickness = 2,/;"	f	class:FaceRecognitionService	typeref:typename:void
+drawTransparentBox	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::drawTransparentBox(Mat& img, Rect rect, Scalar color, double alpha /;"	f	class:FaceRecognitionService	typeref:typename:void
+eyesDetector	services/FaceRecognitionService.hpp	/^				CascadeClassifier eyesDetector;$/;"	m	class:FaceRecognitionService	typeref:typename:CascadeClassifier
+faceDetector	services/FaceRecognitionService.hpp	/^				CascadeClassifier faceDetector;$/;"	m	class:FaceRecognitionService	typeref:typename:CascadeClassifier
+faceRecognitionPresenter	gui/MainWindow.hpp	/^			FaceRecognitionPresenter* faceRecognitionPresenter;$/;"	m	class:MainWindow	typeref:typename:FaceRecognitionPresenter *
+faceRecognitionService	gui/MainWindow.hpp	/^			FaceRecognitionService* faceRecognitionService;$/;"	m	class:MainWindow	typeref:typename:FaceRecognitionService *
+faceRecognitionStart	presenter/FaceRecognitionPresenter.cpp	/^void FaceRecognitionPresenter::faceRecognitionStart()$/;"	f	class:FaceRecognitionPresenter	typeref:typename:void
+faceSensorPresenter	gui/MainWindow.hpp	/^			FaceSensorPresenter* faceSensorPresenter;$/;"	m	class:MainWindow	typeref:typename:FaceSensorPresenter *
+faceSensorStart	presenter/FaceSensorPresenter.cpp	/^void FaceSensorPresenter::faceSensorStart()$/;"	f	class:FaceSensorPresenter	typeref:typename:void
+filePath	services/UserImageService.hpp	/^		QString filePath;$/;"	m	struct:UserImage	typeref:typename:QString
+finalizeRegistration	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::finalizeRegistration()$/;"	f	class:FaceRecognitionService	typeref:typename:void
+frameMutex	services/FaceRecognitionService.hpp	/^				QMutex frameMutex;$/;"	m	class:FaceRecognitionService	typeref:typename:QMutex
+getNextLabel	services/FaceRecognitionService.cpp	/^int FaceRecognitionService::getNextLabel()$/;"	f	class:FaceRecognitionService	typeref:typename:int
+getUserImages	services/UserImageService.cpp	/^QList<UserImage> UserImageService::getUserImages() $/;"	f	class:UserImageService	typeref:typename:QList<UserImage>
+getUserName	services/FaceRecognitionService.cpp	/^QString FaceRecognitionService::getUserName() $/;"	f	class:FaceRecognitionService	typeref:typename:QString
+handleDeleteImage	presenter/MainPresenter.cpp	/^void MainPresenter::handleDeleteImage(const QString& imagePath)$/;"	f	class:MainPresenter	typeref:typename:void
+handleImagePreview	presenter/MainPresenter.cpp	/^void MainPresenter::handleImagePreview(const QString& imagePath) $/;"	f	class:MainPresenter	typeref:typename:void
+handleRecognition	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::handleRecognition(Mat& frame, const Rect& face, const Mat& aligendF/;"	f	class:FaceRecognitionService	typeref:typename:void
+handleRegistration	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::handleRegistration(Mat& frame, const Rect& face, const Mat& aligned/;"	f	class:FaceRecognitionService	typeref:typename:void
+handleShowImages	presenter/MainPresenter.cpp	/^void MainPresenter::handleShowImages()$/;"	f	class:MainPresenter	typeref:typename:void
+imagePath	gui/MainWindow.hpp	/^			QString imagePath;$/;"	m	class:ClickableLabel	typeref:typename:QString
+init	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::init()$/;"	f	class:FaceRecognitionService	typeref:typename:void
+isDuplicateFace	services/FaceRecognitionService.cpp	/^bool FaceRecognitionService::isDuplicateFace(const Mat& newFace)$/;"	f	class:FaceRecognitionService	typeref:typename:bool
+isRegistering	services/FaceRecognitionService.hpp	/^				bool isRegistering = false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
+isRunning	services/DoorSensorService.hpp	/^				std::atomic<bool> isRunning = true;$/;"	m	class:DoorSensorService	typeref:typename:std::atomic<bool>
+isRunning	services/FaceRecognitionService.hpp	/^				std::atomic<bool> isRunning = true;$/;"	m	class:FaceRecognitionService	typeref:typename:std::atomic<bool>
+isRunning	services/FaceSensorService.hpp	/^				std::atomic<bool> isRunning = true;$/;"	m	class:FaceSensorService	typeref:typename:std::atomic<bool>
+labelMap	services/FaceRecognitionService.hpp	/^				map<int, string> labelMap;$/;"	m	class:FaceRecognitionService	typeref:typename:map<int,string>
+loadDetector	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::loadDetector()$/;"	f	class:FaceRecognitionService	typeref:typename:void
+loadLabelMap	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::loadLabelMap()$/;"	f	class:FaceRecognitionService	typeref:typename:void
+loadModel	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::loadModel()$/;"	f	class:FaceRecognitionService	typeref:typename:void
+logMessage	logger.hpp	/^inline void logMessage(QtMsgType type, const QString& functionName, const QString& message)$/;"	f	namespace:GlobalLogger	typeref:typename:void
+main	main.cpp	/^int main(int argc, char *argv[]) $/;"	f	typeref:typename:int
+mousePressEvent	gui/MainWindow.hpp	/^			void mousePressEvent(QMouseEvent* event) override {$/;"	f	class:ClickableLabel	typeref:typename:void
+onClearUsers	gui/MainWindow.cpp	/^void MainWindow::onClearUsers() {$/;"	f	class:MainWindow	typeref:typename:void
+onExitProgram	gui/MainWindow.cpp	/^void MainWindow::onExitProgram() {$/;"	f	class:MainWindow	typeref:typename:void
+onRegisterFace	gui/MainWindow.cpp	/^void MainWindow::onRegisterFace() {$/;"	f	class:MainWindow	typeref:typename:void
+onShowUserImages	gui/MainWindow.cpp	/^void MainWindow::onShowUserImages() {$/;"	f	class:MainWindow	typeref:typename:void
+onShowUserList	gui/MainWindow.cpp	/^void MainWindow::onShowUserList() $/;"	f	class:MainWindow	typeref:typename:void
+openCamera	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::openCamera()$/;"	f	class:FaceRecognitionService	typeref:typename:void
+overlayLabel	gui/MainWindow.hpp	/^			QLabel *overlayLabel;$/;"	m	class:MainWindow	typeref:typename:QLabel *
+presenter	gui/MainWindow.hpp	/^			MainPresenter* presenter;$/;"	m	class:MainWindow	typeref:typename:MainPresenter *
+procFrame	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::procFrame()$/;"	f	class:FaceRecognitionService	typeref:typename:void
+recognizer	services/FaceRecognitionService.hpp	/^				Ptr<LBPHFaceRecognizer> recognizer;$/;"	m	class:FaceRecognitionService	typeref:typename:Ptr<LBPHFaceRecognizer>
+registerExistingUser	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::registerExistingUser()$/;"	f	class:FaceRecognitionService	typeref:typename:void
+run	services/DoorSensorService.cpp	/^void DoorSensorService::run()$/;"	f	class:DoorSensorService	typeref:typename:void
+run	services/FaceSensorService.cpp	/^void FaceSensorService::run() {$/;"	f	class:FaceSensorService	typeref:typename:void
+saveCapturedFace	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::saveCapturedFace(const Rect& face, const Mat& alignedFace, const Ma/;"	f	class:FaceRecognitionService	typeref:typename:void
+saveLabelToFile	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::saveLabelToFile(int label, const string& name)$/;"	f	class:FaceRecognitionService	typeref:typename:void
+service	presenter/DoorSensorPresenter.hpp	/^				DoorSensorService* service;$/;"	m	class:DoorSensorPresenter	typeref:typename:DoorSensorService *
+service	presenter/FaceRecognitionPresenter.hpp	/^				FaceRecognitionService* service;$/;"	m	class:FaceRecognitionPresenter	typeref:typename:FaceRecognitionService *
+service	presenter/FaceSensorPresenter.hpp	/^				FaceSensorService* service;$/;"	m	class:FaceSensorPresenter	typeref:typename:FaceSensorService *
+setRecognitionState	gui/MainWindow.cpp	/^void MainWindow::setRecognitionState(RecognitionState state) {$/;"	f	class:MainWindow	typeref:typename:void
+setState	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::setState(RecognitionState newState) $/;"	f	class:FaceRecognitionService	typeref:typename:void
+setupUi	gui/MainWindow.cpp	/^void MainWindow::setupUi() {$/;"	f	class:MainWindow	typeref:typename:void
+showError	gui/MainWindow.cpp	/^void MainWindow::showError(const QString& title, const QString& message) {$/;"	f	class:MainWindow	typeref:typename:void
+showErrorMessage	gui/MainWindow.cpp	/^void MainWindow::showErrorMessage(const QString& title, const QString& message)$/;"	f	class:MainWindow	typeref:typename:void
+showImagePreview	gui/MainWindow.cpp	/^void MainWindow::showImagePreview(const QString& imagePath) $/;"	f	class:MainWindow	typeref:typename:void
+showInfo	gui/MainWindow.cpp	/^void MainWindow::showInfo(const QString& title, const QString& message) {$/;"	f	class:MainWindow	typeref:typename:void
+showStatusMessage	gui/MainWindow.cpp	/^void MainWindow::showStatusMessage(const QString& msg)$/;"	f	class:MainWindow	typeref:typename:void
+showUserImageGallery	gui/MainWindow.cpp	/^void MainWindow::showUserImageGallery(const QList<UserImage>& images) {$/;"	f	class:MainWindow	typeref:typename:void
+startRegistering	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::startRegistering(const QString& name)$/;"	f	class:FaceRecognitionService	typeref:typename:void
+stop	services/DoorSensorService.cpp	/^void DoorSensorService::stop() {$/;"	f	class:DoorSensorService	typeref:typename:void
+stop	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::stop()$/;"	f	class:FaceRecognitionService	typeref:typename:void
+stop	services/FaceSensorService.cpp	/^void FaceSensorService::stop()$/;"	f	class:FaceSensorService	typeref:typename:void
+storedFaces	services/FaceRecognitionService.hpp	/^				map<int, vector<Mat>> storedFaces;$/;"	m	class:FaceRecognitionService	typeref:typename:map<int,vector<Mat>>
+thread	presenter/DoorSensorPresenter.hpp	/^				QThread* thread;$/;"	m	class:DoorSensorPresenter	typeref:typename:QThread *
+thread	presenter/FaceRecognitionPresenter.hpp	/^				QThread* thread;$/;"	m	class:FaceRecognitionPresenter	typeref:typename:QThread *
+thread	presenter/FaceSensorPresenter.hpp	/^				QThread* thread;$/;"	m	class:FaceSensorPresenter	typeref:typename:QThread *
+timer	gui/MainWindow.hpp	/^			QTimer* timer = nullptr;$/;"	m	class:MainWindow	typeref:typename:QTimer *
+trainOrUpdateModel	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::trainOrUpdateModel(const vector<Mat>& images, const vector<int>& la/;"	f	class:FaceRecognitionService	typeref:typename:void
+ui	gui/MainWindow.hpp	/^		Ui::MainWindow* ui;$/;"	m	class:MainWindow	typeref:typename:Ui::MainWindow *
+userName	services/FaceRecognitionService.hpp	/^				QString userName;$/;"	m	class:FaceRecognitionService	typeref:typename:QString
+userName	services/UserImageService.hpp	/^		QString userName;$/;"	m	struct:UserImage	typeref:typename:QString
+view	presenter/DoorSensorPresenter.hpp	/^				MainWindow* view;$/;"	m	class:DoorSensorPresenter	typeref:typename:MainWindow *
+view	presenter/FaceRecognitionPresenter.hpp	/^				MainWindow* view;$/;"	m	class:FaceRecognitionPresenter	typeref:typename:MainWindow *
+view	presenter/FaceSensorPresenter.hpp	/^				MainWindow* view;$/;"	m	class:FaceSensorPresenter	typeref:typename:MainWindow *
+view	presenter/MainPresenter.hpp	/^				MainWindow* view;$/;"	m	class:MainPresenter	typeref:typename:MainWindow *
+write	logger.cpp	/^void Logger::write(const std::string& message) {$/;"	f	class:Logger	typeref:typename:void
+writef	logger.cpp	/^void Logger::writef(const char* format, ...)$/;"	f	class:Logger	typeref:typename:void
+~DoorSensorPresenter	presenter/DoorSensorPresenter.cpp	/^DoorSensorPresenter::~DoorSensorPresenter()$/;"	f	class:DoorSensorPresenter
+~FaceRecognitionPresenter	presenter/FaceRecognitionPresenter.cpp	/^FaceRecognitionPresenter::~FaceRecognitionPresenter()$/;"	f	class:FaceRecognitionPresenter
+~FaceSensorPresenter	presenter/FaceSensorPresenter.cpp	/^FaceSensorPresenter::~FaceSensorPresenter()$/;"	f	class:FaceSensorPresenter
+~MainWindow	gui/MainWindow.cpp	/^MainWindow::~MainWindow() {$/;"	f	class:MainWindow

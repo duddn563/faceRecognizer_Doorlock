@@ -1,0 +1,152 @@
+#ifndef FACERECOGNIZERWORKER_HPP
+#define FACERECOGNIZERWORKER_HPP
+
+#include <QObject>
+#include <QDebug>
+#include <opencv2/opencv.hpp>
+#include <opencv2/face.hpp>
+#include <atomic>
+#include <map>
+#include <vector>
+
+#include "logger.hpp"
+#include "MainWindow.hpp"
+//#include "util.hpp"
+#include "FaceRecognitionState.hpp"
+
+#define CAM_NUM											  -1
+
+#define	CONF_PATH											"/usr/local/etc/face_doorlock/"						
+#define	HAARCASCADE_FRONTALFACE				CONF_PATH "haarcascades/haarcascade_frontalface_default.xml"
+#define HAARCASCADE_EYE								CONF_PATH "haarcascades/haarcascade_eye.xml"
+#define FACE_MODEL_FILE								CONF_PATH "face_model.yml"
+#define USER_LABEL_FILE								CONF_PATH "labels.txt"	
+#define USER_FACES_DIR								CONF_PATH	"data"
+
+#define IMAGES_PATH										"/root/trunk/faceRecognizer_Doorlock/ui/images/"							
+
+using namespace std;
+using namespace cv;
+
+typedef struct UserInfo_t	{
+		int label;
+		QString name;
+		Mat grayFaceImage;
+		Mat colorFaceImage;
+} UserInfo;
+
+
+class FaceRecognizerWorker : public QObject {
+    Q_OBJECT
+public:
+    explicit FaceRecognizerWorker(QObject *parent = nullptr);
+    ~FaceRecognizerWorker();
+
+    void initialize();
+    void stop();
+
+
+signals:
+		void recognitionResult(const QString& result);
+		void errorOccurred(const QString& error);
+		void stateChanged(RecognitionState newState);
+
+private:
+		void openCamera();
+		void createLBPH();
+		void loadDetector();	
+		void loadModel();
+		void loadLabelMap();
+		void trainOrUpdateModel(const vector<Mat>& images, const vector<int>& labels);
+		void registerExistingUser();
+		void isUserNameExists(const QString& name);
+		void saveLabelToFile(int label, const string& name);
+		int  getNextLabel();
+
+		void setState(RecognitionState newState);
+
+		void processFrame();
+		void handleRecognition(const Rect& face, const Mat& aligned, const Mat& colorFace);
+		void handleRegistration(const Rect&face, const Mat& aligned, const Mat& colorFace);
+
+		bool isDuplicateFace(const Mat& newFace);
+		Mat alignAndNormalizeFace(const Mat& grayFrame, const Rect& faceRect);
+
+private:
+		bool running;
+		VideoCapture cap;
+
+		CascadeClassifier faceDetector;
+		CascadeClassifier eyesDetector;
+		Ptr<LBPHFaceRecognizer> recognizer;
+
+		RecognitionState currentState = RecognitionState::IDLE;
+
+		int currentLabel = -1;
+		QString userName;
+		int captureCount = 0;
+		bool isRegistering = false;
+		
+};
+
+
+/*
+struct UserData {
+		int label;
+		string name;
+		Mat grayFaceImage;
+		Mat colorFaceImage;
+};
+
+class FaceRecognizerWorker : public QObject 
+{
+		Q_OBJECT
+	
+public:
+		explicit FaceRecognizerWorker(QObject* parent = nullptr);
+		~FaceRecognizerWorker();
+
+		void startRegisterUser(const QString& userName);
+
+		void processFrame(const Mat& frame);
+
+		void loadModel();
+		void saveModel();
+
+signals:
+		void registerProgress(int current, int max);
+
+		void registerFinished(const QString& userName);
+
+		void faceRecognized(const QString& userName, double confidence);
+
+		void errorOccurred(const QString& message);
+
+private:
+		bool isDuplicateFace(const Mat& newFace);
+		Mat alignAndNormalizeFace(const Mat& grayFrame, const Rect& faceRect);
+
+
+		CascadeClassifier faceDetector;
+		Ptr<face::LBPHFaceRecognizer> recognizer;
+
+		map<int, vector<Mat>> storedFaces;
+		vector<UserData> storedUsers;
+		map<int, string> labelMap;
+
+		int currentLabel;
+		QString registeringUserName;
+		int captureCount;
+		const int maxCaptureCount = 20;
+
+		bool registering;
+
+		int getNextLabel();
+
+		void saveLabelToFile;
+		void loadLabelMap();
+
+};
+*/
+
+#endif // FACERECOGNIZERWORKER_HPP
