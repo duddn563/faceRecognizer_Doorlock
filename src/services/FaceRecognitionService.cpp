@@ -56,14 +56,21 @@ void FaceRecognitionService::openCamera()
 
 void FaceRecognitionService::loadDetector()
 {
-		faceDetector.load(FACEDETECTOR);
-		eyesDetector.load(EYESDETECTOR);
+		try {
+				faceDetector.load(FACEDETECTOR);
+				eyesDetector.load(EYESDETECTOR);
+		}
+		catch (Exception &e) {
+				qDebug() << "[FaceRecognitionService] Failed to load detector (" << e.what() << ")";				
+		}
 }
 
 void FaceRecognitionService::createLBPH()
 {
 		try {
 				recognizer = face::LBPHFaceRecognizer::create();
+				qDebug() << "[FaceRecognitionService] LBPHFaceRecognizer is created.";
+
 		} catch (Exception& e) {
 				std::cout << "Failed to create recognizer!!" << std::endl;
 				return;
@@ -78,6 +85,7 @@ void FaceRecognitionService::loadModel()
 		try {
 				if (fs::exists(FACE_MODEL_FILE)) {
 						recognizer->read(FACE_MODEL_FILE);
+						qDebug() << "[FaceRecognitionService] Recognizer is loaded.";
 				}
 				else {
 						cout << "No existing model found. Will create a new model." << endl;
@@ -130,6 +138,8 @@ void FaceRecognitionService::registerExistingUser()
 
 						}
 				}
+
+				qDebug() << "[FaceRecognitionService] Existing user is stored.";
 		}
 		else {
 				fs::create_directory(USER_FACES_DIR);
@@ -158,6 +168,8 @@ void FaceRecognitionService::loadLabelMap()
 #endif
 				}
 		}
+
+		qDebug() << "[FaceRecognitionService] LabelMap file is loaded";
 
 }
 
@@ -219,6 +231,7 @@ void FaceRecognitionService::trainOrUpdateModel(const vector<Mat>& images, const
 }
 void FaceRecognitionService::startRegistering(const QString& name)
 {
+		qDebug() << "[FaceRecognitionService] Registration has begun";
 		userName = name;
     currentLabel = getNextLabel();
     captureCount = 0;
@@ -233,10 +246,42 @@ QString FaceRecognitionService::getUserName()
 
 void FaceRecognitionService::setState(RecognitionState newState) 
 {
+		if (currentState == RecognitionState::UNLOCKED) {
+				return;
+		}
+
+		switch(newState) {
+        case RecognitionState::IDLE:
+            emit stateChanged(newState);
+						qDebug() << "[FaceRecognitionService] The status changes to IDLE";
+            break;
+
+        case RecognitionState::UNLOCKED:
+            emit stateChanged(newState);
+						qDebug() << "[FaceRecognitionService] The status changes to UNLOCKED";
+            break;
+
+				case RecognitionState::DUPLICATEDFACE:
+						emit stateChanged(newState);
+						qDebug() << "[FaceRecognitionService] The status changes to DUPLICATEDFACE";
+						break;
+
+				case RecognitionState::REGISTERING:
+						emit stateChanged(newState);
+						qDebug() << "[FaceRecognitionService] The status changes to REGISTERING";
+						break;
+
+        default:
+						break;
+		}
+
+		/*
     if (currentState != newState) {
         currentState = newState;
         emit stateChanged(currentState);
     }
+		*/
+
 }
 
 int FaceRecognitionService::handleRecognition(Mat& frame, const Rect& face, const Mat& aligendFace, QString& labelText, Scalar& boxColor)
@@ -313,6 +358,8 @@ void FaceRecognitionService::saveCapturedFace(const Rect& face, const Mat& align
 
     storedFaces[currentLabel].push_back(alignedFace);
     labelMap[currentLabel] = userName.toStdString();
+
+		qDebug() << "[FaceRecognitionService] The face image has been saved and loaded";
 }
 
 void FaceRecognitionService::finalizeRegistration()
@@ -336,12 +383,15 @@ void FaceRecognitionService::finalizeRegistration()
     isRegistering = false;
 
     //emit recognitionResult(QString("[등록 완료] %1").arg(userName));
+		qDebug() << "[FaceRecognitionService]" << userName << "registration is complete.";
 }
 
 void FaceRecognitionService::saveLabelToFile(int label, const string& name)
 {
    ofstream ofs (USER_LABEL_FILE, ios::app);
    if (ofs.is_open()) ofs << label << " " << name << endl;
+
+	 qDebug() << "[FaceRecognitionService] The user been saved to the label map.";
 }
 
 
@@ -372,6 +422,7 @@ bool FaceRecognitionService::isDuplicateFace(const Mat& newFace)
     if (!recognizer || newFace.empty()) {
         std::cerr << "[오류] 얼굴 인식기가 초기화되지 않았거나 입력 이미지가 비어 있습니다." << std::endl;
         return false;
+
     }
 
     int predictedLabel = -1;
@@ -393,6 +444,8 @@ bool FaceRecognitionService::isDuplicateFace(const Mat& newFace)
 
     // 신뢰도 기준으로 중복 여부 판단
     const double DUPLICATE_THRESHOLD = 60.0; // 작을수록 엄격 (OpenCV LBPH 기준 50~100 적절)
+
+		int rc = -1;
 
     return (confidence < DUPLICATE_THRESHOLD) && (confidence) && (predictedLabel != -1);
 }
@@ -422,6 +475,11 @@ void FaceRecognitionService::drawCornerBox(Mat& img, Rect rect, Scalar color, in
     line(img, {x + w, y + h}, {x + w, y + h - length}, color, thickness);
 }
 
+void FaceRecognitionService::resetUnlockFlag()
+{
+		hasAlreadyUnlocked = false;
+}
+
 void FaceRecognitionService::procFrame()
 {
 		int authResult = AUTH_FAILED;
@@ -433,12 +491,13 @@ void FaceRecognitionService::procFrame()
 
 		frameCopy = frame.clone();
 		Mat gray;
-
 		cvtColor(frameCopy, gray, cv::COLOR_RGB2GRAY);	
 		equalizeHist(gray, gray);
 
 		vector<Rect> faces;
 		faceDetector.detectMultiScale(gray, faces, 1.1, 5, CASCADE_SCALE_IMAGE, Size(100, 100));
+
+		bool recognized = false;
 
 		for (const auto& face : faces) 
 		{
@@ -450,33 +509,33 @@ void FaceRecognitionService::procFrame()
 
 				if (!isRegistering) {
 						authResult = handleRecognition(frameCopy, face, alignedFace, labelText, boxColor);
+						if (authResult == AUTH_SUCCESS) {
+								if (!hasAlreadyUnlocked) {
+										recognized = true;
+										authManager.handleAuthSuccess();
+					
+										if (authManager.shouldAllowEntry()) {
+												setState(RecognitionState::UNLOCKED);
+												qDebug() << "[FaceRecognitionService] Authenticate 3 time success -> Door open!";
+												authManager.resetAuth();
+												hasAlreadyUnlocked = true;
+										}	
+								}
+						}
 				}
 				else {
 						handleRegistration(frameCopy, face, alignedFace, labelText, boxColor);
 				}
 		}
+		
+		/*
+		if (!recognized)
+				qDebug() << "[FaceRecognitionService] Face recognition failure";
+		else 
+				qDebug() << "[FaceRecognitionService] Authenticate state:" << authManager.getAuthCount();
+		*/
 
-
-
-		if (authState == AUTH_FAILED) {
-				cvtColor(frameCopy, frameCopy, cv::COLOR_BGR2RGB);
-				QImage qimg = (frameCopy.data, frameCopy.cols, frameCopy.rows, frameCopy.step, QImage::format_RGB888);
-				emit frameReady(qimg.copy());
-				cout << "Auth failed..." << endl;
-		}
-		else if (authState == AUTH_SUCCESS) {
-				authCount++;
-				if (authCount < 20) {
-						cvtColor(frameCopy, frameCopy, cv::COLOR_BGR2RGB);
-						QImage qimg(frameCopy.data, frameCopy.cols, frameCopy.rows, frameCopy.step, QImage::Format_RGB888);
-						emit frameReady(qimg.copy());
-						authCount++;
-						cout << "success Count: " << authCount << endl;
-				}
-				else {
-						authState = 
-						setState(RecognitionState::UNLOCKED);
-						cout << "Door opened" << endl;
-				}
-		}
+		cvtColor(frameCopy, frameCopy, cv::COLOR_BGR2RGB);
+    QImage qimg(frameCopy.data, frameCopy.cols, frameCopy.rows, frameCopy.step, QImage::Format_RGB888);
+		emit frameReady(qimg.copy());
 }

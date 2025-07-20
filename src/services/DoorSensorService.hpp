@@ -5,6 +5,7 @@
 #include <chrono>
 #include <thread>
 #include <iostream>
+#include <QDebug>
 
 #include <QObject>
 #include <QThread>

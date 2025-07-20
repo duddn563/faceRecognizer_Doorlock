@@ -11,7 +11,10 @@
 #include <QMutexLocker>
 #include <QMutex>
 
+#include <QDebug>
+
 #include "faceRecognitionState.hpp"
+#include "AuthManager.hpp"
 #include "util.hpp"
 
 #define CAM_NUM												0
@@ -27,13 +30,12 @@
 #define USER_LABEL_FILE								ASSERT_PATH	"labels.txt"
 #define OPEN_IMAGE										ASSERT_PATH	"images/open_image.PNG"
 
-#define AUTH_SUCCESS									0
-#define AUTH_FAILED										1
+#define AUTH_SUCCESS									1
+#define AUTH_FAILED										0
 
 using namespace std;
 using namespace cv;
 using namespace cv::face;
-
 
 class FaceRecognitionService : public QObject {
 		Q_OBJECT
@@ -46,6 +48,7 @@ public:
 
 				QString getUserName();
 				void startRegistering(const QString& name);
+				void resetUnlockFlag();
 
 signals:
 				void frameReady(const QImage& frame);
@@ -76,8 +79,6 @@ private:
 				void handleRegistration(Mat& frame, const Rect& face, const Mat& alignedFace, QString& labelText, Scalar& boxColor);
 				void finalizeRegistration();
 
-				int getFirstAuthTime();
-
 private:
 				std::atomic<bool> isRunning = true;
 				VideoCapture cap;
@@ -93,27 +94,14 @@ private:
 				map<int, string> labelMap;
 
 				QMutex frameMutex;
+				AuthManager authManager;
 
 				int currentLabel = -1;
 				int captureCount = 0;
 				bool isRegistering = false;
 				QString userName;
+				bool hasAlreadyUnlocked = false;
 
-				int authState = AUTH_FAILED;
-				int authCount = 0;
-				int firstAuthTime = 0;
-};
-
-class AuthManager {
-private:
-				int authCount;
-				QDataTime firstAuthTime;
-
-public:
-				void reset();
-				void updateOnSuccess();
-				void shouldUnlock();
-				bool timeoutExceeded();
 };
 
 #endif		// FACERECOGNITIONSERVICE_H

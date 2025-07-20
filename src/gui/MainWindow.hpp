@@ -60,6 +60,8 @@ public:
 		void showStatusMessage(const QString& msg);
 
 		void setRecognitionState(RecognitionState newState);
+		RecognitionState getRecognitionState();
+		
 
 signals:
 		// Presenter로 전달할 사용자 행동 시그널
@@ -81,12 +83,14 @@ private:
 			void connectSignals();
 			QList<QPushButton*> buttonList() const;
 
-			void setupAllWorkers();
-			void setupFaceRecognitionWorker();
-
 			void showErrorMessage(const QString& title, const QString& message);
 
-	
+			void setupButtonLayout();
+
+			void resizeEvent(QResizeEvent *event);
+			void showEvent(QShowEvent *event);
+			void setupUnlockOverlayLabel();	
+			void updateUnlockOverlay();
 
 private:
 			QTimer* timer = nullptr;
@@ -98,9 +102,10 @@ private:
 
 			FaceRecognitionService* faceRecognitionService;
 
-			QLabel *overlayLabel;
+			QLabel *unlockOverlayLabel;
 
 			UiState currentUiState = UiState::IDLE;
+			RecognitionState currentRecognitionState = RecognitionState::IDLE;
 };
 
 class ClickableLabel : public QLabel {

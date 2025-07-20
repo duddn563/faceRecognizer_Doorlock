@@ -33,11 +33,10 @@ set(SOURCES
 		src/services/FaceSensorService.cpp
 		src/services/FaceRecognitionService.cpp
 
-		#src/Fd_ultrasonic.cpp
-		#src/Dd_ultrasonic.cpp
+		src/services/AuthManager.cpp
+
 		src/logger.cpp
 		src/util.cpp
-		#src/faceRecognizerWorker.cpp
 )
 
 qt5_wrap_ui(UISrcs ${UI_FILES})

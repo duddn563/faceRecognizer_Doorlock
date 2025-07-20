@@ -1,8 +1,12 @@
 #include "FaceSensorService.hpp"
+#include <QDebug>
+
 
 // #define DEBUG
 
-FaceSensorService::FaceSensorService(QObject *parent) : QObject(parent) {
+FaceSensorService::FaceSensorService(QObject *parent) : QObject(parent) 
+{
+		qDebug() << "[FaceSensorService] initialization face recognition sensor!";
     wiringPiSetup();
 
     pinMode(TRIG_PIN, OUTPUT);

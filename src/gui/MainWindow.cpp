@@ -38,75 +38,78 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 		faceRecognitionPresenter->faceRecognitionStart();
 
 		setupUi();
-
-
-		//setupAllWorkers();
 }
 
 void MainWindow::setupUi() {
     ui->setupUi(this);
-
-		 // 기존 레이아웃 제거
-    //if (QLayout* oldLayout = ui->centralwidget->layout()) {
-     //   delete oldLayout;
-    //}
-
-    // Set default window size 
     setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT);
-
-    // ▶ 카메라 라벨 설정
     if (ui->cameraLabel) {
-        //ui->cameraLabel->setScaledContents(true);			// It scales the image of the label so that the image fits the label.
         ui->cameraLabel->setStyleSheet(CAM_LABEL_STYLE);
     }
-		
 
-		// ▶ 버튼들을 수평 레이아웃에 추가
-    QHBoxLayout* buttonLayout = new QHBoxLayout();
-    for (QPushButton* btn : buttonList()) {
-#ifdef DEBUG
-				qDebug() << "Button check: " << btn << ", Text: " << (btn ? btn->text() : "null");
-#endif
-        if (btn) {
-            btn->setMinimumHeight(40);
-            btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-        }
-    }
-		
-	
-
-		/*
-    // ▶ 오버레이 라벨 초기화
-    try {
-        overlayLabel = new QLabel(ui->cameraLabel);
-        if (!overlayLabel) throw std::runtime_error("overlayLabel 할당 실패");
-
-        overlayLabel->setScaledContents(true);
-        overlayLabel->resize(ui->cameraLabel->size());
-        overlayLabel->hide();
-    } catch (const std::exception& e) {
-        LOG_CRITICAL(QString("overlayLabel 예외: %1").arg(e.what()));
-        showErrorMessage("UI 오류", "오버레이 초기화 실패. 프로그램을 다시 실행해주세요.");
-        overlayLabel = nullptr;
-    }
-		*/
+		setupUnlockOverlayLabel();
+		setupButtonLayout();
 
     // ▶ 스타일 적용
     applyStyles();
 
     // ▶ 버튼 클릭 시그널 연결
     connectSignals();
+}
 
-		/*
-    // ▶ UI 유지 타이머 (선택: 오버레이 리사이즈 대응)
-    timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, this, [=]() {
-        if (overlayLabel && overlayLabel->isVisible()) {
-            overlayLabel->resize(ui->cameraLabel->size());
-        }
-    });
-    timer->start(100);
-		*/
+void MainWindow::setupButtonLayout()
+{
+		QHBoxLayout* buttonLayout = new QHBoxLayout();
+		for (QPushButton* btn : buttonList()) {
+				if (btn) {
+						btn->setMinimumHeight(40);
+						btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+
+						btn->setStyleSheet("");
+						btn->setStyleSheet(BTN_STYLE);
+
+						auto* shadow = new QGraphicsDropShadowEffect();
+						shadow->setBlurRadius(10);
+						shadow->setXOffset(0);
+						shadow->setYOffset(3);
+						shadow->setColor(QColor(0, 0, 0, 60));
+						btn->setGraphicsEffect(shadow);
+				}
+		}
+}
+
+void MainWindow::setupUnlockOverlayLabel()
+{
+		cout << "Setup unlock overlay label!!" << endl;
+		unlockOverlayLabel = new QLabel(ui->cameraLabel);
+		unlockOverlayLabel->setAlignment(Qt::AlignCenter);
+		unlockOverlayLabel->setStyleSheet("background-color: rgba(0, 0, 0, 128);");
+		unlockOverlayLabel->setVisible(false);
+		unlockOverlayLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+	
+		updateUnlockOverlay();
+}
+
+void MainWindow::updateUnlockOverlay()
+{
+		if (!unlockOverlayLabel || !ui->cameraLabel) return;
+
+		QSize labelSize = ui->cameraLabel->size();
+		unlockOverlayLabel->setGeometry(0, 0, labelSize.width(), labelSize.height());
+		unlockOverlayLabel->setPixmap(QPixmap(OPEN_IMAGE).scaled(
+						labelSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+}
+
+void MainWindow::showEvent(QShowEvent* event)
+{
+		QMainWindow::showEvent(event);
+		updateUnlockOverlay();
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+		QMainWindow::resizeEvent(event);
+		updateUnlockOverlay();
 }
 
 void MainWindow::applyStyles() {
@@ -165,6 +168,17 @@ void MainWindow::connectSignals() {
 
 }
 
+/*
+void MainWindow::connectRegisterButton()
+void MainWindow::connectClearButton();
+
+void MainWindow::connectImageGalleryButton()
+
+void MainWindow::connectExitButton()
+
+void MainWindow::connectImageClickSignal()
+*/
+
 QList<QPushButton*> MainWindow::buttonList() const {
     return {
         ui->registerButton,
@@ -206,8 +220,10 @@ void MainWindow::onRegisterFace() {
 }
 
 void MainWindow::setRecognitionState(RecognitionState state) {
+		cout << "Set recog state!!" << endl;
     switch (state) {
         case RecognitionState::IDLE:
+						faceRecognitionService->resetUnlockFlag();
             ui->statusbar->showMessage("대기 중...");
             break;
         case RecognitionState::DETECTING_PERSON:
@@ -221,14 +237,25 @@ void MainWindow::setRecognitionState(RecognitionState state) {
             break;
 				case RecognitionState::DUPLICATEDFACE:
 						ui->statusbar->showMessage(QString("이미 등록된 얼굴입니다..."));
-						printf ("[%s] DUPLICATEDFACE!!", __func__);
 						QMessageBox::information(this, "Information", "이미 등록된 얼굴입니다...");
 						break;
         case RecognitionState::UNLOCKED:
             ui->statusbar->showMessage("문이 열렸습니다!");
-						QMessageBox::information(this, "Information", "문이 열렸습니다!!!!!");
-            break;
+					  unlockOverlayLabel->setVisible(true);
+
+						// 3초 후에 숨기고 상태 복귀
+						QTimer::singleShot(3000, this, [this]() {
+								unlockOverlayLabel->setVisible(false);
+								cout << "setVisibel true" << endl;	
+						});
+						setRecognitionState(RecognitionState::IDLE);
+						break;
     }
+}
+
+RecognitionState MainWindow::getRecognitionState() 
+{
+		return currentRecognitionState;
 }
 
 void MainWindow::onClearUsers() {

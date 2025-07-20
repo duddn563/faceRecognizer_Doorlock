@@ -7,6 +7,7 @@
 
 DoorSensorService::DoorSensorService(QObject *parent) : QObject(parent) 
 {
+		
     wiringPiSetup();
 
 		// Initialize SIG pin
