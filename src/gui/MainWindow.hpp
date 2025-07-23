@@ -69,6 +69,8 @@ signals:
     void deleteImageRequested(const QString& imagePath);
     void imageClicked(const QString& imagePath); // 미리보기 요청
 
+		void stateChangedFromView(RecognitionState state);
+
 
 private slots:
 			void onRegisterFace();

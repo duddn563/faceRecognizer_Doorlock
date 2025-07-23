@@ -6,11 +6,11 @@
 DoorSensorPresenter::DoorSensorPresenter(DoorSensorService *service, MainWindow* view, QObject* parent = nullptr)
 			: QObject(parent), service(service), view(view) 
 {
-		thread = new QThread(this);
-		service->moveToThread(thread);
+		//thread = new QThread(this);
+		//service->moveToThread(thread);
 
+		//connect(thread, &QThread::started, service, &DoorSensorService::run);
 		cout << "DoorSensor Presenter Create" << endl;
-		connect(thread, &QThread::started, service, &DoorSensorService::run);
 
 		connect(service, &DoorSensorService::doorClosed, view, [=]() {
 					std::cout << "emit doorClosed" << std::endl;
@@ -24,19 +24,23 @@ DoorSensorPresenter::DoorSensorPresenter(DoorSensorService *service, MainWindow*
 		});
 }
 
+/*
 void DoorSensorPresenter::doorSensorStart()
 {
 		thread->start();
 }
+*/
 
 DoorSensorPresenter::~DoorSensorPresenter()
 {
-		if (service) service->stop();
-		thread->quit();
-		thread->wait();
+		//if (service) service->stop();
+		//thread->quit();
+		//thread->wait();
 
-		service->deleteLater();
-		thread->deleteLater();
+		//service->deleteLater();
+		//thread->deleteLater();
 
-		delete service;
+		//delete service;
+
+		std::cout << "[DoorSensorPresenter] The Door sensor presenter disappeared." << std::endl;
 }

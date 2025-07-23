@@ -13,11 +13,11 @@ public:
 				explicit DoorSensorPresenter(DoorSensorService* service, MainWindow* view, QObject* parent);
 				~DoorSensorPresenter();
 
-				void doorSensorStart();
+				//void doorSensorStart();
 				
 private:
 				MainWindow* view;
 				DoorSensorService* service;
-				QThread* thread;
+				//QThread* thread;
 };
 

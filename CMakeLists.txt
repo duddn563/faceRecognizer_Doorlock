@@ -23,6 +23,7 @@ set(SOURCES
     src/main.cpp
     src/gui/MainWindow.cpp
 
+		src/presenter/MainPresenter.cpp
 		src/presenter/UserImagePresenter.cpp
 		src/presenter/DoorSensorPresenter.cpp
 		src/presenter/FaceSensorPresenter.cpp

@@ -13,12 +13,12 @@ public:
 				explicit FaceSensorPresenter(FaceSensorService* service, MainWindow* view, QObject* parent);
 				~FaceSensorPresenter();
 
-				void faceSensorStart();
+				//void faceSensorStart();
 
 private:
 				MainWindow* view;
 				FaceSensorService* service;
-				QThread* thread;
+				//QThread* thread;
 };
 
 

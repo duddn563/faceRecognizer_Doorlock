@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QDir>
 #include <opencv2/opencv.hpp>
+#include <QDebug>
 #include <opencv2/face.hpp>
 #include <fstream>
 #include <unistd.h>
@@ -25,10 +26,12 @@ public:
 				explicit FaceRecognitionPresenter(FaceRecognitionService* service, MainWindow* view, QObject* parent);
 				~FaceRecognitionPresenter();
 
-				void faceRecognitionStart();
-
 private:
 				MainWindow* view;
 				FaceRecognitionService* service;
-				QThread* thread;
+				//QThread* thread;
+
+				RecognitionState currentDoorState = RecognitionState::IDLE;
+
+				void onViewStateChanged(RecognitionState state);
 };

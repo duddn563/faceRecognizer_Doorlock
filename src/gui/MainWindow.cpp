@@ -16,13 +16,23 @@
 #include "presenter/FaceSensorPresenter.hpp"
 #include "presenter/FaceRecognitionPresenter.hpp"
 
+#include "presenter/MainPresenter.hpp"
+
 
 //#define DEBUG
+
+
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) 
 {
     qRegisterMetaType<RecognitionState>("RecognitionState");
 
+		MainPresenter* mainPresenter;
+		mainPresenter = new MainPresenter(this);
+		mainPresenter->startAllServices();
+		//mainPresenter->connectUIEvents();
+
+		/*
 		userImagePresenter = new UserImagePresenter(this);
 
 		auto* doorSenserService = new DoorSensorService();
@@ -36,6 +46,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 		faceRecognitionService = new FaceRecognitionService();
 		faceRecognitionPresenter = new FaceRecognitionPresenter(faceRecognitionService, this, this);
 		faceRecognitionPresenter->faceRecognitionStart();
+		*/
 
 		setupUi();
 }
@@ -159,13 +170,16 @@ void MainWindow::connectSignals() {
     safeConnect(ui->btnShowUsers, &MainWindow::onShowUserList, "사용자 목록");
     safeConnect(ui->ExitButton, &MainWindow::onExitProgram, "프로그램 종료");
 
+		
 		connect(ui->showUserImages, &QPushButton::clicked, this, [=]() {
 					qDebug() << "사용자 이미지 버튼 클릭됨";
 					emit showUserImagesRequested();
 		});
+		
 
-		connect(this, &MainWindow::imageClicked, userImagePresenter, &UserImagePresenter::handleImagePreview);
+		//connect(ui->showUserImages, &QPushButton::clicked, this, &MainWindow::showUserImagesRequested);
 
+		// connect(this, &MainWindow::imageClicked, userImagePresenter, &UserImagePresenter::handleImagePreview);
 }
 
 /*
@@ -223,7 +237,6 @@ void MainWindow::setRecognitionState(RecognitionState state) {
 		cout << "Set recog state!!" << endl;
     switch (state) {
         case RecognitionState::IDLE:
-						faceRecognitionService->resetUnlockFlag();
             ui->statusbar->showMessage("대기 중...");
             break;
         case RecognitionState::DETECTING_PERSON:

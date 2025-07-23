@@ -3,7 +3,17 @@
 UserImagePresenter::UserImagePresenter(MainWindow* view)
 		: QObject(view), view(view) 
 {
-		connect(view, &MainWindow::showUserImagesRequested, this, &UserImagePresenter::handleShowImages);
+		std::cout << "[UserImagePresenter] constructor." << std::endl;
+		//connect(view, &MainWindow::showUserImagesRequested, this, &UserImagePresenter::handleShowImages);
+
+	/*
+		connect(view->showUserImages, &QPushButton::clicked, this, [=]() {
+					qDebug() << "사용자 이미지 버튼 클릭됨";
+					emit showUserImagesRequested();
+		});
+	*/
+
+		//connect(this, &MainWindow::imageClicked, this, &UserImagePresenter::handleImagePreview);
 }
 
 void UserImagePresenter::handleShowImages()

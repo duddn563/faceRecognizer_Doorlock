@@ -5,11 +5,11 @@
 FaceSensorPresenter::FaceSensorPresenter(FaceSensorService* service, MainWindow* view, QObject* parent = nullptr)
 			: QObject(parent), service(service), view(view) 
 {
-		thread = new QThread(this);
+		//thread = new QThread(this);
 
-		service->moveToThread(thread);
+		//service->moveToThread(thread);
 
-		connect(thread, &QThread::started, service, &FaceSensorService::run);
+		//connect(thread, &QThread::started, service, &FaceSensorService::run);
 
 		connect(service, &FaceSensorService::personDetected, view, [=]() {
 						view->showStatusMessage("Face Detected");
@@ -23,13 +23,16 @@ FaceSensorPresenter::FaceSensorPresenter(FaceSensorService* service, MainWindow*
 		});
 }
 
+/*
 void FaceSensorPresenter::faceSensorStart()
 {
 		thread->start();
 }
+*/
 
 FaceSensorPresenter::~FaceSensorPresenter()
 {
+	/*
 		if (service) service->stop();
 		thread->quit();
 		thread->wait();
@@ -38,5 +41,7 @@ FaceSensorPresenter::~FaceSensorPresenter()
 		thread->deleteLater();
 
 		delete service;
+	*/
+	std::cout << "[FaceSensorPresenter] The face sensor presenter disappeared." << std::endl;
 }
 
