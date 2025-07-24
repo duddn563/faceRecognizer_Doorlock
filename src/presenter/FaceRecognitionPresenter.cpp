@@ -2,6 +2,9 @@
 #include "FaceRecognitionService.hpp"
 #include "MainWindow.hpp"
 
+#include <QInputDialog>
+#include <QMessageBox>
+
 FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* service, MainWindow* view, QObject* parent = nullptr)
 			: QObject(parent), service(service), view(view)
 {
@@ -14,7 +17,13 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 					}
 		}, Qt::QueuedConnection);
 		connect(service, &FaceRecognitionService::stateChanged, this, [=](RecognitionState state) {
-					view->setRecognitionState(state);			
+					if (state == RecognitionState::REGISTERING) {
+							QString msg = QString("'%1' 사용자 등록 중...").arg(service->getUserName());
+							view->showStatusMessage(msg);
+					}
+					else {
+							view->setRecognitionState(state);			
+					}
 		});
 
 		connect(view, &MainWindow::stateChangedFromView, this, &FaceRecognitionPresenter::onViewStateChanged);
@@ -29,17 +38,6 @@ void FaceRecognitionPresenter::onViewStateChanged(RecognitionState state)
 
 FaceRecognitionPresenter::~FaceRecognitionPresenter()
 {
-	/*
-		if (service) service->stop();
-		thread->quit();
-		thread->wait();
-
-		service->deleteLater();
-		thread->deleteLater();
-
-		delete service;
-	*/
 		std::cout << "FaceRecognition Presenter exit!!" << std::endl;
-
 }
 

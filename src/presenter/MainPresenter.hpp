@@ -8,6 +8,7 @@
 #include "DoorSensorPresenter.hpp"
 #include "FaceSensorPresenter.hpp"
 #include "FaceRecognitionPresenter.hpp"
+#include "FaceRegisterPresenter.hpp"
 
 #include "FaceSensorService.hpp"
 #include "DoorSensorService.hpp"
@@ -35,6 +36,7 @@ private:
 		DoorSensorService* doorSensorService;
 
 		FaceRecognitionPresenter* faceRecognitionPresenter;
+		FaceRegisterPresenter* faceRegisterPresenter;
 		FaceSensorPresenter* faceSensorPresenter;
 		DoorSensorPresenter* doorSensorPresenter;
 		UserImagePresenter* userImagePresenter;

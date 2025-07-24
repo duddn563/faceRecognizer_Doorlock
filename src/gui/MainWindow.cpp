@@ -165,7 +165,8 @@ void MainWindow::connectSignals() {
     };
 
 
-    safeConnect(ui->registerButton, &MainWindow::onRegisterFace, "사용자 등록");
+    //safeConnect(ui->registerButton, &MainWindow::onRegisterFace, "사용자 등록");
+		safeConnect(ui->registerButton, [this]() { emit registerFaceRequested(); }, "사용자 등록");
     safeConnect(ui->clearButton, &MainWindow::onClearUsers, "초기화");
     safeConnect(ui->btnShowUsers, &MainWindow::onShowUserList, "사용자 목록");
     safeConnect(ui->ExitButton, &MainWindow::onExitProgram, "프로그램 종료");
@@ -182,28 +183,18 @@ void MainWindow::connectSignals() {
 		// connect(this, &MainWindow::imageClicked, userImagePresenter, &UserImagePresenter::handleImagePreview);
 }
 
-/*
-void MainWindow::connectRegisterButton()
-void MainWindow::connectClearButton();
-
-void MainWindow::connectImageGalleryButton()
-
-void MainWindow::connectExitButton()
-
-void MainWindow::connectImageClickSignal()
-*/
-
-QList<QPushButton*> MainWindow::buttonList() const {
-    return {
-        ui->registerButton,
-        ui->clearButton,
-        ui->btnShowUsers,
-        ui->showUserImages,
-        ui->ExitButton
-    };
+QList<QPushButton*> MainWindow::buttonList() const
+{
+		return {
+				ui->registerButton,
+				ui->clearButton,
+				ui->btnShowUsers,
+				ui->showUserImages,
+				ui->ExitButton
+		};
 }
 
-
+/*
 void MainWindow::onRegisterFace() {
 		if (currentUiState != UiState::IDLE) return;
 		currentUiState = UiState::REGISTERING;
@@ -232,6 +223,17 @@ void MainWindow::onRegisterFace() {
 				qDebug() << "[Error] faceRecognitionService is null!";
 		}
 }
+*/
+
+UiState MainWindow::getCurrentUiState()
+{
+		return currentUiState;
+}
+
+void MainWindow::setCurrentUiState(UiState state)
+{
+		currentUiState = state;
+}
 
 void MainWindow::setRecognitionState(RecognitionState state) {
 		cout << "Set recog state!!" << endl;
@@ -246,7 +248,7 @@ void MainWindow::setRecognitionState(RecognitionState state) {
             ui->statusbar->showMessage("얼굴 인식 중...");
             break;
         case RecognitionState::REGISTERING:
-            ui->statusbar->showMessage(QString("'%1' 사용자 등록 중...").arg(faceRecognitionService->getUserName()));
+            //ui->statusbar->showMessage(QString("'%1' 사용자 등록 중...").arg(faceRecognitionService->getUserName()));
             break;
 				case RecognitionState::DUPLICATEDFACE:
 						ui->statusbar->showMessage(QString("이미 등록된 얼굴입니다..."));

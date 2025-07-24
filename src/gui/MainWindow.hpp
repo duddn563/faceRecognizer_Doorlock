@@ -61,6 +61,9 @@ public:
 
 		void setRecognitionState(RecognitionState newState);
 		RecognitionState getRecognitionState();
+
+		void setCurrentUiState(UiState state);
+		UiState getCurrentUiState(); 
 		
 
 signals:
@@ -70,10 +73,11 @@ signals:
     void imageClicked(const QString& imagePath); // 미리보기 요청
 
 		void stateChangedFromView(RecognitionState state);
+		void registerFaceRequested();
 
 
 private slots:
-			void onRegisterFace();
+			//void onRegisterFace();
 			void onExitProgram();
 			void onShowUserImages();
 			void onClearUsers();

@@ -10,6 +10,8 @@ MainPresenter::MainPresenter(MainWindow* view)
 		faceRecognitionPresenter = new FaceRecognitionPresenter(faceRecognitionService, view, view);
 		connect(faceRecognitionThread, &QThread::started, faceRecognitionService, &FaceRecognitionService::procFrame);
 
+		faceRegisterPresenter = new FaceRegisterPresenter(faceRecognitionService, view);
+
 		faceSensorService = new FaceSensorService();
 		faceSensorThread = new QThread();
 		faceSensorService->moveToThread(faceSensorThread);

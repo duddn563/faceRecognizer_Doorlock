@@ -25,7 +25,7 @@ class FaceRecognitionPresenter : public QObject {
 public:
 				explicit FaceRecognitionPresenter(FaceRecognitionService* service, MainWindow* view, QObject* parent);
 				~FaceRecognitionPresenter();
-
+				
 private:
 				MainWindow* view;
 				FaceRecognitionService* service;
