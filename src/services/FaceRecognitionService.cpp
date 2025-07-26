@@ -39,6 +39,15 @@ void FaceRecognitionService::stop()
 		if (!isRunning) return;
 
 		isRunning = false;
+
+		if (cap.isOpened()) {
+				cap.release();
+		}
+
+		currentState = RecognitionState::IDLE;
+		userName.clear();
+
+		this->moveToThread(QCoreApplication::instance()->thread());
 }
 
 void FaceRecognitionService::openCamera()

@@ -30,23 +30,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 		MainPresenter* mainPresenter;
 		mainPresenter = new MainPresenter(this);
 		mainPresenter->startAllServices();
-		//mainPresenter->connectUIEvents();
-
-		/*
-		userImagePresenter = new UserImagePresenter(this);
-
-		auto* doorSenserService = new DoorSensorService();
-		doorSensorPresenter = new DoorSensorPresenter(doorSenserService, this, this);
-		doorSensorPresenter->doorSensorStart();
-
-		auto* faceSensorService = new FaceSensorService();
-		faceSensorPresenter = new FaceSensorPresenter(faceSensorService, this, this);
-		faceSensorPresenter->faceSensorStart();
-
-		faceRecognitionService = new FaceRecognitionService();
-		faceRecognitionPresenter = new FaceRecognitionPresenter(faceRecognitionService, this, this);
-		faceRecognitionPresenter->faceRecognitionStart();
-		*/
 
 		setupUi();
 }
@@ -147,12 +130,6 @@ void MainWindow::applyStyles() {
 
 void MainWindow::connectSignals() {
     auto safeConnect = [this](QPushButton* btn, auto slot, const QString& name) {
-				/*
-        if (!btn || !connect(btn, &QPushButton::clicked, this, slot)) {
-            LOG_WARN(QString("%1 버튼 연결 실패").arg(name));
-            showErrorMessage("버튼 연결 오류", QString("%1 버튼이 정상적으로 연결되지 않았습니다.").arg(name));
-        }
-				*/
 				if (!btn) {
 						LOG_WARN(QString("버튼 없음: %1").arg(name));
 						return;
@@ -165,7 +142,6 @@ void MainWindow::connectSignals() {
     };
 
 
-    //safeConnect(ui->registerButton, &MainWindow::onRegisterFace, "사용자 등록");
 		safeConnect(ui->registerButton, [this]() { emit registerFaceRequested(); }, "사용자 등록");
     safeConnect(ui->clearButton, &MainWindow::onClearUsers, "초기화");
     safeConnect(ui->btnShowUsers, &MainWindow::onShowUserList, "사용자 목록");
@@ -173,14 +149,9 @@ void MainWindow::connectSignals() {
 
 		
 		connect(ui->showUserImages, &QPushButton::clicked, this, [=]() {
-					qDebug() << "사용자 이미지 버튼 클릭됨";
+					qDebug() << "[MainWindow] 사용자 이미지 버튼 클릭됨";
 					emit showUserImagesRequested();
 		});
-		
-
-		//connect(ui->showUserImages, &QPushButton::clicked, this, &MainWindow::showUserImagesRequested);
-
-		// connect(this, &MainWindow::imageClicked, userImagePresenter, &UserImagePresenter::handleImagePreview);
 }
 
 QList<QPushButton*> MainWindow::buttonList() const
@@ -387,19 +358,33 @@ void MainWindow::showImagePreview(const QString& imagePath)
 		previewDialog->setAttribute(Qt::WA_DeleteOnClose); // auto memory delete
     previewDialog->setWindowTitle("미리보기");
     previewDialog->resize(500, 500);
+		previewDialog->setStyleSheet("background-color: #1e1e1e; color: white;");
 
     QVBoxLayout* layout = new QVBoxLayout(previewDialog);
-    QLabel* imageLabel = new QLabel();
 
+    QLabel* imageLabel = new QLabel();
     QPixmap pixmap(imagePath);
     imageLabel->setPixmap(pixmap.scaled(previewDialog->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
     imageLabel->setAlignment(Qt::AlignCenter);
-
     layout->addWidget(imageLabel);
 
-    QDialogButtonBox* buttonBox = new QDialogButtonBox(QDialogButtonBox::Close);
-    connect(buttonBox, &QDialogButtonBox::rejected, previewDialog, &QDialog::reject);
-    layout->addWidget(buttonBox);
+		QHBoxLayout* buttonLayout = new QHBoxLayout();
+		QPushButton* deleteButton = new QPushButton("삭제");
+		QPushButton* closeButton = new QPushButton("닫기");
+
+		deleteButton->setStyleSheet("backgound-color: #ff4c4c; color: white; padding: 6px;");
+		closeButton->setStyleSheet("padding: 6px;");
+
+		connect(deleteButton, &QPushButton::clicked, this, [=]() {
+					if (QMessageBox::question(this, "삭제", imagePath + "파일을 삭제할까요?")) {
+							emit deleteImageRequested(imagePath);
+							previewDialog->accept();
+					}
+		});
+
+		buttonLayout->addWidget(deleteButton);
+		buttonLayout->addWidget(closeButton);
+		layout->addLayout(buttonLayout);
 
 		connect(previewDialog, &QDialog::finished, this, [=]() {
 					currentUiState = UiState::IDLE;
@@ -425,7 +410,6 @@ void MainWindow::showUserImageGallery(const QList<UserImage>& images) {
         QVBoxLayout* cellLayout = new QVBoxLayout();
         QWidget* cellWidget = new QWidget();
 
-        //QLabel* imgLabel = new QLabel();
 				ClickableLabel* imgLabel = new ClickableLabel(img.filePath);
         QPixmap pixmap(img.filePath);
         imgLabel->setPixmap(pixmap.scaled(120, 120, Qt::KeepAspectRatio, Qt::SmoothTransformation));
@@ -436,12 +420,6 @@ void MainWindow::showUserImageGallery(const QList<UserImage>& images) {
 
         const QString pathCopy = img.filePath;
 
-				/*
-        // 클릭 이벤트 (미리보기 요청 시그널 발생)
-        connect(imgLabel, &QLabel::mousePressEvent, this, [=](QMouseEvent*) {
-            emit imageClicked(pathCopy);
-        });
-				*/
 				connect(imgLabel, &ClickableLabel::clicked, this, &MainWindow::imageClicked);
 
         QLabel* nameLabel = new QLabel(img.userName);
@@ -521,6 +499,11 @@ void MainWindow::onShowUserList()
 		} else {
 				 QMessageBox::information(this, "사용자 목록", users.join("\n"));
 		}
+}
+
+void MainWindow::showDuplicateUserMessage()
+{
+		QMessageBox::information(this, "중복 사용자", "이미 등록된 얼굴입니다.");
 }
 
 void MainWindow::showErrorMessage(const QString& title, const QString& message)

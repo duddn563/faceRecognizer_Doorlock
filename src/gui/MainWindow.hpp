@@ -75,13 +75,15 @@ signals:
 		void stateChangedFromView(RecognitionState state);
 		void registerFaceRequested();
 
-
 private slots:
-			//void onRegisterFace();
 			void onExitProgram();
 			void onShowUserImages();
 			void onClearUsers();
 			void onShowUserList();
+
+public slots:
+			void showDuplicateUserMessage();
+		
 
 private:
 			void setupUi();

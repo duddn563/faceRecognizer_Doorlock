@@ -17,6 +17,8 @@ public:
 
 				void handleShowImages();
 				void handleDeleteImage(const QString& imagePath);
+
+public slots:
 				void handleImagePreview(const QString& imagePath);
 
 private:

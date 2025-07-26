@@ -4,16 +4,6 @@ UserImagePresenter::UserImagePresenter(MainWindow* view)
 		: QObject(view), view(view) 
 {
 		std::cout << "[UserImagePresenter] constructor." << std::endl;
-		//connect(view, &MainWindow::showUserImagesRequested, this, &UserImagePresenter::handleShowImages);
-
-	/*
-		connect(view->showUserImages, &QPushButton::clicked, this, [=]() {
-					qDebug() << "사용자 이미지 버튼 클릭됨";
-					emit showUserImagesRequested();
-		});
-	*/
-
-		//connect(this, &MainWindow::imageClicked, this, &UserImagePresenter::handleImagePreview);
 }
 
 void UserImagePresenter::handleShowImages()
@@ -39,6 +29,14 @@ void UserImagePresenter::handleDeleteImage(const QString& imagePath)
 
 void UserImagePresenter::handleImagePreview(const QString& imagePath) 
 {
-		view->showImagePreview(imagePath);
+		if (!view) return;
+
+		if (QFile::exists(imagePath)) {
+				view->showImagePreview(imagePath);
+		} else {
+				view->showInfo("오류", "이미지 파일이 존재하지 않습니다.");
+		}
+					
 }
+
 

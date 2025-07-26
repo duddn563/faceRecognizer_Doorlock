@@ -16,12 +16,13 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 							std::cout << "Image is null!" << std::endl;
 					}
 		}, Qt::QueuedConnection);
+		connect(service, &FaceRecognitionService::stateChanged, this, &FaceRecognitionPresenter::handleStateChanged);
 		connect(service, &FaceRecognitionService::stateChanged, this, [=](RecognitionState state) {
 					if (state == RecognitionState::REGISTERING) {
 							QString msg = QString("'%1' 사용자 등록 중...").arg(service->getUserName());
 							view->showStatusMessage(msg);
 					}
-					else {
+					else if (state != RecognitionState::DUPLICATEDFACE) {
 							view->setRecognitionState(state);			
 					}
 		});
@@ -33,6 +34,13 @@ void FaceRecognitionPresenter::onViewStateChanged(RecognitionState state)
 {
 		if (state == RecognitionState::IDLE) {
 				service->resetUnlockFlag();
+		}
+}
+
+void FaceRecognitionPresenter::handleStateChanged(RecognitionState state) 
+{
+		if (state == RecognitionState::DUPLICATEDFACE) {
+				view->showDuplicateUserMessage();
 		}
 }
 

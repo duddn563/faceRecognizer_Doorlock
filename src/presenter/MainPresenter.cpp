@@ -15,7 +15,7 @@ MainPresenter::MainPresenter(MainWindow* view)
 		faceSensorService = new FaceSensorService();
 		faceSensorThread = new QThread();
 		faceSensorService->moveToThread(faceSensorThread);
-		faceSensorService->setParent(view);
+		//faceSensorService->setParent(view);
 
 		faceSensorPresenter = new FaceSensorPresenter(faceSensorService, view, view);
 		connect(faceSensorThread, &QThread::started, faceSensorService, &FaceSensorService::run);
@@ -24,7 +24,7 @@ MainPresenter::MainPresenter(MainWindow* view)
 		doorSensorService = new DoorSensorService();
 		doorSensorThread = new QThread();
 		doorSensorService->moveToThread(doorSensorThread);
-		doorSensorService->setParent(view);
+		//doorSensorService->setParent(view);
 
 		doorSensorPresenter = new DoorSensorPresenter(doorSensorService, view, view);
 		connect(doorSensorThread, &QThread::started, doorSensorService, &DoorSensorService::run);
@@ -48,7 +48,7 @@ void MainPresenter::connectUIEvents()
 
 		connect(view, &MainWindow::imageClicked, userImagePresenter, &UserImagePresenter::handleImagePreview);
 
-		//connect(view, &MainWindow::imageDeleteRequested, userImagePresenter, &UserImagePresenter::handleDeleteImage);
+		connect(view, &MainWindow::deleteImageRequested, userImagePresenter, &UserImagePresenter::handleDeleteImage);
 }
 
 MainPresenter::~MainPresenter()
@@ -57,24 +57,24 @@ MainPresenter::~MainPresenter()
 		faceRecognitionThread->quit();
 		faceRecognitionThread->wait();
 
-		delete faceRecognitionService;
-		delete faceRecognitionThread;
+		faceRecognitionService->deleteLater();
+		faceRecognitionThread->deleteLater();
 		delete faceRecognitionPresenter;
 
 		faceSensorService->stop();
 		faceSensorThread->quit();
 		faceSensorThread->wait();
 
-		delete faceSensorService;
-		delete faceSensorThread;
+		faceSensorService->deleteLater();
+		faceSensorThread->deleteLater();
 		delete faceSensorPresenter;
 
 		doorSensorService->stop();
 		doorSensorThread->quit();
 		doorSensorThread->wait();
 
-		delete doorSensorService;
-		delete doorSensorThread;
+		doorSensorService->deleteLater();
+		doorSensorThread->deleteLater();
 		delete doorSensorPresenter;
 
 		delete userImagePresenter;
