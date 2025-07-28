@@ -48,4 +48,3 @@ FaceRecognitionPresenter::~FaceRecognitionPresenter()
 {
 		std::cout << "FaceRecognition Presenter exit!!" << std::endl;
 }
-

@@ -25,6 +25,7 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) 
 {
+		qDebug() << "[MainWindow] Created";
     qRegisterMetaType<RecognitionState>("RecognitionState");
 
 		MainPresenter* mainPresenter;
@@ -48,7 +49,7 @@ void MainWindow::setupUi() {
     applyStyles();
 
     // ▶ 버튼 클릭 시그널 연결
-    connectSignals();
+		connectSignals();
 }
 
 void MainWindow::setupButtonLayout()
@@ -265,90 +266,6 @@ void MainWindow::onExitProgram() {
         QApplication::quit();
 }
 
-
-void MainWindow::onShowUserImages() {
-    QDir imageDir(USER_FACES_DIR);
-    if (!imageDir.exists()) {
-        QMessageBox::warning(this, "오류", "등록된 이미지 디렉토리를 찾을 수 없습니다.");
-        return;
-    }
-
-    QStringList imageFiles = imageDir.entryList(QStringList() << "*.png" << "*.jpg", QDir::Files);
-    if (imageFiles.isEmpty()) {
-        QMessageBox::information(this, "정보", "등록된 사용자 이미지가 없습니다.");
-        return;
-    }
-
-    QDialog* galleryDialog = new QDialog(this);
-    galleryDialog->setWindowTitle("📸 사용자 이미지 갤러리");
-    galleryDialog->resize(800, 600);
-    galleryDialog->setStyleSheet("background-color: #1e1e1e; color: white;");
-
-    QWidget* container = new QWidget();
-    QGridLayout* gridLayout = new QGridLayout(container);
-    gridLayout->setSpacing(10);
-
-    int row = 0, col = 0;
-    const int maxCols = 4;
-
-    for (const QString& fileName : imageFiles) {
-        QString fullPath = imageDir.filePath(fileName);
-        QPixmap pixmap(fullPath);
-        if (pixmap.isNull()) continue;
-
-        QVBoxLayout* cellLayout = new QVBoxLayout();
-        QWidget* cellWidget = new QWidget();
-
-        // ✅ ClickableLabel 사용
-        ClickableLabel* imgLabel = new ClickableLabel(fullPath);
-        imgLabel->setPixmap(pixmap.scaled(120, 120, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        imgLabel->setFixedSize(130, 130);
-        imgLabel->setAlignment(Qt::AlignCenter);
-        imgLabel->setStyleSheet("border: 2px solid #444; border-radius: 6px;");
-        connect(imgLabel, &ClickableLabel::clicked, this, &MainWindow::showImagePreview);
-
-        QLabel* nameLabel = new QLabel(fileName.section('_', 2, 2).section('.', 0, 0));
-        nameLabel->setAlignment(Qt::AlignCenter);
-        nameLabel->setStyleSheet("font-size: 12px;");
-
-        QPushButton* delBtn = new QPushButton("🗑️ 삭제");
-        delBtn->setStyleSheet("background-color: #ff4c4c; color: white; border: none; padding: 4px;");
-        connect(delBtn, &QPushButton::clicked, this, [=]() {
-            if (QMessageBox::question(this, "삭제", fileName + " 파일을 삭제할까요?") == QMessageBox::Yes) {
-                QFile::remove(fullPath);
-                galleryDialog->accept();  // 다이얼로그 닫고 새로 열기
-                onShowUserImages();
-            }
-        });
-
-        cellLayout->addWidget(imgLabel);
-        cellLayout->addWidget(nameLabel);
-        cellLayout->addWidget(delBtn);
-        cellWidget->setLayout(cellLayout);
-
-        gridLayout->addWidget(cellWidget, row, col++);
-        if (col >= maxCols) {
-            col = 0;
-            row++;
-        }
-    }
-
-    QScrollArea* scrollArea = new QScrollArea(galleryDialog);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setWidget(container);
-
-    QVBoxLayout* mainLayout = new QVBoxLayout(galleryDialog);
-    mainLayout->addWidget(scrollArea);
-
-    QPushButton* closeBtn = new QPushButton("닫기");
-    closeBtn->setStyleSheet("padding: 6px 12px;");
-    connect(closeBtn, &QPushButton::clicked, galleryDialog, &QDialog::accept);
-    mainLayout->addWidget(closeBtn, 0, Qt::AlignCenter);
-
-    galleryDialog->setLayout(mainLayout);
-    galleryDialog->exec();
-}
-
 void MainWindow::showImagePreview(const QString& imagePath) 
 {
 		if (currentUiState != UiState::IDLE) return;
@@ -372,12 +289,13 @@ void MainWindow::showImagePreview(const QString& imagePath)
 		QPushButton* deleteButton = new QPushButton("삭제");
 		QPushButton* closeButton = new QPushButton("닫기");
 
-		deleteButton->setStyleSheet("backgound-color: #ff4c4c; color: white; padding: 6px;");
+		deleteButton->setStyleSheet("background-color: #ff4c4c; color: white; padding: 6px;");
 		closeButton->setStyleSheet("padding: 6px;");
 
 		connect(deleteButton, &QPushButton::clicked, this, [=]() {
 					if (QMessageBox::question(this, "삭제", imagePath + "파일을 삭제할까요?")) {
 							emit deleteImageRequested(imagePath);
+							qDebug() << "[MainWindow] Preview delete button called";
 							previewDialog->accept();
 					}
 		});
@@ -393,13 +311,32 @@ void MainWindow::showImagePreview(const QString& imagePath)
     previewDialog->exec();
 }
 
+QDialog* MainWindow::getGalleryDialog() const { return galleryDialog; }
+
 void MainWindow::showUserImageGallery(const QList<UserImage>& images) {
-    QDialog* galleryDialog = new QDialog(this);
+    qDebug() << "[MainWindow] showUserImageGallery called with" << images.size() << "images";
+
+    // 이미 떠 있는 경우 닫고 제거
+    if (galleryDialog) {
+        if (galleryDialog->isVisible()) {
+            galleryDialog->close();
+        }
+        galleryDialog->deleteLater();
+        galleryDialog = nullptr;
+    }
+
+    // 새로 생성
+    galleryDialog = new QDialog(this);
+    if (!galleryDialog) {
+        qWarning() << "[MainWindow] Failed to create galleryDialog!";
+        return;
+    }
+
     galleryDialog->setWindowTitle("📸 사용자 이미지 갤러리");
     galleryDialog->resize(800, 600);
     galleryDialog->setStyleSheet("background-color: #1e1e1e; color: white;");
 
-    QWidget* container = new QWidget();
+    QWidget* container = new QWidget(galleryDialog);
     QGridLayout* gridLayout = new QGridLayout(container);
     gridLayout->setSpacing(10);
 
@@ -407,31 +344,30 @@ void MainWindow::showUserImageGallery(const QList<UserImage>& images) {
     const int maxCols = 4;
 
     for (const auto& img : images) {
+        QPixmap pixmap(img.filePath);
+        if (pixmap.isNull()) continue;
+
         QVBoxLayout* cellLayout = new QVBoxLayout();
         QWidget* cellWidget = new QWidget();
 
-				ClickableLabel* imgLabel = new ClickableLabel(img.filePath);
-        QPixmap pixmap(img.filePath);
+        ClickableLabel* imgLabel = new ClickableLabel(img.filePath);
         imgLabel->setPixmap(pixmap.scaled(120, 120, Qt::KeepAspectRatio, Qt::SmoothTransformation));
         imgLabel->setFixedSize(130, 130);
         imgLabel->setAlignment(Qt::AlignCenter);
         imgLabel->setStyleSheet("border: 2px solid #444; border-radius: 6px;");
-        imgLabel->setCursor(Qt::PointingHandCursor);
-
-        const QString pathCopy = img.filePath;
-
-				connect(imgLabel, &ClickableLabel::clicked, this, &MainWindow::imageClicked);
+        connect(imgLabel, &ClickableLabel::clicked, this, [=]() {
+            emit imageClicked(img.filePath);
+        });
 
         QLabel* nameLabel = new QLabel(img.userName);
         nameLabel->setAlignment(Qt::AlignCenter);
         nameLabel->setStyleSheet("font-size: 12px;");
 
-        QPushButton* delBtn = new QPushButton("🗑️ 삭제");
+        QPushButton* delBtn = new QPushButton("🗑️  삭제");
         delBtn->setStyleSheet("background-color: #ff4c4c; color: white; border: none; padding: 4px;");
         connect(delBtn, &QPushButton::clicked, this, [=]() {
             if (QMessageBox::question(this, "삭제", img.filePath + " 파일을 삭제할까요?") == QMessageBox::Yes) {
-                emit deleteImageRequested(pathCopy);
-                galleryDialog->accept();  // 닫고 다시 띄우기
+                emit deleteImageRequested(img.filePath);
             }
         });
 
@@ -454,15 +390,22 @@ void MainWindow::showUserImageGallery(const QList<UserImage>& images) {
     QVBoxLayout* mainLayout = new QVBoxLayout(galleryDialog);
     mainLayout->addWidget(scrollArea);
 
-    QPushButton* closeBtn = new QPushButton("닫기");
-    closeBtn->setStyleSheet("padding: 6px 12px;");
-    connect(closeBtn, &QPushButton::clicked, galleryDialog, &QDialog::accept);
-    mainLayout->addWidget(closeBtn, 0, Qt::AlignCenter);
+    QPushButton* closeBtn = new QPushButton("닫기", galleryDialog);
+    if (!closeBtn) {
+        qWarning() << "[MainWindow] closeBtn creation failed!";
+    } else {
+        closeBtn->setStyleSheet("padding: 6px 12px;");
+        connect(closeBtn, &QPushButton::clicked, galleryDialog, &QDialog::accept);
+        mainLayout->addWidget(closeBtn, 0, Qt::AlignCenter);
+    }
 
-
+    connect(galleryDialog, &QDialog::destroyed, this, [=]() {
+        qDebug() << "[MainWindow] galleryDialog destroyed";
+        galleryDialog = nullptr;
+    });
 
     galleryDialog->setLayout(mainLayout);
-    galleryDialog->exec();
+    galleryDialog->show();
 }
 
 void MainWindow::showInfo(const QString& title, const QString& message) {

@@ -4,3 +4,5 @@ build/
 *.qmake.stasho
 
 *~
+
+git_uploader.sh

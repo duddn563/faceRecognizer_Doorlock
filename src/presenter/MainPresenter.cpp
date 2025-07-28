@@ -3,6 +3,7 @@
 MainPresenter::MainPresenter(MainWindow* view)
 		: view(view)
 {
+		qDebug() << "[MainPresenter] Created";
 		faceRecognitionService = new FaceRecognitionService();
 		faceRecognitionThread = new QThread();
 		faceRecognitionService->moveToThread(faceRecognitionThread);
@@ -15,7 +16,6 @@ MainPresenter::MainPresenter(MainWindow* view)
 		faceSensorService = new FaceSensorService();
 		faceSensorThread = new QThread();
 		faceSensorService->moveToThread(faceSensorThread);
-		//faceSensorService->setParent(view);
 
 		faceSensorPresenter = new FaceSensorPresenter(faceSensorService, view, view);
 		connect(faceSensorThread, &QThread::started, faceSensorService, &FaceSensorService::run);
@@ -24,7 +24,6 @@ MainPresenter::MainPresenter(MainWindow* view)
 		doorSensorService = new DoorSensorService();
 		doorSensorThread = new QThread();
 		doorSensorService->moveToThread(doorSensorThread);
-		//doorSensorService->setParent(view);
 
 		doorSensorPresenter = new DoorSensorPresenter(doorSensorService, view, view);
 		connect(doorSensorThread, &QThread::started, doorSensorService, &DoorSensorService::run);
@@ -44,11 +43,14 @@ void MainPresenter::startAllServices()
 
 void MainPresenter::connectUIEvents()
 {
+		qDebug() << "[MainPresenter] connectUIEvents called";
 		connect(view, &MainWindow::showUserImagesRequested, userImagePresenter, &UserImagePresenter::handleShowImages);
 
 		connect(view, &MainWindow::imageClicked, userImagePresenter, &UserImagePresenter::handleImagePreview);
 
 		connect(view, &MainWindow::deleteImageRequested, userImagePresenter, &UserImagePresenter::handleDeleteImage);
+
+    connect(view, &MainWindow::registerFaceRequested, faceRegisterPresenter, &FaceRegisterPresenter::onRegisterFace);
 }
 
 MainPresenter::~MainPresenter()

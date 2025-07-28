@@ -1,4 +1,5 @@
 #include "UserImagePresenter.hpp"
+#include <QPointer>
 
 UserImagePresenter::UserImagePresenter(MainWindow* view)
 		: QObject(view), view(view) 
@@ -8,6 +9,7 @@ UserImagePresenter::UserImagePresenter(MainWindow* view)
 
 void UserImagePresenter::handleShowImages()
 {
+		qDebug() << "[UserImagePresenter] handleShowImages called";
 		QList<UserImage> images = UserImageService::getUserImages();
 
 		if (images.isEmpty()) {
@@ -21,7 +23,14 @@ void UserImagePresenter::handleShowImages()
 void UserImagePresenter::handleDeleteImage(const QString& imagePath)
 {
 		if (UserImageService::deleteImage(imagePath)) {
-				handleShowImages();
+				QPointer<QDialog> dialogToClose = view->getGalleryDialog();
+				if (dialogToClose && dialogToClose->isVisible()) {
+						dialogToClose->close();
+						QTimer::singleShot(150, this, &UserImagePresenter::handleShowImages);
+				} else {
+						handleShowImages();
+				}
+
 		} else {
 				view->showError("삭제 실패", "이미지 삭제에 실패했습니다.");
 		}

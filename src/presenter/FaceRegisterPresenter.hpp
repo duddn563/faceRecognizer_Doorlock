@@ -10,7 +10,7 @@ class FaceRegisterPresenter : public QObject {
 public:
     FaceRegisterPresenter(FaceRecognitionService* service, MainWindow* view, QObject* parent = nullptr);
 
-private slots:
+public slots:
     void onRegisterFace();
 
 private:

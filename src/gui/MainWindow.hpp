@@ -16,6 +16,7 @@
 #include <QFile>
 #include <QHBoxLayout>
 #include <QSizePolicy>
+#include <QPointer>
 
 #include "ui_MainWindow.h"
 #include "faceRecognitionState.hpp"
@@ -64,6 +65,7 @@ public:
 
 		void setCurrentUiState(UiState state);
 		UiState getCurrentUiState(); 
+		QDialog* getGalleryDialog() const;
 		
 
 signals:
@@ -77,13 +79,11 @@ signals:
 
 private slots:
 			void onExitProgram();
-			void onShowUserImages();
 			void onClearUsers();
 			void onShowUserList();
 
 public slots:
 			void showDuplicateUserMessage();
-		
 
 private:
 			void setupUi();
@@ -111,6 +111,7 @@ private:
 			FaceRecognitionService* faceRecognitionService;
 
 			QLabel *unlockOverlayLabel;
+			QPointer<QDialog> galleryDialog;
 
 			UiState currentUiState = UiState::IDLE;
 			RecognitionState currentRecognitionState = RecognitionState::IDLE;

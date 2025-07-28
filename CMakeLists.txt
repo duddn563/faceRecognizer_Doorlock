@@ -28,6 +28,7 @@ set(SOURCES
 		src/presenter/DoorSensorPresenter.cpp
 		src/presenter/FaceSensorPresenter.cpp
 		src/presenter/FaceRecognitionPresenter.cpp
+		src/presenter/FaceRegisterPresenter.cpp
 
 		src/services/UserImageService.cpp
 		src/services/DoorSensorService.cpp
