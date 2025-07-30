@@ -51,6 +51,8 @@ void MainPresenter::connectUIEvents()
 		connect(view, &MainWindow::deleteImageRequested, userImagePresenter, &UserImagePresenter::handleDeleteImage);
 
     connect(view, &MainWindow::registerFaceRequested, faceRegisterPresenter, &FaceRegisterPresenter::onRegisterFace);
+
+		connect(view, &MainWindow::clearUserRequested, faceRecognitionPresenter, &FaceRecognitionPresenter::onClearUser);
 }
 
 MainPresenter::~MainPresenter()

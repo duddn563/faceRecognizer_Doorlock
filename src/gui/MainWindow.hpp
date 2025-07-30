@@ -76,6 +76,7 @@ signals:
 
 		void stateChangedFromView(RecognitionState state);
 		void registerFaceRequested();
+		void clearUserRequested();
 
 private slots:
 			void onExitProgram();
@@ -111,7 +112,7 @@ private:
 			FaceRecognitionService* faceRecognitionService;
 
 			QLabel *unlockOverlayLabel;
-			QPointer<QDialog> galleryDialog;
+			QPointer<QDialog> galleryDialog = nullptr;
 
 			UiState currentUiState = UiState::IDLE;
 			RecognitionState currentRecognitionState = RecognitionState::IDLE;

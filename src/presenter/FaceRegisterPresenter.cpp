@@ -6,6 +6,22 @@ FaceRegisterPresenter::FaceRegisterPresenter(FaceRecognitionService* service, Ma
     : QObject(parent), service(service), view(view)
 {
 		qDebug() << "[FaceRegisterPresenter] constructor start!"; 
+		connectService();
+}
+
+void FaceRegisterPresenter::connectService() 
+{
+		if (!service) return;
+
+		QObject::connect(service, &FaceRecognitionService::registerFinished, this, &FaceRegisterPresenter::onRegisterFinished);
+}
+
+void FaceRegisterPresenter::onRegisterFinished(bool success, const QString& message)
+{
+		if (view) {
+				view->setCurrentUiState(UiState::IDLE);
+				view->showInfo("등록 결과", message);
+		}
 }
 
 void FaceRegisterPresenter::onRegisterFace() {

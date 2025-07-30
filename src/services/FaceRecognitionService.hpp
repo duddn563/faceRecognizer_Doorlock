@@ -10,6 +10,7 @@
 #include <map>
 #include <QMutexLocker>
 #include <QMutex>
+#include <QAtomicInt>
 
 #include <QDebug>
 
@@ -49,10 +50,11 @@ public:
 				QString getUserName();
 				void startRegistering(const QString& name);
 				void resetUnlockFlag();
-
+				void resetService();
 signals:
 				void frameReady(const QImage& frame);
 				void stateChanged(RecognitionState newState);
+				void registerFinished(bool success, const QString& message);
 
 private:
 				void openCamera();
@@ -98,7 +100,7 @@ private:
 
 				int currentLabel = -1;
 				int captureCount = 0;
-				bool isRegistering = false;
+				QAtomicInt isRegisteringAtomic;
 				QString userName;
 				bool hasAlreadyUnlocked = false;
 

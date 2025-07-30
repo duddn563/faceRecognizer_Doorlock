@@ -238,13 +238,15 @@ void FaceRecognitionService::trainOrUpdateModel(const vector<Mat>& images, const
     recognizer->save(FACE_MODEL_FILE);
     qDebug() << "✅ 모델이 저장되었습니다: " << FACE_MODEL_FILE;
 }
+
+
 void FaceRecognitionService::startRegistering(const QString& name)
 {
 		qDebug() << "[FaceRecognitionService] Registration has begun";
 		userName = name;
     currentLabel = getNextLabel();
     captureCount = 0;
-    isRegistering = true;
+		isRegisteringAtomic.storeRelaxed(1);
     setState(RecognitionState::REGISTERING);
 }
 
@@ -299,6 +301,11 @@ int FaceRecognitionService::handleRecognition(Mat& frame, const Rect& face, cons
 		double confident = 999.0;
 		int authFlag = -1;
 
+		if (recognizer->empty()) {
+				qDebug() << "[FaceRecognitionService] Model is not trained. Unpredictable.";
+				return AUTH_FAILED;
+		}
+
 		if (!storedFaces.empty()) {
 				recognizer->predict(aligendFace, predictedLabel, confident);
 		}
@@ -336,8 +343,9 @@ void FaceRecognitionService::handleRegistration(Mat& frame, const Rect& face, co
 
 
 		if (captureCount == 0 && isDuplicateFace(alignedFace)) {
-				isRegistering = false;
+				isRegisteringAtomic.storeRelaxed(0);
 				setState(RecognitionState::DUPLICATEDFACE);
+				emit registerFinished(false, "중복된 얼굴입니다.");
 				return;
 		}
 
@@ -360,7 +368,6 @@ void FaceRecognitionService::saveCapturedFace(const Rect& face, const Mat& align
     string filename = string(USER_FACES_DIR) + "face_" + to_string(currentLabel) + "_" +
                       userName.toStdString() + "_" + to_string(captureCount + 1) + ".png";
 
-		//Mat faceROI = frame(face).clone();
     if (!imwrite(filename, frame)) {
         qDebug() << "이미지 저장 실패: " << QString::fromStdString(filename);
     }
@@ -368,7 +375,7 @@ void FaceRecognitionService::saveCapturedFace(const Rect& face, const Mat& align
     storedFaces[currentLabel].push_back(alignedFace);
     labelMap[currentLabel] = userName.toStdString();
 
-		qDebug() << "[FaceRecognitionService] The face image has been saved and loaded";
+		qDebug() << "[FaceRecognitionService]" << currentLabel << "The face image has been saved and loaded";
 }
 
 void FaceRecognitionService::finalizeRegistration()
@@ -389,9 +396,10 @@ void FaceRecognitionService::finalizeRegistration()
 		loadModel();
     loadLabelMap();
 
-    isRegistering = false;
+		isRegisteringAtomic.storeRelaxed(0);
+		setState(RecognitionState::IDLE);
+		emit registerFinished(true, "등록 성공");
 
-    //emit recognitionResult(QString("[등록 완료] %1").arg(userName));
 		qDebug() << "[FaceRecognitionService]" << userName << "registration is complete.";
 }
 
@@ -459,6 +467,27 @@ bool FaceRecognitionService::isDuplicateFace(const Mat& newFace)
     return (confidence < DUPLICATE_THRESHOLD) && (confidence) && (predictedLabel != -1);
 }
 
+void FaceRecognitionService::resetUnlockFlag()
+{
+		hasAlreadyUnlocked = false;
+}
+
+void FaceRecognitionService::resetService()
+{
+		QMutexLocker locker(&frameMutex);
+
+		qDebug() << "[FaceRecognitionService] resetService() called";
+
+		labelMap.clear();
+		currentLabel = 0;
+
+		authManager.resetAuth();
+		hasAlreadyUnlocked = false;	
+
+		recognizer = face::LBPHFaceRecognizer::create();
+		recognizer->save(FACE_MODEL_FILE);
+}
+
 void FaceRecognitionService::drawTransparentBox(Mat& img, Rect rect, Scalar color, double alpha = 0.4)
 {
     Mat overlay;
@@ -482,11 +511,6 @@ void FaceRecognitionService::drawCornerBox(Mat& img, Rect rect, Scalar color, in
 
     line(img, {x + w, y + h}, {x + w - length, y + h}, color, thickness);
     line(img, {x + w, y + h}, {x + w, y + h - length}, color, thickness);
-}
-
-void FaceRecognitionService::resetUnlockFlag()
-{
-		hasAlreadyUnlocked = false;
 }
 
 void FaceRecognitionService::procFrame()
@@ -516,7 +540,7 @@ void FaceRecognitionService::procFrame()
 				QString labelText;
 				Scalar boxColor;
 
-				if (!isRegistering) {
+				if (isRegisteringAtomic.loadRelaxed() == 0) {
 						authResult = handleRecognition(frameCopy, face, alignedFace, labelText, boxColor);
 						if (authResult == AUTH_SUCCESS) {
 								if (!hasAlreadyUnlocked) {
@@ -533,7 +557,9 @@ void FaceRecognitionService::procFrame()
 						}
 				}
 				else {
-						handleRegistration(frameCopy, face, alignedFace, labelText, boxColor);
+						if(isRegisteringAtomic.testAndSetRelaxed(1, 1)) {
+								handleRegistration(frameCopy, face, alignedFace, labelText, boxColor);
+						}
 				}
 		}
 		

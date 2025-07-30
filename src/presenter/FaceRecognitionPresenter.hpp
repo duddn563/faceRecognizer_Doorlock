@@ -25,11 +25,12 @@ class FaceRecognitionPresenter : public QObject {
 public:
 				explicit FaceRecognitionPresenter(FaceRecognitionService* service, MainWindow* view, QObject* parent);
 				~FaceRecognitionPresenter();
+
+				void onClearUser();
 				
 private:
 				MainWindow* view;
 				FaceRecognitionService* service;
-				//QThread* thread;
 
 				RecognitionState currentDoorState = RecognitionState::IDLE;
 

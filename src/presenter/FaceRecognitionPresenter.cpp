@@ -44,6 +44,13 @@ void FaceRecognitionPresenter::handleStateChanged(RecognitionState state)
 		}
 }
 
+void FaceRecognitionPresenter::onClearUser()
+{
+		if (!view) return;
+
+		service->resetService();
+}
+
 FaceRecognitionPresenter::~FaceRecognitionPresenter()
 {
 		std::cout << "FaceRecognition Presenter exit!!" << std::endl;
