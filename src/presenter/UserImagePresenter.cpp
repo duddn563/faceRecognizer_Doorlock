@@ -1,10 +1,10 @@
 #include "UserImagePresenter.hpp"
 #include <QPointer>
 
-UserImagePresenter::UserImagePresenter(MainWindow* view)
-		: QObject(view), view(view) 
+UserImagePresenter::UserImagePresenter(UserImageService* service, MainWindow* view)
+		: service(service), QObject(view), view(view) 
 {
-		std::cout << "[UserImagePresenter] constructor." << std::endl;
+		qDebug() << "[UserImagePresenter] constructor.";
 }
 
 void UserImagePresenter::handleShowImages()
@@ -38,6 +38,7 @@ void UserImagePresenter::handleDeleteImage(const QString& imagePath)
 
 void UserImagePresenter::handleImagePreview(const QString& imagePath) 
 {
+		qDebug() << "[UserImagePresenter] handleImagePreview is called";
 		if (!view) return;
 
 		if (QFile::exists(imagePath)) {
@@ -45,7 +46,22 @@ void UserImagePresenter::handleImagePreview(const QString& imagePath)
 		} else {
 				view->showInfo("오류", "이미지 파일이 존재하지 않습니다.");
 		}
-					
 }
 
+void UserImagePresenter::onShowUserList()
+{
+		qDebug() << "[UserImagePresenter] onShowUserList is called";
+		service->fetchUserList();
+}
 
+void UserImagePresenter::presentUserList(const QStringList& users)
+{
+		qDebug() << "[UserImagePresenter] presenterUserList is called";
+		if (!view) {
+				qDebug() << "[UserImagePresenter] view pointer is nullptr";
+				return;
+		}
+	
+		qDebug() << "[UserImagePresenter] view pointer:" << view;
+		view->showUserList(users);
+}

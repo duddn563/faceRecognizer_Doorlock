@@ -7,21 +7,25 @@
 #include "services/UserImageService.hpp"
 
 class MainWindow;
+class UserImageService;
 
 class UserImagePresenter : public QObject {
 		Q_OBJECT
 
 public:
-				explicit UserImagePresenter(MainWindow* view);
+				explicit UserImagePresenter(UserImageService* service, MainWindow* view);
 
 
 				void handleShowImages();
 				void handleDeleteImage(const QString& imagePath);
+				void onShowUserList();
+				void presentUserList(const QStringList& users);
 
 public slots:
 				void handleImagePreview(const QString& imagePath);
 
 private:
 				MainWindow* view;
+				UserImageService* service;
 };
 

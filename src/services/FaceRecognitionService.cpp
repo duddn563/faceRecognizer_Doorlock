@@ -52,6 +52,7 @@ void FaceRecognitionService::stop()
 
 void FaceRecognitionService::openCamera()
 {
+		qDebug() << "[FaceRecognitionService] openCamera is called";
 		try {
 				cap.open(CAM_NUM);
 				if (!cap.isOpened()) {
@@ -65,6 +66,7 @@ void FaceRecognitionService::openCamera()
 
 void FaceRecognitionService::loadDetector()
 {
+		qDebug() << "[FaceRecognitionService] loadDetector is called";
 		try {
 				faceDetector.load(FACEDETECTOR);
 				eyesDetector.load(EYESDETECTOR);

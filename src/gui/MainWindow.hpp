@@ -3,11 +3,6 @@
 #include <QMainWindow>
 #include <QList>
 #include <QString>
-#include "services/UserImageService.hpp" // 이미지 로딩, 삭제 서비스
-#include "services/DoorSensorService.hpp"
-#include "services/FaceSensorService.hpp"
-#include "services/FaceRecognitionService.hpp"
-
 #include <QThread>
 #include <QTimer>
 #include <QInputDialog>
@@ -22,17 +17,13 @@
 #include "faceRecognitionState.hpp"
 #include "styleConstants.hpp"
 #include "logger.hpp"
+#include "services/UserImageService.hpp"
 
 using namespace std;
+class MainPresenter;
 
 constexpr int WINDOW_MIN_WIDTH = 900;
 constexpr int WINDOW_MIN_HEIGHT = 600;
-
-class FaceRecognitionService;
-class UserImagePresenter;;
-class DoorSensorPresenter;
-class FaceSensorPresenter;
-class FaceRecognitionPresenter;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -66,6 +57,7 @@ public:
 		void setCurrentUiState(UiState state);
 		UiState getCurrentUiState(); 
 		QDialog* getGalleryDialog() const;
+		void showUserList(const QStringList& users);
 		
 
 signals:
@@ -77,14 +69,11 @@ signals:
 		void stateChangedFromView(RecognitionState state);
 		void registerFaceRequested();
 		void clearUserRequested();
+		void requestedShowUserList();
 
 private slots:
 			void onExitProgram();
 			void onClearUsers();
-			void onShowUserList();
-
-public slots:
-			void showDuplicateUserMessage();
 
 private:
 			void setupUi();
@@ -104,12 +93,7 @@ private:
 private:
 			QTimer* timer = nullptr;
 
-			UserImagePresenter* userImagePresenter;
-			DoorSensorPresenter* doorSensorPresenter;
-			FaceSensorPresenter* faceSensorPresenter;
-			FaceRecognitionPresenter* faceRecognitionPresenter;
-
-			FaceRecognitionService* faceRecognitionService;
+			MainPresenter* mainPresenter;
 
 			QLabel *unlockOverlayLabel;
 			QPointer<QDialog> galleryDialog = nullptr;

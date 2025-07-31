@@ -28,7 +28,9 @@ MainPresenter::MainPresenter(MainWindow* view)
 		doorSensorPresenter = new DoorSensorPresenter(doorSensorService, view, view);
 		connect(doorSensorThread, &QThread::started, doorSensorService, &DoorSensorService::run);
 
-		userImagePresenter = new UserImagePresenter(view);
+		userImageService = new UserImageService(nullptr);
+		userImagePresenter = new UserImagePresenter(userImageService, view);
+		userImageService->setPresenter(userImagePresenter);
 
 		connectUIEvents();
 
@@ -45,14 +47,11 @@ void MainPresenter::connectUIEvents()
 {
 		qDebug() << "[MainPresenter] connectUIEvents called";
 		connect(view, &MainWindow::showUserImagesRequested, userImagePresenter, &UserImagePresenter::handleShowImages);
-
 		connect(view, &MainWindow::imageClicked, userImagePresenter, &UserImagePresenter::handleImagePreview);
-
 		connect(view, &MainWindow::deleteImageRequested, userImagePresenter, &UserImagePresenter::handleDeleteImage);
-
     connect(view, &MainWindow::registerFaceRequested, faceRegisterPresenter, &FaceRegisterPresenter::onRegisterFace);
-
 		connect(view, &MainWindow::clearUserRequested, faceRecognitionPresenter, &FaceRecognitionPresenter::onClearUser);
+		connect(view, &MainWindow::requestedShowUserList, userImagePresenter, &UserImagePresenter::onShowUserList);
 }
 
 MainPresenter::~MainPresenter()

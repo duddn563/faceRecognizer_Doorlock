@@ -13,6 +13,7 @@
 #include "FaceSensorService.hpp"
 #include "DoorSensorService.hpp"
 #include "FaceRecognitionService.hpp"
+#include "UserImageService.hpp"
 
 class MainPresenter : public QObject {
 		Q_OBJECT
@@ -34,6 +35,7 @@ private:
 		FaceRecognitionService* faceRecognitionService;
 		FaceSensorService* faceSensorService;
 		DoorSensorService* doorSensorService;
+		UserImageService* userImageService;
 
 		FaceRecognitionPresenter* faceRecognitionPresenter;
 		FaceRegisterPresenter* faceRegisterPresenter;

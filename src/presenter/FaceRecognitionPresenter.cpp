@@ -40,7 +40,7 @@ void FaceRecognitionPresenter::onViewStateChanged(RecognitionState state)
 void FaceRecognitionPresenter::handleStateChanged(RecognitionState state) 
 {
 		if (state == RecognitionState::DUPLICATEDFACE) {
-				view->showDuplicateUserMessage();
+				view->showInfo("중복 사용자", "이미 등록된 얼굴입니다.");
 		}
 }
 
