@@ -16,7 +16,7 @@ public:
 				explicit UserImagePresenter(UserImageService* service, MainWindow* view);
 
 
-				void handleShowImages();
+				void onShowImages();
 				void handleDeleteImage(const QString& imagePath);
 				void onShowUserList();
 				void presentUserList(const QStringList& users);

@@ -32,7 +32,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 
 void MainWindow::setupUi() {
 		qDebug() << "[MainWindow] setupUi is called";
-
     ui->setupUi(this);
 
 		qDebug() << "[setupUi] Window minimum size: Width->" << WINDOW_MIN_WIDTH << ", Height->" << WINDOW_MIN_HEIGHT;
@@ -126,23 +125,15 @@ void MainWindow::connectSignals() {
 		safeConnect(ui->registerButton, [this]() { emit registerFaceRequested(); }, "User Registration");
     safeConnect(ui->showUsersList, [this]() { emit requestedShowUserList(); }, "User list");
 		safeConnect(ui->showUserImages, [this]() { emit showUserImagesRequested(); }, "User Image"); 
-    safeConnect(ui->clearButton, &MainWindow::onClearUsers, "Clean");
-    safeConnect(ui->ExitButton, &MainWindow::onExitProgram, "Exit");
-
-		
-		/*
-		connect(ui->showUserImages, &QPushButton::clicked, this, [=]() {
-					qDebug() << "[MainWindow] User image button has been clicked";
-					emit showUserImagesRequested();
-		});
-		*/
-}
+		safeConnect(ui->resetButton, [this]() { if (QMessageBox::question(this, "사용자 초기화", "사용자를 초기화할까요?") == QMessageBox::Yes) { emit resetRequested(); } else { return; } }, "Reset");
+		safeConnect(ui->ExitButton, [this]() { if (QMessageBox::question(this, "종료", "프로그램을 종료할까요?") == QMessageBox::Yes) QApplication::quit(); }, "Exit");
+} 
 
 QList<QPushButton*> MainWindow::buttonList() const
 {
 		return {
 				ui->registerButton,
-				ui->clearButton,
+				ui->resetButton,
 				ui->showUsersList,
 				ui->showUserImages,
 				ui->ExitButton
@@ -195,28 +186,10 @@ RecognitionState MainWindow::getRecognitionState()
 		return currentRecognitionState;
 }
 
-void MainWindow::onClearUsers() {
-		qDebug() << "[MainWindow] onClearUsers is called";
-		if (QMessageBox::question(this, "사용자 초기화", "사용자를 초기화할까요?") == QMessageBox::Yes) {
-				QDir dir(USER_FACES_DIR);
-				dir.removeRecursively();
-
-				QFile::remove(FACE_MODEL_FILE);
-				QFile::remove(USER_LABEL_FILE);
-	
-				ui->statusbar->showMessage("모든 사용자 삭제됨.");
-
-				emit clearUserRequested();
-		}
-		else {
-			return;
-		}
-}
-
-void MainWindow::onExitProgram() {
-		qDebug() << "[MainWindow] onExitProgram is called";
-    if (QMessageBox::question(this, "종료", "프로그램을 종료할까요?") == QMessageBox::Yes)
-        QApplication::quit();
+void MainWindow::reset() {
+		qDebug() << "[MainWindow] resetUsers is called";
+		QMessageBox::information(this, "사용자 초기화", "초기화가 완료 됐습니다.");
+		ui->statusbar->showMessage("모든 사용자 삭제됨.");
 }
 
 void MainWindow::showImagePreview(const QString& imagePath) 
@@ -365,27 +338,6 @@ void MainWindow::showUserImageGallery(const QList<UserImage>& images) {
 void MainWindow::showUserList(const QStringList& users) 
 {
 		qDebug() << "[MainWindow] ShowUserList is called";
-		/*
-		QStringList usersList;
-
-		QString filePath = QString::fromStdString(USER_LABEL_FILE);
-		QFile file(filePath);
-
-		if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-				QMessageBox::warning(this, "오류",  "label.txt 파일을 열 수 없습니다.");
-				return;
-		}
-
-		QStringList users;
-		while (!file.atEnd()) {
-				QByteArray line = file.readLine();
-				QString str(line);
-				QStringList parts = str.trimmed().split(' ');
-				if (parts.size() >= 2) {
-						users.append(parts[0] + ": " + parts[1]);
-				}
-		}
-		*/
 
 		if (users.isEmpty()) {
 				QMessageBox::information(this, "사용자 목록", "등록된 사용자가 없습니다.");

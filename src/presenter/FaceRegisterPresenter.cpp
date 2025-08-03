@@ -13,26 +13,23 @@ void FaceRegisterPresenter::connectService()
 {
 		if (!service) return;
 
-		QObject::connect(service, &FaceRecognitionService::registerFinished, this, &FaceRegisterPresenter::onRegisterFinished);
+		QObject::connect(service, &FaceRecognitionService::registerFinished, this, &FaceRegisterPresenter::presentRegistration);
 }
 
-void FaceRegisterPresenter::onRegisterFinished(bool success, const QString& message)
+void FaceRegisterPresenter::presentRegistration(bool success, const QString& message)
 {
-		if (view) {
-				view->setCurrentUiState(UiState::IDLE);
-				view->showInfo("등록 결과", message);
-		}
+		emit registrationResult(success, message);
 }
 
 void FaceRegisterPresenter::onRegisterFace() {
-    if (view->getCurrentUiState() != UiState::IDLE) return;
-    view->setCurrentUiState(UiState::REGISTERING);
-
+		emit registrationStarted();
 
     QString name = QInputDialog::getText(view, "사용자 등록", "이름을 입력하세요:");
-    view->setCurrentUiState(UiState::IDLE);
 
-    if (name.isEmpty()) return;
+    if (name.isEmpty()) {
+				emit registrationResult(false, "이름이 입력되지 않았습니다.");
+				return;
+		}
 
     if (service) {
         QMetaObject::invokeMethod(service, [this, name]() {
@@ -40,7 +37,7 @@ void FaceRegisterPresenter::onRegisterFace() {
                 this->service->startRegistering(name);
         }, Qt::QueuedConnection);
     } else {
-        qDebug() << "[Error] FaceRecognitionService is null!";
+				emit registrationResult(false, "FaceRecognitionService가 존재하지 않습니다.");
     }
 }
 

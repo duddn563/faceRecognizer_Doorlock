@@ -25,7 +25,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="clearButton">
+         <widget class="QPushButton" name="resetButton">
           <property name="text"><string>사용자 초기화</string></property>
          </widget>
         </item>

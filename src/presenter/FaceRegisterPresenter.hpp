@@ -10,11 +10,16 @@ class FaceRegisterPresenter : public QObject {
 public:
     FaceRegisterPresenter(FaceRecognitionService* service, MainWindow* view, QObject* parent = nullptr);
 
+		void presentRegistration(bool success, const QString& message);
+
 public slots:
     void onRegisterFace();
 
+signals:
+		void registrationResult(bool success, const QString& message);
+		void registrationStarted();
+
 private:
-		void onRegisterFinished(bool success, const QString& message);
 		void connectService();		
 	
     FaceRecognitionService* service;

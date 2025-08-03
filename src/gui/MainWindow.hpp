@@ -58,6 +58,7 @@ public:
 		UiState getCurrentUiState(); 
 		QDialog* getGalleryDialog() const;
 		void showUserList(const QStringList& users);
+		void reset();
 		
 
 signals:
@@ -68,12 +69,9 @@ signals:
 
 		void stateChangedFromView(RecognitionState state);
 		void registerFaceRequested();
-		void clearUserRequested();
+		void resetRequested();
 		void requestedShowUserList();
 
-private slots:
-			void onExitProgram();
-			void onClearUsers();
 
 private:
 			void setupUi();

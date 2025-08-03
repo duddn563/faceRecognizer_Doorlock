@@ -1,5 +1,6 @@
 #include "FaceRecognitionPresenter.hpp"
 #include "FaceRecognitionService.hpp"
+#include "FaceRegisterPresenter.hpp"
 #include "MainWindow.hpp"
 
 #include <QInputDialog>
@@ -8,6 +9,8 @@
 FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* service, MainWindow* view, QObject* parent = nullptr)
 			: QObject(parent), service(service), view(view)
 {
+		faceRegisterPresenter = new FaceRegisterPresenter(service, view);
+		
 		connect(service, &FaceRecognitionService::frameReady, this, [=](const QImage& image) {
 					if (!image.isNull()) {
 							view->ui->cameraLabel->setPixmap(QPixmap::fromImage(image));
@@ -28,6 +31,17 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 		});
 
 		connect(view, &MainWindow::stateChangedFromView, this, &FaceRecognitionPresenter::onViewStateChanged);
+
+		connect(faceRegisterPresenter, &FaceRegisterPresenter::registrationStarted, [=]() { 
+						view->setCurrentUiState(UiState::REGISTERING);
+		});
+		connect(faceRegisterPresenter, &FaceRegisterPresenter::registrationResult,
+						this, [=](bool success, const QString& message) {
+							if (view) {
+									view->setCurrentUiState(UiState::IDLE);
+									view->showInfo("등록 결과", message);
+							}
+		});
 }
 
 void FaceRecognitionPresenter::onViewStateChanged(RecognitionState state)
@@ -44,11 +58,27 @@ void FaceRecognitionPresenter::handleStateChanged(RecognitionState state)
 		}
 }
 
-void FaceRecognitionPresenter::onClearUser()
+void FaceRecognitionPresenter::onRegisterFace() 
 {
+		qDebug() << "[FaceRecognitionPresenter] onRegisterFace() is called";
+		if (faceRegisterPresenter) 
+				faceRegisterPresenter->onRegisterFace();
+}
+
+void FaceRecognitionPresenter::onReset()
+{
+		qDebug() << "[FaceRecognitionPresenter] onReset() is called";
+		if (!service) return;
+
+		service->fetchReset();
+}
+
+void FaceRecognitionPresenter::presentReset()
+{
+		qDebug() << "[FaceRecognitionPresenter] presentReset() is called";
 		if (!view) return;
 
-		service->resetService();
+		view->reset();
 }
 
 FaceRecognitionPresenter::~FaceRecognitionPresenter()

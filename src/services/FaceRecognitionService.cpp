@@ -2,18 +2,27 @@
 #include "MainWindow.hpp"
 #include <QImage>
 #include <QTimer>
+#include <QDir>
+#include <QFile>
 #include <filesystem>
 #include <chrono>
 #include <ctime>
+
+#include "presenter/FaceRecognitionPresenter.hpp"
 
 // #define DEBUG 
 
 namespace fs = std::filesystem;
 
-FaceRecognitionService::FaceRecognitionService(QObject* parent) : QObject(parent) 
+FaceRecognitionService::FaceRecognitionService(QObject* parent, FaceRecognitionPresenter* presenter) : QObject(parent), presenter(presenter)
 {
 		std::cout << "Face Recognition Service create!!" << std::endl;
 		init();
+}
+
+void FaceRecognitionService::setPresenter(FaceRecognitionPresenter* _presenter)
+{
+		presenter = _presenter;
 }
 
 void FaceRecognitionService::init()
@@ -287,18 +296,11 @@ void FaceRecognitionService::setState(RecognitionState newState)
         default:
 						break;
 		}
-
-		/*
-    if (currentState != newState) {
-        currentState = newState;
-        emit stateChanged(currentState);
-    }
-		*/
-
 }
 
 int FaceRecognitionService::handleRecognition(Mat& frame, const Rect& face, const Mat& aligendFace, QString& labelText, Scalar& boxColor)
 {
+		qDebug() << "[FaceRecognitionService] handleRecognition() is called";
 		int predictedLabel = -1;
 		double confident = 999.0;
 		int authFlag = -1;
@@ -309,6 +311,7 @@ int FaceRecognitionService::handleRecognition(Mat& frame, const Rect& face, cons
 		}
 
 		if (!storedFaces.empty()) {
+				qDebug() << "[FaceRecognitionService] Model is not empty";
 				recognizer->predict(aligendFace, predictedLabel, confident);
 		}
 
@@ -334,6 +337,7 @@ int FaceRecognitionService::handleRecognition(Mat& frame, const Rect& face, cons
 
 void FaceRecognitionService::handleRegistration(Mat& frame, const Rect& face, const Mat& alignedFace, QString& labelText, Scalar& boxColor)
 {
+		qDebug() << "[FaceRecognitionService] handleRegistration is called";
 		Mat colorFace = frame.clone();
 		labelText = "Registering...";
 		boxColor = Scalar(255, 0, 0);
@@ -344,6 +348,7 @@ void FaceRecognitionService::handleRegistration(Mat& frame, const Rect& face, co
             FONT_HERSHEY_DUPLEX, 1.0, boxColor, 2);
 
 
+		qDebug() << "[FaceRecognitionService] Duplicate face start!";
 		if (captureCount == 0 && isDuplicateFace(alignedFace)) {
 				isRegisteringAtomic.storeRelaxed(0);
 				setState(RecognitionState::DUPLICATEDFACE);
@@ -351,6 +356,8 @@ void FaceRecognitionService::handleRegistration(Mat& frame, const Rect& face, co
 				return;
 		}
 
+		
+		qDebug() << "[FaceRecognitionService] captureCount: " << captureCount;
 		if (captureCount < 20) {
 				saveCapturedFace(face, alignedFace, colorFace); 
 
@@ -438,6 +445,7 @@ int FaceRecognitionService::getNextLabel()
 
 bool FaceRecognitionService::isDuplicateFace(const Mat& newFace)
 {
+		qDebug() << "[FaceRecognitionService] isDuplicateFace is called";
     if (!recognizer || newFace.empty()) {
         std::cerr << "[오류] 얼굴 인식기가 초기화되지 않았거나 입력 이미지가 비어 있습니다." << std::endl;
         return false;
@@ -447,16 +455,18 @@ bool FaceRecognitionService::isDuplicateFace(const Mat& newFace)
     int predictedLabel = -1;
     double confidence = 0.0;
 
-    // 예측 수행 (입력은 반드시 흑백이어야 함)
     cv::Mat gray;
     if (newFace.channels() == 3)
         cv::cvtColor(newFace, gray, cv::COLOR_RGB2GRAY);
     else
         gray = newFace;
 
-    //if (!storedFaces.empty()) {
-    if (!storedFaces.empty()) {
+    if (!storedFaces.empty() && !labelMap.empty()) {
+				qDebug() << "before predict";
+				
         recognizer->predict(gray, predictedLabel, confidence);
+
+				qDebug() << "after predict";
     }
 
     std::cout << "[" << __func__ << "] 예측된 라벨: " << predictedLabel << ", 신뢰도: " << confidence << std::endl;
@@ -474,11 +484,16 @@ void FaceRecognitionService::resetUnlockFlag()
 		hasAlreadyUnlocked = false;
 }
 
-void FaceRecognitionService::resetService()
+void FaceRecognitionService::fetchReset()
 {
 		QMutexLocker locker(&frameMutex);
+		qDebug() << "[FaceRecognitionService] fetchReset() called";
 
-		qDebug() << "[FaceRecognitionService] resetService() called";
+		QDir dir(USER_FACES_DIR);
+		dir.removeRecursively();
+
+		QFile::remove(FACE_MODEL_FILE);
+		QFile::remove(USER_LABEL_FILE);
 
 		labelMap.clear();
 		currentLabel = 0;
@@ -488,6 +503,8 @@ void FaceRecognitionService::resetService()
 
 		recognizer = face::LBPHFaceRecognizer::create();
 		recognizer->save(FACE_MODEL_FILE);
+
+		presenter->presentReset();
 }
 
 void FaceRecognitionService::drawTransparentBox(Mat& img, Rect rect, Scalar color, double alpha = 0.4)
@@ -560,18 +577,12 @@ void FaceRecognitionService::procFrame()
 				}
 				else {
 						if(isRegisteringAtomic.testAndSetRelaxed(1, 1)) {
+								qDebug() << "[FaceRecognitionService] before call handleRegistration()";
 								handleRegistration(frameCopy, face, alignedFace, labelText, boxColor);
 						}
 				}
 		}
 		
-		/*
-		if (!recognized)
-				qDebug() << "[FaceRecognitionService] Face recognition failure";
-		else 
-				qDebug() << "[FaceRecognitionService] Authenticate state:" << authManager.getAuthCount();
-		*/
-
 		cvtColor(frameCopy, frameCopy, cv::COLOR_BGR2RGB);
     QImage qimg(frameCopy.data, frameCopy.cols, frameCopy.rows, frameCopy.step, QImage::Format_RGB888);
 		emit frameReady(qimg.copy());

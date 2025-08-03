@@ -10,8 +10,7 @@ MainPresenter::MainPresenter(MainWindow* view)
 
 		faceRecognitionPresenter = new FaceRecognitionPresenter(faceRecognitionService, view, view);
 		connect(faceRecognitionThread, &QThread::started, faceRecognitionService, &FaceRecognitionService::procFrame);
-
-		faceRegisterPresenter = new FaceRegisterPresenter(faceRecognitionService, view);
+		faceRecognitionService->setPresenter(faceRecognitionPresenter);
 
 		faceSensorService = new FaceSensorService();
 		faceSensorThread = new QThread();
@@ -46,11 +45,11 @@ void MainPresenter::startAllServices()
 void MainPresenter::connectUIEvents()
 {
 		qDebug() << "[MainPresenter] connectUIEvents called";
-		connect(view, &MainWindow::showUserImagesRequested, userImagePresenter, &UserImagePresenter::handleShowImages);
+		connect(view, &MainWindow::showUserImagesRequested, userImagePresenter, &UserImagePresenter::onShowImages);
 		connect(view, &MainWindow::imageClicked, userImagePresenter, &UserImagePresenter::handleImagePreview);
 		connect(view, &MainWindow::deleteImageRequested, userImagePresenter, &UserImagePresenter::handleDeleteImage);
-    connect(view, &MainWindow::registerFaceRequested, faceRegisterPresenter, &FaceRegisterPresenter::onRegisterFace);
-		connect(view, &MainWindow::clearUserRequested, faceRecognitionPresenter, &FaceRecognitionPresenter::onClearUser);
+    connect(view, &MainWindow::registerFaceRequested, faceRecognitionPresenter, &FaceRecognitionPresenter::onRegisterFace);
+		connect(view, &MainWindow::resetRequested, faceRecognitionPresenter, &FaceRecognitionPresenter::onReset);
 		connect(view, &MainWindow::requestedShowUserList, userImagePresenter, &UserImagePresenter::onShowUserList);
 }
 

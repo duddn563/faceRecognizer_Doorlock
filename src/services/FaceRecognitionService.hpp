@@ -38,11 +38,14 @@ using namespace std;
 using namespace cv;
 using namespace cv::face;
 
+class FaceRecognitionPresenter;
+
 class FaceRecognitionService : public QObject {
 		Q_OBJECT
 
 public:
-				explicit FaceRecognitionService(QObject *parent = nullptr);
+				explicit FaceRecognitionService(QObject *parent = nullptr, FaceRecognitionPresenter* presenter = nullptr);
+				void setPresenter(FaceRecognitionPresenter* presenter);
 				void init();
 				void stop();
 				void procFrame();
@@ -50,7 +53,7 @@ public:
 				QString getUserName();
 				void startRegistering(const QString& name);
 				void resetUnlockFlag();
-				void resetService();
+				void fetchReset();
 signals:
 				void frameReady(const QImage& frame);
 				void stateChanged(RecognitionState newState);
@@ -82,6 +85,7 @@ private:
 				void finalizeRegistration();
 
 private:
+				FaceRecognitionPresenter* presenter;
 				std::atomic<bool> isRunning = true;
 				VideoCapture cap;
 

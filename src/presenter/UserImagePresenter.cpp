@@ -7,7 +7,7 @@ UserImagePresenter::UserImagePresenter(UserImageService* service, MainWindow* vi
 		qDebug() << "[UserImagePresenter] constructor.";
 }
 
-void UserImagePresenter::handleShowImages()
+void UserImagePresenter::onShowImages()
 {
 		qDebug() << "[UserImagePresenter] handleShowImages called";
 		QList<UserImage> images = UserImageService::getUserImages();
@@ -26,9 +26,9 @@ void UserImagePresenter::handleDeleteImage(const QString& imagePath)
 				QPointer<QDialog> dialogToClose = view->getGalleryDialog();
 				if (dialogToClose && dialogToClose->isVisible()) {
 						dialogToClose->close();
-						QTimer::singleShot(150, this, &UserImagePresenter::handleShowImages);
+						QTimer::singleShot(150, this, &UserImagePresenter::onShowImages);
 				} else {
-						handleShowImages();
+						onShowImages();
 				}
 
 		} else {
