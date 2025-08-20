@@ -6,7 +6,8 @@ build/
 *~
 
 git_uploader.sh
-./assert/face_images/*
-./assert/face_model.yml
-./assert/label.txt
+CHANGELOG.md
+assert/face_images/*
+assert/face_model.yml
+assert/label.txt
 

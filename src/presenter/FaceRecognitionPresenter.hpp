@@ -41,5 +41,6 @@ private:
 				RecognitionState currentDoorState = RecognitionState::IDLE;
 
 				void onViewStateChanged(RecognitionState state);
-				void handleStateChanged(RecognitionState state);
+				//void handleStateChanged(RecognitionState state);
+
 };

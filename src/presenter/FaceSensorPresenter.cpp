@@ -13,7 +13,7 @@ FaceSensorPresenter::FaceSensorPresenter(FaceSensorService* service, MainWindow*
 
 		connect(service, &FaceSensorService::personDetected, view, [=]() {
 						view->showStatusMessage("Face Detected");
-						view->setRecognitionState(RecognitionState::DETECTING_PERSON);
+						//view->setRecognitionState(RecognitionState::DETECTING_PERSON);
 						std::cout << "Face detected" << std::endl;
 		});
 

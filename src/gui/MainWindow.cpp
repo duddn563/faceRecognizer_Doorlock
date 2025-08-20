@@ -150,6 +150,7 @@ void MainWindow::setCurrentUiState(UiState state)
 		currentUiState = state;
 }
 
+/*
 void MainWindow::setRecognitionState(RecognitionState state) {
     switch (state) {
         case RecognitionState::IDLE:
@@ -167,18 +168,30 @@ void MainWindow::setRecognitionState(RecognitionState state) {
 						ui->statusbar->showMessage(QString("이미 등록된 얼굴입니다..."));
 						QMessageBox::information(this, "Information", "이미 등록된 얼굴입니다...");
 						break;
-        case RecognitionState::UNLOCKED:
+        case RecognitionState::LOCKED_OUT:
+						showUnlockOverlayLabel();
             ui->statusbar->showMessage("문이 열렸습니다!");
 					  unlockOverlayLabel->setVisible(true);
 
-						// 3초 후에 숨기고 상태 복귀
 						QTimer::singleShot(3000, this, [this]() {
 								unlockOverlayLabel->setVisible(false);
-								cout << "setVisibel true" << endl;	
 						});
 						setRecognitionState(RecognitionState::IDLE);
 						break;
     }
+}
+*/
+
+void MainWindow::showUnlockOverlayLabel()
+{
+		unlockOverlayLabel->setVisible(true);
+		showStatusMessage("Door was opend!");
+
+		// 3초 후에 숨기고 상태 복귀
+		QTimer::singleShot(3000, this, [this]() {
+						unlockOverlayLabel->setVisible(false);
+						cout << "setVisibel false" << endl;	
+		});
 }
 
 RecognitionState MainWindow::getRecognitionState() 
@@ -241,6 +254,8 @@ void MainWindow::showImagePreview(const QString& imagePath)
 
 QDialog* MainWindow::getGalleryDialog() const { return galleryDialog; }
 
+// NOTE: galleryDialog는 QPointer로 단일 인스턴스 보장.
+//				재호출 시 재사용/포커스만 주며, null/destroyed 안전 가드.
 void MainWindow::showUserImageGallery(const QList<UserImage>& images) {
 		qDebug()  << "[MainWindow] showUserImageGallery called with" << images.size() << "images";	
 
@@ -364,7 +379,7 @@ void MainWindow::showError(const QString& title, const QString& message) {
 void MainWindow::showStatusMessage(const QString& msg)
 {
 		if (ui->statusbar) {
-				ui->statusbar->showMessage(msg, 3000);
+				ui->statusbar->showMessage(msg);
 		}
 }
 

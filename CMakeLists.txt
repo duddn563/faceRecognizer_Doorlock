@@ -21,6 +21,8 @@ include_directories(
 
 set(SOURCES
     src/main.cpp
+		src/fsm/recognition_fsm.cpp
+		src/fsm/fsm_logging.cpp
     src/gui/MainWindow.cpp
 
 		src/presenter/MainPresenter.cpp

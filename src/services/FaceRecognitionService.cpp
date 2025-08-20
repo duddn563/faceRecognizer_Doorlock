@@ -1,5 +1,3 @@
-#include "FaceRecognitionService.hpp"
-#include "MainWindow.hpp"
 #include <QImage>
 #include <QTimer>
 #include <QDir>
@@ -7,6 +5,9 @@
 #include <filesystem>
 #include <chrono>
 #include <ctime>
+#include "FaceRecognitionService.hpp"
+#include "MainWindow.hpp"
+#include "fsm/fsm_logging.hpp"
 
 #include "presenter/FaceRecognitionPresenter.hpp"
 
@@ -65,11 +66,11 @@ void FaceRecognitionService::openCamera()
 		try {
 				cap.open(CAM_NUM);
 				if (!cap.isOpened()) {
-						std::cout << "Failed to camera open!!" << std::endl;
+						std::cout << "[FaceRecognitionService] Failed to camera open!!" << std::endl;
 				}
-				std::cout << "Camera be opend!!" << std::endl;
+				std::cout << "[FaceRecognitionService] Camera be opend!!" << std::endl;
 		} catch(const cv::Exception& e) {
-				std::cout << "OpenCV exception: " << e.what() << std::endl;
+				std::cout << "[FaceRecognitionService] OpenCV exception: " << e.what() << std::endl;
 		}
 }
 
@@ -266,6 +267,7 @@ QString FaceRecognitionService::getUserName()
 		return userName; 
 }
 
+/*
 void FaceRecognitionService::setState(RecognitionState newState) 
 {
 		if (currentState == RecognitionState::UNLOCKED) {
@@ -297,9 +299,12 @@ void FaceRecognitionService::setState(RecognitionState newState)
 						break;
 		}
 }
+*/
 
-int FaceRecognitionService::handleRecognition(Mat& frame, const Rect& face, const Mat& aligendFace, QString& labelText, Scalar& boxColor)
+recogResult_t FaceRecognitionService::handleRecognition(Mat& frame, const Rect& face, const Mat& aligendFace, QString& labelText, Scalar& boxColor)
 {
+		recogResult_t rv;
+		
 		qDebug() << "[FaceRecognitionService] handleRecognition() is called";
 		int predictedLabel = -1;
 		double confident = 999.0;
@@ -307,18 +312,19 @@ int FaceRecognitionService::handleRecognition(Mat& frame, const Rect& face, cons
 
 		if (recognizer->empty()) {
 				qDebug() << "[FaceRecognitionService] Model is not trained. Unpredictable.";
-				return AUTH_FAILED;
+				rv.confidence = confident;
+				rv.result = authFlag;
+				return rv;
 		}
 
 		if (!storedFaces.empty()) {
-				qDebug() << "[FaceRecognitionService] Model is not empty";
 				recognizer->predict(aligendFace, predictedLabel, confident);
 		}
 
 		if (confident < 60.0 && labelMap.count(predictedLabel)) {
 				labelText = QString::fromStdString(labelMap[predictedLabel]);
 				boxColor = Scalar(0, 255, 0);
-				authFlag = AUTH_SUCCESS;
+				authFlag = AUTH_SUCCESSED;
 		} 
 		else {
 				labelText = "Unknown";
@@ -332,7 +338,10 @@ int FaceRecognitionService::handleRecognition(Mat& frame, const Rect& face, cons
             FONT_HERSHEY_DUPLEX, 1.0, boxColor, 2);
 		cout << "[" << __func__ << "] auth flag: " << authFlag << endl;
 
-		return authFlag;
+		rv.confidence = confident;
+		rv.result = authFlag;
+
+		return rv;
 }
 
 void FaceRecognitionService::handleRegistration(Mat& frame, const Rect& face, const Mat& alignedFace, QString& labelText, Scalar& boxColor)
@@ -351,7 +360,7 @@ void FaceRecognitionService::handleRegistration(Mat& frame, const Rect& face, co
 		qDebug() << "[FaceRecognitionService] Duplicate face start!";
 		if (captureCount == 0 && isDuplicateFace(alignedFace)) {
 				isRegisteringAtomic.storeRelaxed(0);
-				setState(RecognitionState::DUPLICATEDFACE);
+				setState(RecognitionState::DUPLICATE_FACE);
 				emit registerFinished(false, "중복된 얼굴입니다.");
 				return;
 		}
@@ -462,11 +471,7 @@ bool FaceRecognitionService::isDuplicateFace(const Mat& newFace)
         gray = newFace;
 
     if (!storedFaces.empty() && !labelMap.empty()) {
-				qDebug() << "before predict";
-				
         recognizer->predict(gray, predictedLabel, confidence);
-
-				qDebug() << "after predict";
     }
 
     std::cout << "[" << __func__ << "] 예측된 라벨: " << predictedLabel << ", 신뢰도: " << confidence << std::endl;
@@ -501,6 +506,7 @@ void FaceRecognitionService::fetchReset()
 		authManager.resetAuth();
 		hasAlreadyUnlocked = false;	
 
+		// NOTE: LBPH 모델 미학습 상태에서 predict() 금지.
 		recognizer = face::LBPHFaceRecognizer::create();
 		recognizer->save(FACE_MODEL_FILE);
 
@@ -534,7 +540,8 @@ void FaceRecognitionService::drawCornerBox(Mat& img, Rect rect, Scalar color, in
 
 void FaceRecognitionService::procFrame()
 {
-		int authResult = AUTH_FAILED;
+		//int authResult = AUTH_FAILED;
+		recogResult_t recogResult;
 		Mat frame, frameCopy;
 		{
 				QMutexLocker locker(&frameMutex);
@@ -549,6 +556,19 @@ void FaceRecognitionService::procFrame()
 		vector<Rect> faces;
 		faceDetector.detectMultiScale(gray, faces, 1.1, 5, CASCADE_SCALE_IMAGE, Size(100, 100));
 
+		// === FSM 스냅샷: 얼굴 검출 신호 공급 (히스테리시스용 detectScore) ===
+    // 검출기에서 정량 스코어가 없다면, 임시로 얼굴 개수 기반으로 0.0/0.8 같은 프록시 신호를 사용
+    // (실제 스코어가 있다면 setDetectScore(<실스코어>)로 바꿔줘)
+		const bool faceFound = !faces.empty();
+		setDetectScore(faceFound ? 0.8 : 0.0);		// facePresent_도 내부에서 갱신됨
+
+		// === FSM 스냅샷: 등록 모드 ===
+    // isRegisteringAtomic 은 원자적으로 접근
+    setRegisterRequested(isRegisteringAtomic.loadRelaxed() != 0);
+
+		// == FSM 스냅샷: 라이브니스(현재 모듈이 없으므로 true고정; 추후 실제 결과로 대체) ===
+		setLivenessOk(true);
+
 		bool recognized = false;
 
 		for (const auto& face : faces) 
@@ -559,20 +579,32 @@ void FaceRecognitionService::procFrame()
 				QString labelText;
 				Scalar boxColor;
 
+				// NOTE: isRegisteringAtomic은 타 스레드 접근 가능. 반드시 원자적 load()사용.
 				if (isRegisteringAtomic.loadRelaxed() == 0) {
-						authResult = handleRecognition(frameCopy, face, alignedFace, labelText, boxColor);
-						if (authResult == AUTH_SUCCESS) {
+						recogResult = handleRecognition(frameCopy, face, alignedFace, labelText, boxColor);
+
+
+						// === FSM 스냅샷: 인식 신뢰도/성공/실패 누적 ===
+            // handleRecognition()에서 신뢰도를 구할 수 있으면 그 값을 setRecogConfidence()에 넣어줘.
+            // 당장 값이 없다면 임시로 성공/실패에 따른 프록시 값을 사용(히스테리시스가 안정화시켜줌).
+						if (recogResult.result == AUTH_SUCCESSED) {
+								setRecogConfidence(recogResult.confidence);				// TODO: 실제 recognizer confidence로 대체
+								resetFailCount();								// 성공 시 실패 누적 리셋
+
 								if (!hasAlreadyUnlocked) {
 										recognized = true;
 										authManager.handleAuthSuccess();
 					
 										if (authManager.shouldAllowEntry()) {
-												setState(RecognitionState::UNLOCKED);
+												setState(RecognitionState::AUTH_SUCCESS);
 												qDebug() << "[FaceRecognitionService] Authenticate 3 time success -> Door open!";
 												authManager.resetAuth();
 												hasAlreadyUnlocked = true;
 										}	
 								}
+						} else {
+								setRecogConfidence(recogResult.confidence);			 // TODO: 실제 recognizer confidence로 대체
+								incFailCount();								 // 실패 누적
 						}
 				}
 				else {
@@ -582,8 +614,86 @@ void FaceRecognitionService::procFrame()
 						}
 				}
 		}
+
+		 // 얼굴이 하나도 없을 때 신뢰도는 낮게 유지(플리커 방지에 도움)
+		if (!faceFound) {
+				setRecogConfidence(0.0);
+		}
+
+
+    // 문열림 센서는 리드스위치 등에서 주기적으로 갱신하는 쪽이 맞지만,
+    // 여기서 알 수 있으면 setDoorOpened(<센서값>)을 추가로 호출해줘.
+    // setDoorOpened(doorIsOpen); // TODO: 센서 연결되어 있으면 사용
+
 		
 		cvtColor(frameCopy, frameCopy, cv::COLOR_BGR2RGB);
     QImage qimg(frameCopy.data, frameCopy.cols, frameCopy.rows, frameCopy.step, QImage::Format_RGB888);
 		emit frameReady(qimg.copy());
 }
+
+
+void FaceRecognitionService::setDetectScore(double v)				{ detectScore_ = v; facePresent_ = (v > 0.0); }
+void FaceRecognitionService::setRecogConfidence(double v)		{ recogConf_ = v; }
+void FaceRecognitionService::setDuplicate(bool v)						{ isDup_ = v; }
+void FaceRecognitionService::setRegisterRequested(bool v)   { regReq_ = v; }
+void FaceRecognitionService::setLivenessOk(bool v)					{ livenessOk_ = v; }
+void FaceRecognitionService::setDoorOpened(bool v)					{ doorOpened_ = v; }
+void FaceRecognitionService::incFailCount()									{ failCount_++; }
+void FaceRecognitionService::resetFailCount()								{ failCount_ = 0; }
+
+void FaceRecognitionService::onTick() 
+{
+		FsmContext c;
+		c.detectScore					= detectScore_;
+		c.recogConfidence			= recogConf_;
+		c.isDuplicate					= isDup_;
+		c.registerRequested		= regReq_;
+		c.livenessOk					= livenessOk_;
+		c.doorOpened					= doorOpened_;
+		c.failCount						= failCount_;
+		c.facePresent					= facePresent_;
+		c.nowMs								= monotonic_.elapsed();
+
+		// 상태별 타임아웃 계산 예시:
+    // - RECOGNIZING 상태에서 5초 초과 시 timeout = true
+    // - LOCKED_OUT에서는 lockoutMs 초과 시 timeout = true
+		c.timeout = computeTimeout(c);
+
+		static int k = 0;
+		if ((++k % 10) ==0) {
+				qCDebug(LC_FSM_CTX) 
+						<< "ctx detect=" << c.detectScore
+						<< "conf="			 << c.recogConfidence
+						<< "face="			 << c.facePresent
+						<< "dup="				 << c.isDuplicate
+						<< "live="			 << c.livenessOk
+						<< "fail="			 << c.failCount
+						<< "timeout="		 << c.timeout;
+		}
+
+		fsm_.updateContext(c);
+}
+
+bool FaceRecognitionService::computeTimeout(const FsmContext& c) 
+{
+		auto st = fsm_.current();
+		const qint64 elapsed = stateTimer_.elapsed();
+
+		// 상태 바뀔 때마다 재시작
+		if (prevState_ != st) {
+				prevState_ = st;
+				stateTimer_.restart();
+				return false;
+		}
+
+		if (st == RecognitionState::RECOGNIZING) {
+				return elapsed > params_.recogTimeoutMs;
+		}
+		if (st == RecognitionState::LOCKED_OUT) {
+				return elapsed > params_.lockoutMs;
+		}
+
+		return false;
+}
+
+

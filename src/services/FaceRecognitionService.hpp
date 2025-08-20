@@ -3,6 +3,8 @@
 
 #include <QObject>
 #include <QThread>
+#include <QTimer>
+#include <QElapsedTimer>
 #include <opencv2/opencv.hpp>
 #include <opencv2/face.hpp>
 #include <fstream>
@@ -15,6 +17,8 @@
 #include <QDebug>
 
 #include "faceRecognitionState.hpp"
+#include "fsm/recognition_fsm.hpp"
+#include "fsm/recognition_fsm_setup.hpp"
 #include "AuthManager.hpp"
 #include "util.hpp"
 
@@ -31,7 +35,7 @@
 #define USER_LABEL_FILE								ASSERT_PATH	"labels.txt"
 #define OPEN_IMAGE										ASSERT_PATH	"images/open_image.PNG"
 
-#define AUTH_SUCCESS									1
+#define AUTH_SUCCESSED								1
 #define AUTH_FAILED										0
 
 using namespace std;
@@ -39,6 +43,12 @@ using namespace cv;
 using namespace cv::face;
 
 class FaceRecognitionPresenter;
+
+
+typedef struct RecogResult_t {
+		double confidence;			// 얼굴인식 신뢰도
+		int		 result;			  // 인식 결과
+} recogResult_t;
 
 class FaceRecognitionService : public QObject {
 		Q_OBJECT
@@ -54,10 +64,32 @@ public:
 				void startRegistering(const QString& name);
 				void resetUnlockFlag();
 				void fetchReset();
+
+				void setState(RecognitionState newState) {
+						if (currentState == newState) return;
+						currentState = newState;
+						emit stateChanged(newState);
+				}
+				RecognitionState getState() const { return currentState; }
 signals:
 				void frameReady(const QImage& frame);
-				void stateChanged(RecognitionState newState);
+				//void stateChanged(RecognitionState newState);
 				void registerFinished(bool success, const QString& message);
+
+				void stateChanged(RecognitionState s);
+
+public slots:
+				void setDetectScore(double v);
+				void setRecogConfidence(double v);
+				void setDuplicate(bool v);
+				void setRegisterRequested(bool v);
+				void setLivenessOk(bool v);
+				void setDoorOpened(bool v);
+				void incFailCount();
+				void resetFailCount();
+
+private slots:
+				void onTick();
 
 private:
 				void openCamera();
@@ -79,10 +111,12 @@ private:
 				void saveCapturedFace(const Rect& face, const Mat& aligendFace, const Mat& frame);
 				int	 getNextLabel();
 
-				void setState(RecognitionState newState);
-				int handleRecognition(Mat& frame, const Rect& face, const Mat& alignedFace, QString& labelText, Scalar& boxColor);
+				//void setState(RecognitionState newState);
+				recogResult_t  handleRecognition(Mat& frame, const Rect& face, const Mat& alignedFace, QString& labelText, Scalar& boxColor);
 				void handleRegistration(Mat& frame, const Rect& face, const Mat& alignedFace, QString& labelText, Scalar& boxColor);
 				void finalizeRegistration();
+
+				bool computeTimeout(const FsmContext& c);
 
 private:
 				FaceRecognitionPresenter* presenter;
@@ -108,6 +142,21 @@ private:
 				QString userName;
 				bool hasAlreadyUnlocked = false;
 
+				RecognitionFsm fsm_{this};
+				FsmParams params_;
+				QTimer tick_;
+				QElapsedTimer monotonic_;
+				QElapsedTimer stateTimer_;
+				RecognitionState prevState_ = RecognitionState::IDLE;
+
+				double detectScore_ = 0.0;
+				double recogConf_		= 0.0;
+				bool	 isDup_				= false;
+				bool	 regReq_			= false;
+				bool	 livenessOk_	= false;
+				bool	 doorOpened_  = false;
+				int		 failCount_   = 0;
+				bool	 facePresent_ = false;
 };
 
 #endif		// FACERECOGNITIONSERVICE_H

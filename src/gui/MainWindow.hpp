@@ -51,7 +51,7 @@ public:
     void showError(const QString& title, const QString& message);
 		void showStatusMessage(const QString& msg);
 
-		void setRecognitionState(RecognitionState newState);
+		//void setRecognitionState(RecognitionState newState);
 		RecognitionState getRecognitionState();
 
 		void setCurrentUiState(UiState state);
@@ -59,6 +59,7 @@ public:
 		QDialog* getGalleryDialog() const;
 		void showUserList(const QStringList& users);
 		void reset();
+		void showUnlockOverlayLabel();
 		
 
 signals:

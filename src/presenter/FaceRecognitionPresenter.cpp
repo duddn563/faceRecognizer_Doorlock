@@ -19,7 +19,9 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 							std::cout << "Image is null!" << std::endl;
 					}
 		}, Qt::QueuedConnection);
-		connect(service, &FaceRecognitionService::stateChanged, this, &FaceRecognitionPresenter::handleStateChanged);
+
+		//connect(service, &FaceRecognitionService::stateChanged, this, &FaceRecognitionPresenter::handleStateChanged);
+		/*
 		connect(service, &FaceRecognitionService::stateChanged, this, [=](RecognitionState state) {
 					if (state == RecognitionState::REGISTERING) {
 							QString msg = QString("'%1' 사용자 등록 중...").arg(service->getUserName());
@@ -29,6 +31,47 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 							view->setRecognitionState(state);			
 					}
 		});
+		*/
+
+		connect(service, &FaceRecognitionService::stateChanged, this, [=] (RecognitionState s) {
+					switch (s) {
+							case RecognitionState::IDLE: 	
+																										view->showStatusMessage("대기 중...");
+																										break;
+							case RecognitionState::DOOR_OPEN:
+																										view->showStatusMessage("Door was opened");
+																										break;
+							case RecognitionState::DETECTING:
+																										view->showStatusMessage("Face was detected");
+																										break;
+							case RecognitionState::REGISTERING:
+																										view->showStatusMessage("등록중...");
+																										break;
+							case RecognitionState::DUPLICATE_FACE:
+																										view->showStatusMessage("Duplicated face...");
+																										view->showInfo("중복 사용자", "이미 등록된 얼굴입니다.");
+																										break;
+							case RecognitionState::RECOGNIZING:
+																										view->showStatusMessage("Recognizing...");
+																										break;
+							case RecognitionState::AUTH_SUCCESS:
+																										view->showStatusMessage("Auth success!!");
+																										view->showUnlockOverlayLabel();
+																										break;
+							case RecognitionState::AUTH_FAIL:		
+																										view->showStatusMessage("Auth fail!!");
+																										break;
+							case RecognitionState::LOCKED_OUT:		
+																										view->showStatusMessage("Locked out...");
+																										break;
+
+							default:
+				 																					view->showStatusMessage("Unkown state!!");
+					}
+
+		});
+
+
 
 		connect(view, &MainWindow::stateChangedFromView, this, &FaceRecognitionPresenter::onViewStateChanged);
 
@@ -50,13 +93,14 @@ void FaceRecognitionPresenter::onViewStateChanged(RecognitionState state)
 				service->resetUnlockFlag();
 		}
 }
-
+/*
 void FaceRecognitionPresenter::handleStateChanged(RecognitionState state) 
 {
 		if (state == RecognitionState::DUPLICATEDFACE) {
 				view->showInfo("중복 사용자", "이미 등록된 얼굴입니다.");
 		}
 }
+*/
 
 void FaceRecognitionPresenter::onRegisterFace() 
 {
