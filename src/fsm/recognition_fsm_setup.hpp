@@ -5,7 +5,7 @@
 
 // 임계/시간 파라미터(필요시 설정/GUI에서 변경 가능하도록)
 struct FsmParams {
-		double detectEnter = 0.65;
+		double detectEnter = 0.65;			
 		double detectExit	 = 0.35;
 		int		 detectMinDwellMs = 200;
 
@@ -15,6 +15,8 @@ struct FsmParams {
 
 		int successHoldMs = 800;
 		int failCooldownMs = 1000;
+
+		int authThresh = 5;					// 얼굴 인증 임계값(어떤 조건을 만족하기 위해 넘아야 하는 경계치)
 
 		int lockoutFails = 5;
 		int lockoutMs = 30'000;
@@ -52,7 +54,7 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				"detect->idle",
 				RecognitionState::DETECTING, RecognitionState::IDLE,
 				[P](const FsmContext& c) {
-						return (!c.facePresent) || (c.detectScore <= P.detectExit);
+						return (!c.facePresent) || (c.detectScore <= P.detectExit); // ||(!c.registerRequested);
 				},
 				P.detectMinDwellMs
 		});
@@ -63,7 +65,7 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				"detect->recognizing",
 				RecognitionState::DETECTING, RecognitionState::RECOGNIZING,
 				[P] (const FsmContext& c) {
-						return c.facePresent && c.detectScore >= P.detectEnter * 0.95; // 약간 관용
+						return c.facePresent && c.detectScore >= P.detectEnter * 0.95; //&& (!c.registerRequested); // 약간 관용
 				},
 				P.detectMinDwellMs
 		});
@@ -73,7 +75,7 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				"recognizing->success",
 				RecognitionState::RECOGNIZING, RecognitionState::AUTH_SUCCESS,
 				[P] (const FsmContext& c) {
-						return c.livenessOk && (c.recogConfidence >= P.recogEnter);
+						return c.livenessOk && (c.recogConfidence >= P.recogEnter); //&& (!c.registerRequested);
 				},
 				/*minDwellMs=*/150
 		});
@@ -98,11 +100,25 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 
 		// AUTH_SUCCESS -> DOOR_OPEN: 성공 후 딜레이
 		fsm.addTransition({
+				"success->dooropen",
+				RecognitionState::AUTH_SUCCESS, RecognitionState::DOOR_OPEN,
+				[P] (const FsmContext& c) { 
+						qDebug() << "[FSM] c.authStreak:" << c.authStreak;
+						return c.detectScore >= 0.8 && c.livenessOk && (c.recogConfidence >= P.recogEnter) && (c.authStreak >= P.authThresh) && c.allowEntry; 
+				},
+				/*minDwellMs=*/150
+		});
+
+
+		// DOOR_OPEN -> IDLE: 0.2초 체류후 IDLE로 복귀
+		fsm.addTransition({
 				"dooropen->idle",
 				RecognitionState::DOOR_OPEN, RecognitionState::IDLE,
 				[] (const FsmContext& c) { return !c.doorOpened; },
 				/*minDwellMs=*/200
 		});
+
+
 
 		// AUTH_FAIL -> LOCKED_OUT: 실패 누적
 		fsm.addTransition({

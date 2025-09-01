@@ -12,7 +12,6 @@ AuthManager::AuthManager()
 
 void AuthManager::handleAuthSuccess() 
 {
-		qDebug() << "[Auth Manager] The handleAuthSuccess function was called";
 		if (authCount == 0) {
 				firstAuthTime = QDateTime::currentDateTime();
 				timer.restart();

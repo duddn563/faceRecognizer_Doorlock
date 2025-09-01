@@ -12,11 +12,12 @@ int main(int argc, char *argv[])
 
 				qSetMessagePattern(QStringLiteral("%{time hh:mm:ss.zzz} %{type} %{category} - %{message}"));
 				QLoggingCategory::setFilterRules(
-						"fsm.state.debug=true\n"
-						"fsm.guard.debug=true\n"
-						"fsm.ctx.debug=true\n"
-						"fsm.warn.debug=true\n"
+						"fsm.state.debug=false\n"
+						"fsm.guard.debug=false\n"
+						"fsm.ctx.debug=false\n"
+						"fsm.warn.debug=false\n"
 				);
+
 				MainWindow w;
 				w.show();
 				return app.exec();

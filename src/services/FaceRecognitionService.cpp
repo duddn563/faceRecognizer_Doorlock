@@ -5,20 +5,67 @@
 #include <filesystem>
 #include <chrono>
 #include <ctime>
-#include "FaceRecognitionService.hpp"
-#include "MainWindow.hpp"
-#include "fsm/fsm_logging.hpp"
+#include <memory>
 
+#include "FaceRecognitionService.hpp"
 #include "presenter/FaceRecognitionPresenter.hpp"
+#include "MainWindow.hpp"
+#include "hw/DoorlockController.hpp"
+#include "hw/ReedSensor.hpp"
+#include "hw/UnlockUntilReed.hpp"
+#include "fsm/fsm_logging.hpp"
+#include "include/common_path.hpp"
 
 // #define DEBUG 
 
+// ===== 하드웨어 핀/옵션 =====
+static constexpr const char* GPIOCHIP = "/dev/gpiochip0";
+static constexpr unsigned RELAY_GPIO  = 17;   // 릴레이 IN
+static constexpr bool     RELAY_ACTIVE_HIGH = false; // LOW=ON 릴레이면 false
+
+static constexpr unsigned REED_GPIO   = 23;   // 리드 스위치 DOUT
+static constexpr bool     REED_ACTIVE_HIGH = true;   // 자석 감지 시 HIGH면 true, LOW면 false (현장 확인 필요)
+
+// ===== 컨트롤러/매니저(정적) =====
+static DoorlockController      g_door(GPIOCHIP, RELAY_GPIO, RELAY_ACTIVE_HIGH);
+static ReedSensor              g_reed(GPIOCHIP, REED_GPIO, REED_ACTIVE_HIGH);
+static UnlockUntilReed::Opt    g_unlockOpt{/*pollMs*/50, /*hits*/6, /*openTimeoutMs*/5000, /*maxUnlockMs*/10000};
+static UnlockUntilReed         g_unlockMgr(&g_door, &g_reed, g_unlockOpt);
+
+// 간단한 OSD 로그 헬퍼(선택)
+static inline void drawOsd(cv::Mat& frame, const std::string& msg, cv::Point org={10,30}) {
+    cv::putText(frame, msg, org, cv::FONT_HERSHEY_PLAIN, 1.4, cv::Scalar(0,255,255), 2);
+}
+
+
+using json = nlohmann::json;
+
+
 namespace fs = std::filesystem;
+
+//std::unique_ptr<Embedder> dnnEmbedder_;
+//std::unique_ptr<Cascader> LBPHCascader_;
 
 FaceRecognitionService::FaceRecognitionService(QObject* parent, FaceRecognitionPresenter* presenter) : QObject(parent), presenter(presenter)
 {
-		std::cout << "Face Recognition Service create!!" << std::endl;
+		// 0) Service initialize
 		init();
+
+		// 1) 전환 테이블 구성
+		setupRecognitionFsm(fsm_, params_);
+
+		// 2) FSM stateChanged -> 서비스 stateChanged로 그대로 포워딩
+		connect(&fsm_, &RecognitionFsm::stateChanged, this, [this](RecognitionState s) {
+ 					emit stateChanged(s);
+		});
+
+		// 3) 스냅샷 타이머 시작(컨텍스트 공급)
+		tick_.setInterval(33);
+		connect(&tick_, &QTimer::timeout, this, &FaceRecognitionService::onTick);
+		tick_.start();
+
+		// 4) FSM 시작
+		fsm_.start(RecognitionState::IDLE);
 }
 
 void FaceRecognitionService::setPresenter(FaceRecognitionPresenter* _presenter)
@@ -26,26 +73,170 @@ void FaceRecognitionService::setPresenter(FaceRecognitionPresenter* _presenter)
 		presenter = _presenter;
 }
 
+bool FaceRecognitionService::ensureDir(const QString& dirPath)
+{
+		QDir d;
+		return d.mkpath(dirPath);
+}
+
 void FaceRecognitionService::init()
 {
 		std::cout << "Face Recognition Service initiallize!!" << std::endl;
 		openCamera();
 
-		loadDetector();
-		createLBPH();
-		loadModel();
+		initializeLBPH();
+		initializeDnn();
 
-		loadLabelMap();
+
 		registerExistingUser();
+
+   // ===== 여기 추가: 도어락/리드스위치 초기화 =====
+    if (!g_door.init())  { qWarning() << "[HW] Door init failed"; }
+    if (!g_reed.init())  { qWarning() << "[HW] Reed init failed"; }
+    // g_unlockMgr는 위에서 g_door/g_reed 참조만 하므로 별도 init 불필요
+
 
 		QTimer *timer = new QTimer(this);
 		connect(timer, &QTimer::timeout, this, &FaceRecognitionService::procFrame);
 		timer->start(30);
 }
 
+bool FaceRecognitionService::idExists(int id) const
+{
+		return std::any_of(gallery_.begin(), gallery_.end(),
+											 [&] (const UserEmbedding& u) { return u.id == id; });
+}
+
+void FaceRecognitionService::rebuildNextIdFromGallery()
+{
+		int maxId = 0;
+		for (const auto& u : gallery_) {
+				if (u.id > maxId) maxId = u.id;
+		}
+
+		if (maxId == 0) {
+				nextIdCounter_.store(maxId, std::memory_order_relaxed);
+		}
+		else {
+				nextIdCounter_.store(maxId + 1, std::memory_order_relaxed);
+		}
+}
+
+int FaceRecognitionService::nextSequentialId()
+{
+		// 기본적으로 증가
+	int id = nextIdCounter_.fetch_add(1, std::memory_order_relaxed);
+
+	// 혹시 외부에서 수동으로 추가되며 충돌이 생길 수 있으니 마지막 방어
+	while (idExists(id)) {
+			id = nextIdCounter_.fetch_add(1, std::memory_order_relaxed);
+	}
+
+	return id;
+}
+
+
+// LBPH 초기화 + LBPH 파일 로드
+void FaceRecognitionService::initializeLBPH()
+{
+	/*
+		const QString appDir = QCoreApplication::applicationPath();
+		const QString Detectors = QDir(appDir).filePath(DETECTOR_PATH);
+		const QString models = QDir(appDir).filePath(LBPH_MODEL_PATH);
+		
+		ensureDir(Detectors);
+		ensureDir(models)
+
+		const QString ymlPath = QDir(models).filePath(LBPH_MODEL);
+
+		Cascader::Options opt;
+		opt.modelPath = ymlPath;
+		lbphCascader_ = std::make_unique<Cascader>(opt);
+		if (!lbphCascader_->isReady()) {
+				qWarning() << "[LBPH] not ready";
+				lbphCascader_.reset();
+		}
+		else {
+				qInfo() << "[LBPH] ready!";	
+		}	
+		*/
+
+
+		try {
+				// 1) Face Detector load
+				faceDetector.load(FACEDETECTOR);
+				eyesDetector.load(EYESDETECTOR);
+
+				// 2) Face Recognizer create
+				recognizer = face::LBPHFaceRecognizer::create();
+				if (!recognizer) {
+						qDebug() << "[FRS] Failed to create LBPH recognizer";
+						return;
+				}
+
+				// 3) Face Recognizer read model file
+				if (fs::exists(LBPH_MODEL_FILE)) {
+						recognizer->read(LBPH_MODEL_FILE);
+						qDebug() << "[FaceRecognitionService] Recognizer is loaded.";
+				}
+				else {
+						cout << "No existing model found. Will create a new model." << endl;
+				}
+		}
+		catch (Exception &e) {
+				qDebug() << "[FRS] Failed to initialize LBPH(" << e.what() << ")";				
+				return;
+		}
+
+}
+
+// DNN 초기화 + 임베딩 파일 로드
+void FaceRecognitionService::initializeDnn()
+{
+		const QString appDir = QCoreApplication::applicationDirPath();
+		const QString models = QDir(appDir).filePath(MOBILEFACE_PATH);
+		const QString dataDir = QDir(appDir).filePath(EMBEDDING_JSON_PATH);
+
+		ensureDir(models);
+		ensureDir(dataDir);
+
+		// 현재 사용하고 있는 ONNX (128x128 입력, 256차원 출력)
+		const QString onnxPath = QDir(models).filePath(MOBILEFACE_MODEL);
+
+		// Embedder 옵션
+		Embedder::Options opt;
+		//opt.modelPath = QDir(QCoreApplication::applicationDirPath()).filePath("models/mobileface.onnx");
+		opt.modelPath = onnxPath;
+		opt.inputSize = 128;
+		opt.useRGB = true;
+
+		dnnEmbedder_ = std::make_unique<Embedder>(opt);
+		if (!dnnEmbedder_->isReady()) {
+				qWarning() << "[DNN] not ready, fallback LBPH";
+				dnnEmbedder_.reset();
+		} else {
+				qInfo() << "[DNN] MobileFaceNet ready.";
+		}
+
+		// 임베딩 파일 경로 세팅 및 로드
+		const QString embPath = QDir(dataDir).filePath(EMBEDDING_JSON);
+		embeddingsPath_ = embPath.toStdString();
+
+		if (loadEmbeddingsFromFile()) {
+				qInfo() << "[DNN] Loaded embeddings:" << (int)gallery_.size()
+								<< "users from" << embPath;
+		} else {
+				qWarning() << "[DNN] No embeddings loaded (file may not exist):" << embPath;
+				gallery_.clear();
+		}
+
+		rebuildNextIdFromGallery();
+}
+
 void FaceRecognitionService::stop()
 {
 		std::cout << "Face Recognition Service stop" << std::endl;
+		// isRunning값은 현재 시작할 때 초기화 되고 있지 않음
 		if (!isRunning) return;
 
 		isRunning = false;
@@ -55,7 +246,7 @@ void FaceRecognitionService::stop()
 		}
 
 		currentState = RecognitionState::IDLE;
-		userName.clear();
+		registeringUserName_.clear();
 
 		this->moveToThread(QCoreApplication::instance()->thread());
 }
@@ -63,56 +254,41 @@ void FaceRecognitionService::stop()
 void FaceRecognitionService::openCamera()
 {
 		qDebug() << "[FaceRecognitionService] openCamera is called";
+
+		// 0) preprocessing
+		cap.set(cv::CAP_PROP_AUTO_EXPOSURE, 0.25);		// 0.75(자동) → 0.25(수동, 드라이버마다 상이)
+		cap.set(cv::CAP_PROP_EXPOSURE, -3);						// -6 ~ -3 범위 테스트
+		cap.set(cv::CAP_PROP_AUTO_WB, 0);
+		cap.set(cv::CAP_PROP_WB_TEMPERATURE, 4500);
+
+		
 		try {
 				cap.open(CAM_NUM);
 				if (!cap.isOpened()) {
-						std::cout << "[FaceRecognitionService] Failed to camera open!!" << std::endl;
+						std::cout << "[FRS] Failed to camera open!!" << std::endl;
 				}
-				std::cout << "[FaceRecognitionService] Camera be opend!!" << std::endl;
+				std::cout << "[FRS] Camera be opend!!" << std::endl;
 		} catch(const cv::Exception& e) {
-				std::cout << "[FaceRecognitionService] OpenCV exception: " << e.what() << std::endl;
+				std::cout << "[FRS] OpenCV exception: " << e.what() << std::endl;
 		}
 }
 
-void FaceRecognitionService::loadDetector()
-{
-		qDebug() << "[FaceRecognitionService] loadDetector is called";
-		try {
-				faceDetector.load(FACEDETECTOR);
-				eyesDetector.load(EYESDETECTOR);
-		}
-		catch (Exception &e) {
-				qDebug() << "[FaceRecognitionService] Failed to load detector (" << e.what() << ")";				
-		}
-}
 
-void FaceRecognitionService::createLBPH()
-{
-		try {
-				recognizer = face::LBPHFaceRecognizer::create();
-				qDebug() << "[FaceRecognitionService] LBPHFaceRecognizer is created.";
-
-		} catch (Exception& e) {
-				std::cout << "Failed to create recognizer!!" << std::endl;
-				return;
-		}
-}
-
-void FaceRecognitionService::loadModel()
+void FaceRecognitionService::reloadModel()
 {
 		if (!recognizer) 
 				recognizer = face::LBPHFaceRecognizer::create();
 
 		try {
-				if (fs::exists(FACE_MODEL_FILE)) {
-						recognizer->read(FACE_MODEL_FILE);
-						qDebug() << "[FaceRecognitionService] Recognizer is loaded.";
+				if (fs::exists(LBPH_MODEL_FILE)) {
+						recognizer->read(LBPH_MODEL_FILE);
+						qDebug() << "[FRS] Recognizer is reloaded.";
 				}
 				else {
-						cout << "No existing model found. Will create a new model." << endl;
+						qDebug() << "[FRS] Failed to reload LBPH model";
 				}
 		} catch (cv::Exception& e) {
-				cout << "[" << __func__ << "] Exception Message: " << e.what() << endl;
+				qDebug() << "[FRS] Failed to reload LBHP Model(" << e.what() << ")";
 		}
 }
 
@@ -169,31 +345,6 @@ void FaceRecognitionService::registerExistingUser()
 
 }
 
-void FaceRecognitionService::loadLabelMap()
-{
-		int lbl;
-		string name;
-		ifstream ifs(USER_LABEL_FILE);
-		int rc = 0;
-
-		rc = Utile::checkFileExist(USER_LABEL_FILE, R_OK + W_OK);
-		if (rc == -1) {
-				Utile::createFile(USER_LABEL_FILE, R_OK + W_OK);
-		}
-
-		if (ifs.is_open()) {
-				while (ifs >> lbl >> name) {
-						labelMap[lbl] = name;
-#ifdef DEBUG
-						printf ("[%s] label: %d, name: %s\n", __func__, lbl, name.c_str());
-#endif
-				}
-		}
-
-		qDebug() << "[FaceRecognitionService] LabelMap file is loaded";
-
-}
-
 Mat FaceRecognitionService::alignAndNormalizeFace(const Mat& grayFrame, const Rect& faceRect)
 {
 		Mat faceROI = grayFrame(faceRect).clone();
@@ -238,7 +389,7 @@ void FaceRecognitionService::trainOrUpdateModel(const vector<Mat>& images, const
         recognizer = face::LBPHFaceRecognizer::create();
     }
 
-    if (fs::exists(FACE_MODEL_FILE)) {
+    if (fs::exists(LBPH_MODEL_FILE)) {
         recognizer->update(images, labels);
         LOG_INFO("Update existing face recognition model.");
     }
@@ -247,96 +398,271 @@ void FaceRecognitionService::trainOrUpdateModel(const vector<Mat>& images, const
         LOG_INFO("Trained new face recognition model.");
     }
 
-    recognizer->save(FACE_MODEL_FILE);
-    qDebug() << "✅ 모델이 저장되었습니다: " << FACE_MODEL_FILE;
+    recognizer->save(LBPH_MODEL_FILE);
+    qDebug() << "✅ 모델이 저장되었습니다: " << LBPH_MODEL_FILE;
 }
 
+// ---------- 추가: 취소/강제 종료 API ----------
+void FaceRecognitionService::cancelRegistering() 
+{
+    m_cancelReg.store(true, std::memory_order_relaxed);
+}
+
+
+void FaceRecognitionService::forceAbortRegistration() {
+    // 1) 진행 중 플래그/카운터 정리
+    isRegisteringAtomic.storeRelaxed(0);
+    //registerRequested = false;
+		setRegisterRequested(false);
+    captureCount = 0;
+
+
+		registeringUserName_ = "\0";
+		registeringUserId_	 = 0;
+
+		regImageBuffers_.clear();
+		regEmbedsBuffers_.clear();
+
+		cancelRegistering();
+
+    // (필요 시) 카메라/타이머/쓰레드 자원 정리 추가
+}
 
 void FaceRecognitionService::startRegistering(const QString& name)
 {
 		qDebug() << "[FaceRecognitionService] Registration has begun";
-		userName = name;
-    currentLabel = getNextLabel();
+		//userName = name;
+    //currentLabel = getNextLabel();
     captureCount = 0;
+
+		registeringUserName_ = name;
+		registeringUserId_ = nextSequentialId();
+		regEmbedsBuffers_.clear();
+
+		// 새 세션 시작 시 취소 플래그 리셋
+    m_cancelReg.store(false, std::memory_order_relaxed);
+
+		setRegisterRequested(true);
 		isRegisteringAtomic.storeRelaxed(1);
-    setState(RecognitionState::REGISTERING);
+
+		qInfo() << "[FRS] StartRegistering id=" << registeringUserId_
+						<< " name=" << name;
 }
 
 QString FaceRecognitionService::getUserName() 
 {
-		return userName; 
+		//return userName; 
+		return registeringUserName_;
 }
 
-/*
-void FaceRecognitionService::setState(RecognitionState newState) 
+// gallery_ -> 파일 (안전하게 임시 파일에 쓴 뒤 rename) 
+bool FaceRecognitionService::saveEmbeddingsToFile()
 {
-		if (currentState == RecognitionState::UNLOCKED) {
-				return;
+		try {
+				json j = json::array();
+				for (const auto& u : gallery_) {
+						nlohmann::json o = nlohmann::json::object();
+						o["id"]					= u.id;
+						o["name"]				= u.name.toUtf8().constData();
+						o["embedding"]	= u.embedding;
+						j.push_back(std::move(o));
+
+				}
+
+				// atomic write: temp -> rename
+				const QString qpath = QString::fromStdString(embeddingsPath_);
+				const QString qtmp  = qpath + ".tmp";
+
+				{
+						std::ofstream ofs(qtmp.toStdString(), std::ios::trunc);
+						if (!ofs.is_open()) return false;
+						ofs << j.dump(2);
+				}
+
+
+				QFile::remove(qpath);	
+				if (!QFile::rename(qtmp, qpath)) {
+						// rename 실패 시 직접 덮어쓰기 시도
+						QFile::remove(qtmp);
+						return false;
+				}
+				
+				return true;
+		} catch (const std::exception& e) { 
+				qWarning() << "[DNN] saveEmbeddingsToFile error:" << e.what();
+				return false; 
+		}
+}
+
+// ------- 로드 -------- 
+bool FaceRecognitionService::loadEmbeddingsFromFile()
+{
+		gallery_.clear();
+		std::ifstream ifs(embeddingsPath_);
+		if (!ifs.is_open()) return false;		// 첫 실행 시 파일이 없을 수도 있음
+
+		try {
+				json j; 
+				ifs >> j;
+				if (!j.is_array()) return false;
+
+				for (const auto& o : j) {
+						UserEmbedding u;
+						u.id = o.at("id").get<int>();
+						u.name = QString::fromStdString(o.at("name").get<std::string>());
+						u.embedding = o.at("embedding").get<std::vector<float>>();
+
+						if (!u.embedding.empty()) gallery_.push_back(std::move(u));
+				}
+
+				return true;
+		} catch (const std::exception& e) { 
+				qWarning() << "[DNN] loadEmbeddingsFromFile parse error:" << e.what();
+				gallery_.clear();
+				return false; 
+		}
+}
+
+MatchResult FaceRecognitionService::bestMatch(const std::vector<float>& emb) const
+{
+		MatchResult r;
+		for (const auto& u : gallery_) {
+				if (u.embedding.size() != emb.size()) continue;
+				float s = Embedder::cosine(emb, u.embedding);
+				if (s > r.sim) {
+						r.sim = s;
+						r.id = u.id;
+						r.name = u.name;
+				}
 		}
 
-		switch(newState) {
-        case RecognitionState::IDLE:
-            emit stateChanged(newState);
-						qDebug() << "[FaceRecognitionService] The status changes to IDLE";
-            break;
+		return r;
+}
 
-        case RecognitionState::UNLOCKED:
-            emit stateChanged(newState);
-						qDebug() << "[FaceRecognitionService] The status changes to UNLOCKED";
-            break;
 
-				case RecognitionState::DUPLICATEDFACE:
-						emit stateChanged(newState);
-						qDebug() << "[FaceRecognitionService] The status changes to DUPLICATEDFACE";
-						break;
+// ----- 등록: 여러장 평균 ----
+/*
+bool FaceRecognitionService::registerUserSamples(int userId, QString userName, const std::vector<cv::Mat>& faceSamples)
+{
+		if (!dnnEmbedder_ || faceSamples.empty()) return false;
 
-				case RecognitionState::REGISTERING:
-						emit stateChanged(newState);
-						qDebug() << "[FaceRecognitionService] The status changes to REGISTERING";
-						break;
+		std::vector<float> meanEmb;		// 차원은 첫 추출에서 자동 결정
+		int used = 0;
 
-        default:
-						break;
+		for (const auto& roi : faceSamples) {
+				std::vector<float> emb;
+				if (dnnEmbedder_->extract(roi, emb) && !emb.empty()) {
+						if (meanEmb.empty()) meanEmb.assign(emb.size(), 0.0f);
+						if (emb.size() != meanEmb.size()) continue;		// 차원 불일치
+						for (size_t i = 0; i < emb.size(); ++i) meanEmb[i] += emb[i];
+						++used;
+				}
 		}
+
+		if (used == 0) return false;
+		for (float& v : meanEmb) v /= static_cast<float>(used);
+
+		// 기존 사용자면 갤러리 업데이트, 없으면 추가
+		auto it = std::find_if(gallery_.begin(), gallery_.end(),
+													 [&] (const UserEmbedding& u) { return u.id == userId; });
+		if (it == gallery_.end()) {
+				//gallery_.push_back({userId, std::move(meanEmb)});
+				// registerUserSamples(userId, userName, ...)
+				UserEmbedding ue;
+				ue.id = userId;
+				ue.name = userName;
+				ue.embedding = std::move(meanEmb);
+				gallery_.push_back(std::move(ue));
+		} else {										
+				it->embedding = std::move(meanEmb);
+		}
+
+
+		saveEmbeddingsToFile();
+		return true;
 }
 */
 
-recogResult_t FaceRecognitionService::handleRecognition(Mat& frame, const Rect& face, const Mat& aligendFace, QString& labelText, Scalar& boxColor)
+bool FaceRecognitionService::isDuplicateFaceDNN(const cv::Mat& alignedFace, int* dupIdOut, float* simOut) const
+{
+		if (!dnnEmbedder_ || gallery_.empty()) return false;
+		std::vector<float> emb;
+		if (!dnnEmbedder_->extract(alignedFace, emb) || emb.empty()) return false;
+
+		int bestId = -1;
+		float bestSim = -1.f;
+
+		for (const auto& u : gallery_) {
+				if (u.embedding.size() != emb.size()) continue;
+				float sim = Embedder::cosine(emb, u.embedding);
+				if (sim > bestSim) { 
+						bestSim = sim;
+						bestId = u.id;
+				}
+		}
+
+		if (dupIdOut) *dupIdOut = bestId;
+		if (simOut)		*simOut		= bestSim;
+
+		return (bestId >= 0 && bestSim >= 0.70f);
+}
+
+
+recogResult_t FaceRecognitionService::handleRecognition(Mat& frame, const Rect& face, const Mat& alignedFace, QString& labelText, Scalar& boxColor)
 {
 		recogResult_t rv;
-		
-		qDebug() << "[FaceRecognitionService] handleRecognition() is called";
-		int predictedLabel = -1;
+
 		double confident = 999.0;
 		int authFlag = -1;
 
-		if (recognizer->empty()) {
-				qDebug() << "[FaceRecognitionService] Model is not trained. Unpredictable.";
-				rv.confidence = confident;
-				rv.result = authFlag;
-				return rv;
+		bool lbphOk = false;
+		bool dnnOk = false;
+		QString name = "UnKown";
+
+		int pl = -1;						// predict Label: 예상 라벨
+
+		float sim = -1.f;
+
+		// 1) LBPH로 게이트만
+		if (recognizer && !recognizer->empty() && !storedFaces.empty() &&	fs::exists(LBPH_MODEL_FILE)) {
+				pl = -1;
+				recognizer->predict(alignedFace, pl, confident);
+				lbphOk = (confident < 60.00);
 		}
 
-		if (!storedFaces.empty()) {
-				recognizer->predict(aligendFace, predictedLabel, confident);
+		// 2) DNN으로 식별 + 이름
+		if (dnnEmbedder_ && !gallery_.empty()) {
+				std::vector<float> emb;
+				if (dnnEmbedder_->extract(alignedFace, emb) && !emb.empty()) {
+						auto m = bestMatch(emb);
+						sim = m.sim;
+						if (m.id >= 0 && m.sim >= 0.55f) {
+								name = m.name;
+								dnnOk = true;
+						}
+				}
+		}
+		qDebug() << "[FRS] confident:" << confident << "emb sim:" << sim;
+				
+		// 3) 결론: DNN이 이름 제공 -> 표기, 생상
+		//if ((lbphOk && dnnOk) || (!recognizer || recognizer->empty()) || !lbphOk) {
+		if (lbphOk) {
+				// DNN 우선 (표시/식별)
+				labelText = name;
+				if (dnnOk) { boxColor = {0,255,0}; authFlag = AUTH_SUCCESSED; }
+				else			 { boxColor = {0,0,255}; authFlag = AUTH_FAILED;		}
+		} else {
+				// LBPH만 통과했지만 DNN 실패인 드문 케이스 → Unknown로 처리(또는 이름 유지 정책 정의)
+        labelText = "Unknown";
+				boxColor  = {0,0,255};
+				authFlag	= AUTH_FAILED;
 		}
 
-		if (confident < 60.0 && labelMap.count(predictedLabel)) {
-				labelText = QString::fromStdString(labelMap[predictedLabel]);
-				boxColor = Scalar(0, 255, 0);
-				authFlag = AUTH_SUCCESSED;
-		} 
-		else {
-				labelText = "Unknown";
-				boxColor = Scalar(0, 0, 255);
-				authFlag = AUTH_FAILED;
-		}
 
 		drawTransparentBox(frame, face, boxColor, 0.3);
     drawCornerBox(frame, face, boxColor, 2, 25);
     putText(frame, labelText.toStdString(), Point(face.x, face.y - 10),
             FONT_HERSHEY_DUPLEX, 1.0, boxColor, 2);
-		cout << "[" << __func__ << "] auth flag: " << authFlag << endl;
 
 		rv.confidence = confident;
 		rv.result = authFlag;
@@ -346,7 +672,35 @@ recogResult_t FaceRecognitionService::handleRecognition(Mat& frame, const Rect& 
 
 void FaceRecognitionService::handleRegistration(Mat& frame, const Rect& face, const Mat& alignedFace, QString& labelText, Scalar& boxColor)
 {
-		qDebug() << "[FaceRecognitionService] handleRegistration is called";
+		qDebug() << "[FaceRecognitionService] handleRegistration()";
+
+    // 취소 체크(초반 빠른 탈출)
+    if (m_cancelReg.load(std::memory_order_relaxed)) {
+        qDebug() << "[FaceRecognitionService] canceled (early in handleRegistration)";
+        forceAbortRegistration();
+        emit registerFinished(false, "등록 취소됨/타임아웃");
+        emit registrationCompleted(false, QStringLiteral("취소됨/타임아웃"));
+        return;
+    }
+
+		// 중복 체크 시 DNN 사용
+		if (captureCount ==  0) {
+					int dupId = -1;
+					float sim = 0.f;
+					if (isDuplicateFaceDNN(alignedFace, &dupId, &sim)) {
+							// 이미 등록된 사용자로 판단 -> 중복 처리
+							isRegisteringAtomic.storeRelaxed(0);
+							setDuplicate(true);
+							emit registerFinished(false, QString("중복된 얼굴입니다. (id=%1, sim=%.3f)").arg(dupId).arg(sim));
+							forceAbortRegistration();
+							emit registrationCompleted(false, QStringLiteral("취소됨/타임아웃"));
+							setRegisterRequested(false);
+							return;
+					}
+		}
+
+
+		
 		Mat colorFace = frame.clone();
 		labelText = "Registering...";
 		boxColor = Scalar(255, 0, 0);
@@ -356,50 +710,145 @@ void FaceRecognitionService::handleRegistration(Mat& frame, const Rect& face, co
     putText(frame, labelText.toStdString(), Point(face.x, face.y - 10),
             FONT_HERSHEY_DUPLEX, 1.0, boxColor, 2);
 
-
-		qDebug() << "[FaceRecognitionService] Duplicate face start!";
 		if (captureCount == 0 && isDuplicateFace(alignedFace)) {
 				isRegisteringAtomic.storeRelaxed(0);
-				setState(RecognitionState::DUPLICATE_FACE);
+
+				if (m_cancelReg.load(std::memory_order_relaxed)) {
+            qDebug() << "[FaceRecognitionService] canceled during duplicate check";
+            forceAbortRegistration();
+            emit registerFinished(false, "등록 취소됨/타임아웃");
+            emit registrationCompleted(false, QStringLiteral("취소됨/타임아웃"));
+            return;
+        }
+
+				setDuplicate(true);
+				setRegisterRequested(false);
 				emit registerFinished(false, "중복된 얼굴입니다.");
+				qDebug() << "[FaceRecognitionPresenter] Register mode Off";
 				return;
 		}
 
-		
 		qDebug() << "[FaceRecognitionService] captureCount: " << captureCount;
-		if (captureCount < 20) {
-				saveCapturedFace(face, alignedFace, colorFace); 
+		if (captureCount < 10) {
+				if (m_cancelReg.load(std::memory_order_relaxed)) {
+						qDebug() << "[FaceRecognitionService] canceled before saveCaptureFace";
+						forceAbortRegistration();
+						emit registerFinished(false, "등록 취소됨/타임아웃");
+            emit registrationCompleted(false, QStringLiteral("취소됨/타임아웃"));
+						return;
+				}
 
+				saveCapturedFace(face, alignedFace, colorFace); 
 				captureCount++;
 
-				if (captureCount >= 20) {
+				if (captureCount >= 10) {
+						if (m_cancelReg.load(std::memory_order_relaxed)) {
+								qDebug() << "[FRS] canceled before finalize";
+								forceAbortRegistration();
+								emit registerFinished(false, "등록 취소됨/타임아웃");
+								emit registrationCompleted(false, QStringLiteral("취소됨/타임아웃"));
+						}
 						finalizeRegistration();
 				}
 		}
 }
+
 
 void FaceRecognitionService::saveCapturedFace(const Rect& face, const Mat& alignedFace, const Mat& frame) 
 {
 		if (!fs::exists(USER_FACES_DIR))
         fs::create_directory(USER_FACES_DIR);
 
-    string filename = string(USER_FACES_DIR) + "face_" + to_string(currentLabel) + "_" +
-                      userName.toStdString() + "_" + to_string(captureCount + 1) + ".png";
 
-    if (!imwrite(filename, frame)) {
-        qDebug() << "이미지 저장 실패: " << QString::fromStdString(filename);
-    }
+		// 이미지 버퍼에 저장 후 finalizeRegistration에서 최종 메모리에 저장
+		regImageBuffers_.push_back(frame);
+		
+    storedFaces[registeringUserId_].push_back(alignedFace);
 
-    storedFaces[currentLabel].push_back(alignedFace);
-    labelMap[currentLabel] = userName.toStdString();
+		// ---- DNN 임시 임베딩 버퍼 추가 ----
+		if (dnnEmbedder_) {
+				std::vector<float> e;
+				if (dnnEmbedder_->extract(alignedFace, e) && !e.empty()) {
+						regEmbedsBuffers_.push_back(std::move(e));
+				}
+		}
+		qDebug() << "[FaceRecognitionService]" << registeringUserName_  << " image has been saved and loaded";
+}
 
-		qDebug() << "[FaceRecognitionService]" << currentLabel << "The face image has been saved and loaded";
+void FaceRecognitionService::clearRegistrationBuffers()
+{
+		regEmbedsBuffers_.clear();
+		registeringUserId_ = -1;
 }
 
 void FaceRecognitionService::finalizeRegistration()
 {
-		saveLabelToFile(currentLabel, userName.toStdString());
+		qDebug() << "[FRS] finalizeRegistration()";
 
+
+		// 1) 취소 체크
+		if (m_cancelReg.load(std::memory_order_relaxed)) {
+				qDebug() << "[FRS] canceled at finalizeRegistration()";
+				forceAbortRegistration();
+				clearRegistrationBuffers();
+				emit registerFinished(false, "등록 취소됨/타임아웃");
+				emit registrationCompleted(false, QStringLiteral("취소됨/타임아웃"));
+				return;
+		}
+
+		// 2) DNN 평균 임베딩 계산
+		std::vector<float> meanEmb;
+		int used = 0;
+		for (const auto& e : regEmbedsBuffers_) {
+				if (e.empty()) continue;
+				if (meanEmb.empty()) meanEmb.assign(e.size(), 0.0f);
+				if (e.size() != meanEmb.size()) continue;
+				for (size_t i = 0; i < e.size(); i++) meanEmb[i] += e[i];
+				++used;
+		}
+		
+		if (used == 0) {
+				qWarning() << "[FRS] No embeddings collected";
+				forceAbortRegistration();
+				clearRegistrationBuffers();
+
+				emit registerFinished(false, "임베딩 수집 실패");
+				emit registrationCompleted(false, QStringLiteral("실패"));
+				return;
+		}
+
+		for (auto& v : meanEmb) v /= static_cast<float>(used);
+
+		// 3) gallery_ 업데이트 (registeringUserId_는 UI/흐름에서 미리 지정)
+		if (registeringUserId_ < 0) {
+				 // fallback: 새 ID 만들거나, UI에서 받은 ID 사용
+        registeringUserId_ = static_cast<int>(QDateTime::currentMSecsSinceEpoch() & 0x7FFFFFFF);
+		}
+
+		auto it = std::find_if(gallery_.begin(), gallery_.end(),
+										[&] (const UserEmbedding& u) {
+												return u.id == registeringUserId_;
+										}
+							);
+		if (it == gallery_.end()) {
+				//gallery_.push_back({registeringUserId_, std::move(meanEmb)});
+				UserEmbedding ue;
+				ue.id = registeringUserId_;
+				ue.name = registeringUserName_;
+				ue.embedding = std::move(meanEmb);
+				gallery_.push_back(std::move(ue));
+		}
+		else 
+				it->embedding = std::move(meanEmb);
+
+		
+		// 4) 파일 저장
+		if (!saveEmbeddingsToFile()) {
+				qWarning() << "[FRS] embeddings.json save failed";
+		}
+
+
+		// 5) LBPH 데이터 저장/학습 
 		vector<Mat> images;
     vector<int> labels;
     for (const auto& entry : storedFaces) {
@@ -409,79 +858,82 @@ void FaceRecognitionService::finalizeRegistration()
         }
     }
 
+		if (m_cancelReg.load(std::memory_order_relaxed)) {
+        qDebug() << "[FRS] canceled while composing dataset";
+        forceAbortRegistration();				
+        emit registerFinished(false, "등록 취소됨/타임아웃");
+        emit registrationCompleted(false, QStringLiteral("취소됨/타임아웃"));
+        return;
+    }
+
+
+		// LBPH 모델 업데이트
     trainOrUpdateModel(images, labels);
 
-		loadModel();
-    loadLabelMap();
+		// 업데이트된 모델 파일 다시 로드
+		reloadModel();
+		
+		// 최종적으로 이미지 저장
+		int i = 0;
+		for (auto& entry : regImageBuffers_) {
+				string filename = string(USER_FACES_DIR) + "face_" + to_string(registeringUserId_) + "_" +
+                      registeringUserName_.toStdString() + "_" + to_string(i + 1) + ".png";
+			  if (!imwrite(filename, entry)) {
+						qDebug() << "이미지 저장 실패: " << QString::fromStdString(filename);
+				}
+				i++;
+		}
 
-		isRegisteringAtomic.storeRelaxed(0);
-		setState(RecognitionState::IDLE);
+		setRegisterRequested(false);						// FSM 등록 요청 스냅샵 비활성화
+		isRegisteringAtomic.storeRelaxed(0);		// 등록 플래그 비활성화로 전환
+		captureCount = 0;												// 등록된 이미지수 초기화
+		registeringUserName_ = "\0";						// 등록 중인 사용자 이름 초기화
+		registeringUserId_ = 0;									// 등록 중인 사용자 아이디 초기화
+		regEmbedsBuffers_.clear();							//  임베딩 임시버퍼 초기화
+		regImageBuffers_.clear();								//  이미지 임시버퍼 초기화
+
+
+		// UI에 등록 완료 제출
 		emit registerFinished(true, "등록 성공");
-
-		qDebug() << "[FaceRecognitionService]" << userName << "registration is complete.";
-}
-
-void FaceRecognitionService::saveLabelToFile(int label, const string& name)
-{
-   ofstream ofs (USER_LABEL_FILE, ios::app);
-   if (ofs.is_open()) ofs << label << " " << name << endl;
-
-	 qDebug() << "[FaceRecognitionService] The user been saved to the label map.";
-}
-
-
-int FaceRecognitionService::getNextLabel()
-{
-    ifstream ifs(USER_LABEL_FILE);
-
-    if (!access(USER_LABEL_FILE, F_OK) == 0) {
-        ifstream file(USER_LABEL_FILE);
-        file.close();
-    }
-
-    int maxLabel = 0;
-
-    if (ifs.is_open()) {
-        int lbl;
-        string name;
-        while (ifs >> lbl >> name) {
-            if (lbl > maxLabel) maxLabel = lbl;
-        }
-    }
-
-    return maxLabel + 1;
+		emit registrationCompleted(true, QStringLiteral("등록 완료"));
 }
 
 bool FaceRecognitionService::isDuplicateFace(const Mat& newFace)
 {
-		qDebug() << "[FaceRecognitionService] isDuplicateFace is called";
-    if (!recognizer || newFace.empty()) {
-        std::cerr << "[오류] 얼굴 인식기가 초기화되지 않았거나 입력 이미지가 비어 있습니다." << std::endl;
-        return false;
+		bool rv = false;
 
-    }
-
+    // 신뢰도 기준으로 중복 여부 판단
+    const double DUPLICATE_THRESHOLD = 50.0; // 작을수록 엄격 (OpenCV LBPH 기준 50~100 적절)
+	
     int predictedLabel = -1;
     double confidence = 0.0;
 
+	
+    if (!recognizer || newFace.empty()) {
+        std::cerr << "[오류] 얼굴 인식기가 초기화되지 않았거나 입력 이미지가 비어 있습니다." << std::endl;
+        return rv;
+
+    }
+
+		if (fs::exists(LBPH_MODEL_FILE)) {
+					qDebug() << "[FRS] " << LBPH_MODEL_FILE << " is not exists";
+					return rv;
+		}
     cv::Mat gray;
     if (newFace.channels() == 3)
         cv::cvtColor(newFace, gray, cv::COLOR_RGB2GRAY);
     else
         gray = newFace;
 
-    if (!storedFaces.empty() && !labelMap.empty()) {
+		if (!storedFaces.empty() && fs::exists(LBPH_MODEL_FILE)) {
         recognizer->predict(gray, predictedLabel, confidence);
     }
 
     std::cout << "[" << __func__ << "] 예측된 라벨: " << predictedLabel << ", 신뢰도: " << confidence << std::endl;
 
-    // 신뢰도 기준으로 중복 여부 판단
-    const double DUPLICATE_THRESHOLD = 60.0; // 작을수록 엄격 (OpenCV LBPH 기준 50~100 적절)
+		rv = (confidence < DUPLICATE_THRESHOLD) && (confidence) && (predictedLabel != -1);
 
-		int rc = -1;
-
-    return (confidence < DUPLICATE_THRESHOLD) && (confidence) && (predictedLabel != -1);
+		return rv;
 }
 
 void FaceRecognitionService::resetUnlockFlag()
@@ -491,24 +943,29 @@ void FaceRecognitionService::resetUnlockFlag()
 
 void FaceRecognitionService::fetchReset()
 {
+		if (!presenter) {
+				qDebug() <<  "[FRS] presenter is nullptr!";
+		}
 		QMutexLocker locker(&frameMutex);
 		qDebug() << "[FaceRecognitionService] fetchReset() called";
 
 		QDir dir(USER_FACES_DIR);
 		dir.removeRecursively();
 
-		QFile::remove(FACE_MODEL_FILE);
-		QFile::remove(USER_LABEL_FILE);
+		QFile::remove(LBPH_MODEL_FILE);
+		QFile::remove(QString::fromStdString(embeddingsPath_));
 
-		labelMap.clear();
-		currentLabel = 0;
+		gallery_.clear();
+		registeringUserId_ = 0;
+		registeringUserName_ = "\0";
+		rebuildNextIdFromGallery();
 
 		authManager.resetAuth();
 		hasAlreadyUnlocked = false;	
 
 		// NOTE: LBPH 모델 미학습 상태에서 predict() 금지.
 		recognizer = face::LBPHFaceRecognizer::create();
-		recognizer->save(FACE_MODEL_FILE);
+		recognizer->save(LBPH_MODEL_FILE);
 
 		presenter->presentReset();
 }
@@ -540,7 +997,7 @@ void FaceRecognitionService::drawCornerBox(Mat& img, Rect rect, Scalar color, in
 
 void FaceRecognitionService::procFrame()
 {
-		//int authResult = AUTH_FAILED;
+		bool doorIsOpen = false;
 		recogResult_t recogResult;
 		Mat frame, frameCopy;
 		{
@@ -565,11 +1022,15 @@ void FaceRecognitionService::procFrame()
 		// === FSM 스냅샷: 등록 모드 ===
     // isRegisteringAtomic 은 원자적으로 접근
     setRegisterRequested(isRegisteringAtomic.loadRelaxed() != 0);
+		//qDebug() << "[FRS] registerequested: " << regReq_;
 
 		// == FSM 스냅샷: 라이브니스(현재 모듈이 없으므로 true고정; 추후 실제 결과로 대체) ===
 		setLivenessOk(true);
+		
+		// == FSM 스냅샷: 중복 얼굴 (얼굴이 중복되면 true, 중복이 아니면 false) ===
+		setDuplicate(false);
 
-		bool recognized = false;
+
 
 		for (const auto& face : faces) 
 		{
@@ -585,31 +1046,45 @@ void FaceRecognitionService::procFrame()
 
 
 						// === FSM 스냅샷: 인식 신뢰도/성공/실패 누적 ===
-            // handleRecognition()에서 신뢰도를 구할 수 있으면 그 값을 setRecogConfidence()에 넣어줘.
             // 당장 값이 없다면 임시로 성공/실패에 따른 프록시 값을 사용(히스테리시스가 안정화시켜줌).
-						if (recogResult.result == AUTH_SUCCESSED) {
-								setRecogConfidence(recogResult.confidence);				// TODO: 실제 recognizer confidence로 대체
-								resetFailCount();								// 성공 시 실패 누적 리셋
+						if (recogResult.result == AUTH_SUCCESSED) {						// 등록된 얼굴일 경우 if문 진입 
+								setRecogConfidence(recogResult.confidence);				// FSM을 위한 스냅샷setting			
+								resetFailCount();																	// 성공 시 실패 누적 리셋
+								incAuthStreak();																		// 인증 성공 시 성공 횟수 누적
+								
 
 								if (!hasAlreadyUnlocked) {
-										recognized = true;
 										authManager.handleAuthSuccess();
 					
 										if (authManager.shouldAllowEntry()) {
-												setState(RecognitionState::AUTH_SUCCESS);
 												qDebug() << "[FaceRecognitionService] Authenticate 3 time success -> Door open!";
 												authManager.resetAuth();
 												hasAlreadyUnlocked = true;
+												resetAuthStreak();		// 최종 적으로 인식이 성공하면 성공 횟수 초기화 
+												setAllowEntry(true);
+
+												// =====  감지 전까지 열림 유지 시작 =====
+												if (!g_unlockMgr.running()) {
+														g_unlockMgr.start();
+														qInfo() << "[Door] Unlock started (wait open, then wait close)";
+												}
+
+												doorIsOpen = true;
+
 										}	
 								}
 						} else {
-								setRecogConfidence(recogResult.confidence);			 // TODO: 실제 recognizer confidence로 대체
+								setRecogConfidence(recogResult.confidence);			 
 								incFailCount();								 // 실패 누적
+
+								qDebug() << "[FSM] Reset AuthStreak(" << authStreak_ << ")";
+								resetAuthStreak();		// 중간에 얼굴인식 인증이 실패하면 인증 성공횟수 초기화
+								authManager.resetAuth();
+								doorIsOpen = false;
 						}
 				}
 				else {
 						if(isRegisteringAtomic.testAndSetRelaxed(1, 1)) {
-								qDebug() << "[FaceRecognitionService] before call handleRegistration()";
 								handleRegistration(frameCopy, face, alignedFace, labelText, boxColor);
 						}
 				}
@@ -620,10 +1095,14 @@ void FaceRecognitionService::procFrame()
 				setRecogConfidence(0.0);
 		}
 
+		if (authStreak_ > 5) {
+				resetAuthStreak();		// 얼굴이 동시에 인증 성공 했을 때 스트릭이 초기화 되지 않아 임시 방법으로 사용 
+				authManager.resetAuth();
+				resetUnlockFlag();
+		}
 
-    // 문열림 센서는 리드스위치 등에서 주기적으로 갱신하는 쪽이 맞지만,
-    // 여기서 알 수 있으면 setDoorOpened(<센서값>)을 추가로 호출해줘.
-    // setDoorOpened(doorIsOpen); // TODO: 센서 연결되어 있으면 사용
+		setDoorOpened(doorIsOpen); // TODO: 센서 연결되어 있으면 사용
+
 
 		
 		cvtColor(frameCopy, frameCopy, cv::COLOR_BGR2RGB);
@@ -639,10 +1118,15 @@ void FaceRecognitionService::setRegisterRequested(bool v)   { regReq_ = v; }
 void FaceRecognitionService::setLivenessOk(bool v)					{ livenessOk_ = v; }
 void FaceRecognitionService::setDoorOpened(bool v)					{ doorOpened_ = v; }
 void FaceRecognitionService::incFailCount()									{ failCount_++; }
+void FaceRecognitionService::incAuthStreak()								{ authStreak_++; }
+void FaceRecognitionService::setAllowEntry(bool v)					{ allowEntry_ = v; }
 void FaceRecognitionService::resetFailCount()								{ failCount_ = 0; }
+void FaceRecognitionService::resetAuthStreak()							{ authStreak_ = 0;	}
 
 void FaceRecognitionService::onTick() 
 {
+		if (testMode_) testScriptStep();
+
 		FsmContext c;
 		c.detectScore					= detectScore_;
 		c.recogConfidence			= recogConf_;
@@ -651,7 +1135,9 @@ void FaceRecognitionService::onTick()
 		c.livenessOk					= livenessOk_;
 		c.doorOpened					= doorOpened_;
 		c.failCount						= failCount_;
+		c.authStreak					= authStreak_;
 		c.facePresent					= facePresent_;
+		c.allowEntry					= allowEntry_;
 		c.nowMs								= monotonic_.elapsed();
 
 		// 상태별 타임아웃 계산 예시:
@@ -659,17 +1145,21 @@ void FaceRecognitionService::onTick()
     // - LOCKED_OUT에서는 lockoutMs 초과 시 timeout = true
 		c.timeout = computeTimeout(c);
 
-		static int k = 0;
-		if ((++k % 10) ==0) {
+		//static int k = 0;
+		//if ((++k % 10) ==0) {
 				qCDebug(LC_FSM_CTX) 
+				//qDebug() 
 						<< "ctx detect=" << c.detectScore
 						<< "conf="			 << c.recogConfidence
 						<< "face="			 << c.facePresent
 						<< "dup="				 << c.isDuplicate
 						<< "live="			 << c.livenessOk
 						<< "fail="			 << c.failCount
+						<< "Auth="			 << c.authStreak
+						<< "reqReg="		 << c.registerRequested
+						<< "allowEntry=" << c.allowEntry
 						<< "timeout="		 << c.timeout;
-		}
+		//}
 
 		fsm_.updateContext(c);
 }
@@ -695,5 +1185,27 @@ bool FaceRecognitionService::computeTimeout(const FsmContext& c)
 
 		return false;
 }
+
+
+/*	테스트 모드 */
+void FaceRecognitionService::enableTestMode(bool on) {
+    testMode_ = on;
+    step_ = 0;
+}
+
+void FaceRecognitionService::testScriptStep() {
+    if (!testMode_) return;
+
+    // 33ms마다 한 스텝 진행: IDLE→DETECTING→RECOGNIZING→SUCCESS→DOOR_OPEN→IDLE
+    switch (step_) {
+    case 0 ... 5:   setDetectScore(0.0); setRecogConfidence(0.0); setRegisterRequested(false); break; // IDLE 유지 ~200ms
+    case 6 ... 18:  setDetectScore(0.9); setRecogConfidence(0.2); setRegisterRequested(false); break; // DETECTING
+    case 19 ... 30: setDetectScore(0.9); setRecogConfidence(0.92); setRegisterRequested(false); break; // RECOGNIZING→SUCCESS
+    case 31 ... 36: /* DOOR_OPEN 유지 */ break;
+    default:        setDetectScore(0.0); setRecogConfidence(0.0); setRegisterRequested(false); step_ = -1; break; // IDLE 복귀
+    }
+    step_++;
+}
+
 
 

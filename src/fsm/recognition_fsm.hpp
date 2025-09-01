@@ -5,6 +5,7 @@
 #include <functional>
 #include <vector>
 #include <unordered_map>
+#include <string>
 #include <optional>
 #include <memory>
 #include <utility>
@@ -17,9 +18,11 @@ struct FsmContext {
 		bool isDuplicate = false;				// 중복 사용자 탐지
 		bool registerRequested = false;	// 등록 요청(버튼/메뉴)
 		bool livenessOk = true;					// 라이브니스 결과
-		bool doorOpened = false;					// 리드 수위치 등 문 열림
-		int failCount = 0;							// 연속 실패 횟수
+		bool doorOpened = false;				// 리드 수위치 등 문 열림
+		int  failCount = 0;							// 연속 실패 횟수
+		int	 authStreak = 0;					  // 인증 성공 횟수
 		bool facePresent = false;				// 얼굴 존재 여부
+		bool allowEntry = false;				// 문 열림 여부
 		bool timeout = false;						// 상태 타임아웃 여부
 		qint64 nowMs = 0;								// 단조 시간(ms)
 };
@@ -68,8 +71,10 @@ public:
 	void reset(bool s = false) { state_ = s; buf_.clear(); }
 
 private:
-	double enter_, exit_;
-	int need_, win_;
+	double enter_;				// enter Threshold: ON(켜짐) 상태로 전환할 때 넘어야하는 기준 값
+	double exit_;					// exit Threshold:  OFF(꺼짐) 상태로 전환할 때 내려가야하는 기준 값
+	int need_;						//  
+	int win_;		
 	bool state_ = false;
 	std::vector<double> buf_;
 };
@@ -107,4 +112,7 @@ private:
 		QElapsedTimer enterTime_;
 		std::unordered_map<RecognitionState, std::unique_ptr<IFsmState>> states_;
 		std::vector<Transition> trans_;
+
+		std::unordered_map<std::string, bool> lastEval_; // 전의 상태 마지막 변화
+		int evalEvery_ = 1;		// 샘플링 간격(1=매번, 5=5틱 마다)
 };

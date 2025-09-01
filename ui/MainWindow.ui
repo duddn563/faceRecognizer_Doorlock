@@ -10,6 +10,7 @@
    <layout class="QVBoxLayout" name="mainVerticalLayout">
     <item>
      <layout class="QHBoxLayout" name="mainContentLayout">
+      <!-- LEFT: Camera preview (unchanged name) 
       <item>
        <widget class="QLabel" name="cameraLabel">
         <property name="minimumSize"><size><width>640</width><height>480</height></size></property>
@@ -17,44 +18,174 @@
         <property name="text"><string/></property>
        </widget>
       </item>
+			<item>
+					<widget class="QLabel" name="standyLabel">
+						<property name="minimumSize">
+							<size><width>640</width><height>480</height></size>
+						</property>
+						<property
+			</item> -->
+
+			<item>
+				<widget class="QStackedWidget" name="stackedWidget">
+						<!--property name="minimumSize">
+							<size><width>640</width><height>480</height></size>
+						</property-->
+						<property name="sizePolicy">
+							<sizepolicy hsizetype="Expanding" vsizetype="Expanding"/>
+						</property>
+						<widget class="QLabel" name="standbyLabel">
+							<property name="sizePolicy">
+									<sizepolicy hsizetype="Expanding" vsizetype="Expanding"/>
+							</property>
+							<property name="alignment"><set>Qt::AlignCenter</set></property>
+							<property name="scaledContents"><bool>true</bool></property>
+							<property name="pixmap">
+									<!--pixmap>../assets/standby.png</pixmap-->
+							</property>
+						</widget>
+						<widget class="QLabel" name="cameraLabel">
+							<!--property name="minimumSize"><size><width>640</width><height>480</height></size></property-->
+							<property name="sizePolicy">
+									<sizepolicy hsizetype="Expanding" vsizetype="Expanding"/>
+							</property>
+							<property name="alignment"><set>Qt::AlignCenter</set></property>
+							<property name="scaledContents"><bool>true</bool></property>
+					</widget>
+				</widget>
+			</item>
+
+      <!-- RIGHT: Tabs (keep existing controls under the first tab) -->
       <item>
-       <layout class="QVBoxLayout" name="rightPanelLayout">
-        <item>
-         <widget class="QPushButton" name="registerButton">
-          <property name="text"><string>등록 시작</string></property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="resetButton">
-          <property name="text"><string>사용자 초기화</string></property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="showUsersList">
-          <property name="text"><string>사용자 목록</string></property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="showUserImages">
-          <property name="text"><string>사용자 이미지 목록</string></property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="ExitButton">
-          <property name="text"><string>종료</string></property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="recognitionLabel">
-          <property name="text"><string>😶 인식 대기 중...</string></property>
-          <property name="alignment"><set>Qt::AlignCenter</set></property>
-          <property name="styleSheet">
-           <string notr="true">font-size: 16px; color: #3498db; font-weight: bold;</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
+       <widget class="QTabWidget" name="rightTabWidget">
+        <property name="tabPosition"><enum>QTabWidget::North</enum></property>
+        <property name="tabShape"><enum>QTabWidget::Rounded</enum></property>
+
+        <!-- TAB 1: Control (contains the original rightPanelLayout contents) -->
+        <widget class="QWidget" name="tabControl">
+         <attribute name="title"><string>Control</string></attribute>
+         <layout class="QVBoxLayout" name="rightPanelLayout">
+          <item>
+           <widget class="QPushButton" name="registerButton">
+            <property name="text"><string>등록 시작</string></property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="resetButton">
+            <property name="text"><string>사용자 초기화</string></property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="showUsersList">
+            <property name="text"><string>사용자 목록</string></property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="showUserImages">
+            <property name="text"><string>사용자 이미지 목록</string></property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="ExitButton">
+            <property name="text"><string>종료</string></property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="recognitionLabel">
+            <!-- Set a friendly default text; keep the original object name -->
+						<property name="pixmap"><pixmap>/root/trucnk/faceRecognizer_doorlock/assert/images/gardix_logo.png</pixmap></property>
+            <property name="alignment"><set>Qt::AlignCenter</set></property>
+            <property name="styleSheet"><string notr="true">font-size: 16px; color: #3498db; font-weight: bold;</string></property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+
+        <!-- TAB 2: Settings (hosts the SettingsTab.ui you already have) -->
+        <widget class="QWidget" name="tabSettings">
+         <attribute name="title"><string>Settings</string></attribute>
+         <layout class="QVBoxLayout" name="settingsPageLayout">
+          <!-- Option A (Designer): Promote this placeholder to SettingsTab (class: SettingsTab, header: SettingsTab.ui or a wrapper header) -->
+          <!-- Option B (Code): Find this container by objectName and add a loaded UI into it at runtime -->
+          <item>
+           <widget class="QGroupBox" name="groupControlActions">
+            <property name="title"><string>장비 제어</string></property>
+            <layout class="QVBoxLayout" name="controlActionsLayout">
+
+             <item>
+              <layout class="QHBoxLayout" name="rowActions1">
+               <item>
+                <widget class="QPushButton" name="btnRefresh">
+                 <property name="text"><string>새로고침</string></property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnRestartCamera">
+                 <property name="text"><string>카메라 재시작</string></property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+
+             <item>
+              <layout class="QHBoxLayout" name="rowActions2">
+               <item>
+                <widget class="QPushButton" name="btnUnlockDoor">
+                 <property name="text"><string>도어 열기</string></property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnLockDoor">
+                 <property name="text"><string>도어 잠그기</string></property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+
+             <item>
+              <layout class="QHBoxLayout" name="rowActions3">
+               <item>
+                <widget class="QPushButton" name="btnRetrain">
+                 <property name="text"><string>인식기 재학습</string></property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="btnExportLogs">
+                 <property name="text"><string>로그 내보내기</string></property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+
+             <item>
+              <widget class="QLabel" name="actionStatusLabel">
+               <property name="text"><string>Ready</string></property>
+               <property name="wordWrap"><bool>true</bool></property>
+               <property name="styleSheet">
+                <string notr="true">color: #666; font-size: 12px;</string>
+               </property>
+              </widget>
+             </item>
+
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QWidget" name="settingsTabContainer">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+
+       </widget>
       </item>
+
      </layout>
     </item>
    </layout>
@@ -64,4 +195,3 @@
  <resources/>
  <connections/>
 </ui>
-

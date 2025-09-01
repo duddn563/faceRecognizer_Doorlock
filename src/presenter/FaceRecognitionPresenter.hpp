@@ -5,6 +5,8 @@
 #include <QTimer>
 #include <QDir>
 #include <QDebug>
+#include <QImage>
+#include <QPixmap>
 //#include <opencv2/opencv.hpp>
 //#include <opencv2/face.hpp>
 #include <QPointer>
@@ -32,6 +34,10 @@ public:
 
 				void onReset();
 				void presentReset();
+
+				QTimer* throttleTimer_;
+				QImage pendingFrame_;
+				QImage lastFrame_;
 				
 private:
 				MainWindow* view;

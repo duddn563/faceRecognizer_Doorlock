@@ -10,7 +10,12 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 			: QObject(parent), service(service), view(view)
 {
 		faceRegisterPresenter = new FaceRegisterPresenter(service, view);
+
+		throttleTimer_ = new QTimer(this);
+		throttleTimer_->setInterval(40);
+		throttleTimer_->setSingleShot(true);
 		
+		/*
 		connect(service, &FaceRecognitionService::frameReady, this, [=](const QImage& image) {
 					if (!image.isNull()) {
 							view->ui->cameraLabel->setPixmap(QPixmap::fromImage(image));
@@ -19,59 +24,80 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 							std::cout << "Image is null!" << std::endl;
 					}
 		}, Qt::QueuedConnection);
-
-		//connect(service, &FaceRecognitionService::stateChanged, this, &FaceRecognitionPresenter::handleStateChanged);
-		/*
-		connect(service, &FaceRecognitionService::stateChanged, this, [=](RecognitionState state) {
-					if (state == RecognitionState::REGISTERING) {
-							QString msg = QString("'%1' 사용자 등록 중...").arg(service->getUserName());
-							view->showStatusMessage(msg);
-					}
-					else if (state != RecognitionState::DUPLICATEDFACE) {
-							view->setRecognitionState(state);			
-					}
-		});
 		*/
 
+		static bool first = true;
+		connect(service, &FaceRecognitionService::frameReady, this, [=](const QImage& image) {
+		    // 카메라 라벨이 화면에 "보이지" 않으면 드롭 (대기화면일 때)
+		    if (!view->ui->cameraLabel->isVisible()) {
+		        return;
+		    }
+		
+		    if (!image.isNull()) {
+						if (first && view->ui->stackedWidget && view->ui->cameraLabel) {
+								view->ui->stackedWidget->setCurrentWidget(view->ui->cameraLabel);
+								first = false;
+						}
+						view->ui->cameraLabel->setPixmap(QPixmap::fromImage(image));
+
+						/*
+		        const QSize target = view->ui->cameraLabel->size();
+						view->ui->cameraLabel->setPixmap(QPixmap::fromImage(image));
+		        QPixmap pm = QPixmap::fromImage(image)
+		                        .scaled(target, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+		        view->ui->cameraLabel->setPixmap(pm);
+		        lastFrame_ = image;  // 리사이즈 대응용 캐시
+						*/
+		    } else {
+		        qDebug() << "Image is null!";
+		    }
+		}, Qt::QueuedConnection);
+
+		
 		connect(service, &FaceRecognitionService::stateChanged, this, [=] (RecognitionState s) {
 					switch (s) {
 							case RecognitionState::IDLE: 	
 																										view->showStatusMessage("대기 중...");
 																										break;
 							case RecognitionState::DOOR_OPEN:
-																										view->showStatusMessage("Door was opened");
+																										view->showStatusMessage("문이 열렸습니다!");
 																										break;
 							case RecognitionState::DETECTING:
-																										view->showStatusMessage("Face was detected");
+																										view->showStatusMessage("얼굴이 감지 되었습니다!");
 																										break;
 							case RecognitionState::REGISTERING:
 																										view->showStatusMessage("등록중...");
 																										break;
 							case RecognitionState::DUPLICATE_FACE:
-																										view->showStatusMessage("Duplicated face...");
+																										view->showStatusMessage("중복된 얼굴입니다...");
 																										view->showInfo("중복 사용자", "이미 등록된 얼굴입니다.");
 																										break;
 							case RecognitionState::RECOGNIZING:
-																										view->showStatusMessage("Recognizing...");
+																										view->showStatusMessage("인식중...");
 																										break;
 							case RecognitionState::AUTH_SUCCESS:
-																										view->showStatusMessage("Auth success!!");
-																										view->showUnlockOverlayLabel();
+																										view->showStatusMessage("인증 성공!!");
+																										//view->showUnlockOverlayLabel();
 																										break;
 							case RecognitionState::AUTH_FAIL:		
-																										view->showStatusMessage("Auth fail!!");
+																										view->showStatusMessage("인증 실패!!");
 																										break;
 							case RecognitionState::LOCKED_OUT:		
-																										view->showStatusMessage("Locked out...");
+																										view->showStatusMessage("문이 잠깁니다...");
 																										break;
 
 							default:
-				 																					view->showStatusMessage("Unkown state!!");
+				 																					view->showStatusMessage("현재 상태를 알 수없습니다...");
 					}
 
 		});
 
+		auto btn = view->ui->registerButton;
 
+		if (!btn) {
+				qWarning() << "[Presenter] registerButton is NULL) (setupUi이전에 잘못된 포인터)";
+				return;
+		}
 
 		connect(view, &MainWindow::stateChangedFromView, this, &FaceRecognitionPresenter::onViewStateChanged);
 
@@ -93,18 +119,11 @@ void FaceRecognitionPresenter::onViewStateChanged(RecognitionState state)
 				service->resetUnlockFlag();
 		}
 }
-/*
-void FaceRecognitionPresenter::handleStateChanged(RecognitionState state) 
-{
-		if (state == RecognitionState::DUPLICATEDFACE) {
-				view->showInfo("중복 사용자", "이미 등록된 얼굴입니다.");
-		}
-}
-*/
 
 void FaceRecognitionPresenter::onRegisterFace() 
 {
-		qDebug() << "[FaceRecognitionPresenter] onRegisterFace() is called";
+		qDebug() << "[FaceRecognitionPresenter] Register mode On";
+		service->setRegisterRequested(true);
 		if (faceRegisterPresenter) 
 				faceRegisterPresenter->onRegisterFace();
 }

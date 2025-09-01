@@ -3,7 +3,7 @@
 MainPresenter::MainPresenter(MainWindow* view)
 		: view(view)
 {
-		qDebug() << "[MainPresenter] Created";
+		//qDebug() << "[MainPresenter] Created";
 		faceRecognitionService = new FaceRecognitionService();
 		faceRecognitionThread = new QThread();
 		faceRecognitionService->moveToThread(faceRecognitionThread);
@@ -44,7 +44,7 @@ void MainPresenter::startAllServices()
 
 void MainPresenter::connectUIEvents()
 {
-		qDebug() << "[MainPresenter] connectUIEvents called";
+		//qDebug() << "[MainPresenter] connectUIEvents called";
 		connect(view, &MainWindow::showUserImagesRequested, userImagePresenter, &UserImagePresenter::onShowImages);
 		connect(view, &MainWindow::imageClicked, userImagePresenter, &UserImagePresenter::handleImagePreview);
 		connect(view, &MainWindow::deleteImageRequested, userImagePresenter, &UserImagePresenter::handleDeleteImage);

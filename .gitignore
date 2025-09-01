@@ -6,6 +6,18 @@ build/
 *~
 
 git_uploader.sh
+build/
+cmake-build-*/
+CMakeChache.txt
+Makefile
+*.o
+moc_*
+ui_*
+*.user
+*.qmake.stash
+*.qm
+face_doorlock
+
 CHANGELOG.md
 assert/face_images/*
 assert/face_model.yml

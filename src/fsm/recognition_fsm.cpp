@@ -38,6 +38,7 @@ void RecognitionFsm::updateContext(const FsmContext& c)
 
 void RecognitionFsm::tick() 
 {
+		// qCDebug(LC_FSM_STATE) << "[FSM] tick()";
 		if (!states_.count(current_)) return;
 
 		// 1) onUpdate
@@ -60,11 +61,17 @@ void RecognitionFsm::tick()
 						continue;
 				}
 				
-				bool pass = (t.guard && t.guard(ctx_));
-				qCDebug(LC_FSM_GUARD) << "[EVAL]" << t.name
+				const bool pass = (t.guard && t.guard(ctx_));
+				const std::string key = t.name ? t.name : (std::to_string((int)t.from) + "->" +std::to_string((int)t.to));
+				static int s_evalTick = 0;
+
+				bool changed = (lastEval_.find(key) == lastEval_.end(0)) || (lastEval_[key] != pass);
+				if (changed || ((++s_evalTick % evalEvery_) == 0)) {
+						qCDebug(LC_FSM_GUARD) << "[EVAL]" << t.name
 															<< "from" << static_cast<int>(t.from)
 															<< "to"		<< static_cast<int>(t.to)
 															<< "result=" << pass;
+				}
 
 						
 

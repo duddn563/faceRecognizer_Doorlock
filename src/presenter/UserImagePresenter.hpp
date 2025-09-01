@@ -13,16 +13,17 @@ class UserImagePresenter : public QObject {
 		Q_OBJECT
 
 public:
+				// === Constructor ===	
 				explicit UserImagePresenter(UserImageService* service, MainWindow* view);
 
-
-				void onShowImages();
-				void handleDeleteImage(const QString& imagePath);
-				void onShowUserList();
-				void presentUserList(const QStringList& users);
+				// === MainWindow에서 호출하는 메서드 ===
+								void presentUserList(const QStringList& users);
 
 public slots:
 				void handleImagePreview(const QString& imagePath);
+				void onShowImages();
+				void handleDeleteImage(const QString& imagePath);
+				void onShowUserList();
 
 private:
 				MainWindow* view;

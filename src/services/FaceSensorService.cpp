@@ -2,7 +2,8 @@
 #include <QDebug>
 
 
-// #define DEBUG
+ #define DEBUG
+
 
 FaceSensorService::FaceSensorService(QObject *parent) : QObject(parent) 
 {

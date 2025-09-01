@@ -10,6 +10,9 @@ set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_SOURCE_DIR}/ui)
 
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(PkgConfig REQUIRED)
+
+pkg_check_modules(LIBGPIOD REQUIRED IMPORTED_TARGET libgpiod)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -23,7 +26,12 @@ set(SOURCES
     src/main.cpp
 		src/fsm/recognition_fsm.cpp
 		src/fsm/fsm_logging.cpp
+
+		src/ai/Embedder.cpp
+
     src/gui/MainWindow.cpp
+
+		src/hw/UnlockUntilReed.cpp
 
 		src/presenter/MainPresenter.cpp
 		src/presenter/UserImagePresenter.cpp
@@ -53,5 +61,7 @@ target_link_libraries(face_doorlock PRIVATE
 			Qt5::Widgets 
 			${OpenCV_LIBS} 
 			wiringPi
+			PkgConfig::LIBGPIOD
+
 )
 

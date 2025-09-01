@@ -2,17 +2,16 @@
 #include <QDir>
 #include <QFile>
 #include <QDebug>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonParseError>
+#include <QCoreApplication>
+
+#include "include/common_path.hpp"
 #include "presenter/UserImagePresenter.hpp"
 
-#define USER_FACES_DIR                "/root/trunk/faceRecognizer_Doorlock/assert/face_images/"
-#define USER_LABEL_FILE								"/root/trunk/faceRecognizer_Doorlock/assert/labels.txt"
-
 UserImageService::UserImageService(UserImagePresenter* presenter)
-	: presenter(presenter)
-{ 
-		//qDebug() << "[UserImageService] Constructor called, presenter ptr = " << presenter;	
-
-}
+	: presenter(presenter){ }
 
 void UserImageService::setPresenter(UserImagePresenter* p) { presenter = p; }
 
@@ -36,35 +35,50 @@ QList<UserImage> UserImageService::getUserImages()
 
 void UserImageService::fetchUserList()
 {
-		qDebug() << "[UserImageService] fetchUserList is called";
 		if (!presenter) {
 				qDebug() << "[UserImageService] presenter is nullptr";
 				return;
 		}
 
-		QString filePath = QString::fromStdString(USER_LABEL_FILE);
+		const QString filePath = QDir(QCoreApplication::applicationDirPath()).filePath(EMBEDDING_JSON_PATH) + EMBEDDING_JSON;
 
 		QFile file(filePath);
 		QStringList users;
 
+		if (!file.exists()) {
+				qWarning() << "[UserImageService]" << filePath << " not found";
+				presenter->presentUserList(users);
+				return;
+		}
+
 		if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-				qDebug() << "[UserImageService] Label.txt is not exist";
+				qDebug() << "[UserImageService] failed to open" << filePath << ":" <<  file.errorString();
+				presenter->presentUserList(users);
 				return; 
 		}
-		else {
-				while (!file.atEnd()) {
-						QByteArray line = file.readLine();
-						QString str(line);
-						QStringList parts = str.trimmed().split(' ');
-						if (parts.size() >= 2) {
-								qDebug() << "[UserImageService] parts[0]:" << parts[0] << ", parts[1]:" << parts[1];
-								users.append(parts[0] + ": " + parts[1]);
-						}
-				}
+
+		const QByteArray raw = file.readAll();
+		file.close();
+
+		QJsonParseError perr;
+		const QJsonDocument doc = QJsonDocument::fromJson(raw, &perr);
+		if (perr.error != QJsonParseError::NoError || !doc.isArray()) {
+				qWarning() << "[UserImageService] JSON parse error:" << perr.errorString();
+				presenter->presentUserList(users);
+				return;
 		}
+		
+		const QJsonArray arr = doc.array();
+		for (const QJsonValue& v : arr) {
+				const QJsonObject o = v.toObject();
+				const int id = o.value("id").toInt(-1);
+				const QString name = o.value("name").toString(QStringLiteral("Unknown"));
+				const int dim = o.value("embedding").toArray().size();
 
-		//qDebug() << "[UserImageService] presenter pointer:" << presenter;
-
+				users.append(QString("%1: %2 (%3D)").arg(id).arg(name).arg(dim));
+				qDebug() << "[UserImageService] user: " << id << name << "dim=" << dim;
+		}
+			
 		presenter->presentUserList(users);		
 }
 
