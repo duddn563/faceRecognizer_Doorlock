@@ -10,6 +10,8 @@ public:
 				QString modelPath;
 				int inputSize = 128;		// 128x128 입력
 				bool useRGB = true;			// 모델이 RGB 입력 모델
+                                            //
+                enum class Norm { ZeroToOne, MinusOneToOne } norm = Norm::ZeroToOne;
 		};
 
 		explicit Embedder(const Options& opt);

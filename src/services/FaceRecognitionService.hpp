@@ -43,8 +43,9 @@ class FaceRecognitionPresenter;
 
 
 typedef struct RecogResult_t {
-		double confidence;			// 얼굴인식 신뢰도
-		int		 result;			  // 인식 결과
+        double   confidence = 999;	  // 얼굴인식 신뢰도
+		int		 result = false;	  // 인식 결과
+        float    sim = -1.f;          // 임베딩 결과
 } recogResult_t;
 
 struct UserEmbedding {
@@ -122,6 +123,7 @@ private:
 				void finalizeRegistration();
 
 				bool computeTimeout(const FsmContext& c);
+                bool loadDetector();
 
 
 				// TODO: LBPH is seperate to another class

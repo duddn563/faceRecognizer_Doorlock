@@ -10,7 +10,7 @@
 #include <QThread>
 
 #define TRIG_PIN 4
-#define ECHO_PIN 5			// 3으로 변경 예정
+#define ECHO_PIN 5			
 
 class FaceSensorService : public QObject {
     Q_OBJECT

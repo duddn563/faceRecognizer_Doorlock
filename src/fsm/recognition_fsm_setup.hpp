@@ -9,10 +9,10 @@ struct FsmParams {
 		double detectExit	 = 0.35;
 		int		 detectMinDwellMs = 200;
 
-		//double recogEnter = 0.60;
-		//double recogExit	= 0.50;
-		double recogEnter = 70.00;
-		double recogExit = 50.00;
+		double recogEnter = 0.60;
+		double recogExit	= 0.50;
+		//double recogEnter = 70.00;
+		//double recogExit = 50.00;
 		int		 recogTimeoutMs = 5000;
 
 		int successHoldMs = 800;
@@ -78,7 +78,7 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				RecognitionState::RECOGNIZING, RecognitionState::AUTH_SUCCESS,
 				[P] (const FsmContext& c) {
 						qDebug() << "[FSM] confidence: " << c.recogConfidence << "recogEnter:" << P.recogEnter;
-						return c.livenessOk && (c.recogConfidence > 0) && (c.recogConfidence < P.recogEnter); //&& (!c.registerRequested);
+						return c.livenessOk && (c.recogConfidence > 0) && (c.recogConfidence > P.recogEnter); //&& (!c.registerRequested);
 				},
 				/*minDwellMs=*/150
 		});
@@ -89,7 +89,7 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				"recognizing->fail",
 				RecognitionState::RECOGNIZING, RecognitionState::AUTH_FAIL,
 				[P] (const FsmContext& c) {
-						return c.timeout || (!c.livenessOk) || (c.recogConfidence >= P.recogExit && !c.facePresent);
+						return c.timeout || (!c.livenessOk) || (c.recogConfidence <= P.recogExit && !c.facePresent);
 				},
 				/*minDwellMs=*/200
 		});
@@ -108,7 +108,7 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				RecognitionState::AUTH_SUCCESS, RecognitionState::DOOR_OPEN,
 				[P] (const FsmContext& c) { 
 						qDebug() << "[FSM] c.authStreak:" << c.authStreak;
-						return c.detectScore >= 0.8 && c.livenessOk && (c.recogConfidence < P.recogEnter) && (c.authStreak >= P.authThresh) && c.allowEntry; 
+						return c.detectScore >= 0.8 && c.livenessOk && (c.recogConfidence > P.recogEnter) && (c.authStreak >= P.authThresh) && c.allowEntry; 
 				},
 				/*minDwellMs=*/150
 		});
