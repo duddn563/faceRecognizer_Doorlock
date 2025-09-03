@@ -107,13 +107,13 @@ struct AuthFailState : public IFsmState {
 };
 struct LockedOutState : public IFsmState {
 		void onEnter(const FsmContext&) override { 
-				qDebug() << "[FSM] Enter DOOR_OPEN";
+				qDebug() << "[FSM] Enter LOCKED_OUT";
 		}
 		void onUpdate(const FsmContext&) override {
-				qDebug() << "[FSM] Update DOOR_OPEN";
+				qDebug() << "[FSM] Update LOCKED_OUT";
 		}
 		void onExit(const FsmContext&) override {
-				qDebug() << "[FSM] Exit DOOR_OPEN";
+				qDebug() << "[FSM] Exit LOCKED_OUT";
 		}
 
 };

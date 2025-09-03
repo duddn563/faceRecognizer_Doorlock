@@ -2,7 +2,7 @@
 #include <QDebug>
 
 
- #define DEBUG
+#define DEBUG
 
 
 FaceSensorService::FaceSensorService(QObject *parent) : QObject(parent) 
@@ -31,7 +31,7 @@ void FaceSensorService::run() {
         delayMicroseconds(10);
         digitalWrite(TRIG_PIN, LOW);
 
-        while (digitalRead(ECHO_PIN) == LOW);
+        while (digitalRead(ECHO_PIN) == LOW); 
         long startTime = micros();
 
         while (digitalRead(ECHO_PIN) == HIGH);

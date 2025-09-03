@@ -1,0 +1,102 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_EXCMD	mixed	/number, pattern, mixed, or combineV2/
+!_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
+!_TAG_PROC_CWD	/root/trunk/faceRecognizer_Doorlock/src/fsm/	//
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	5.9.0	//
+AuthFailState	recognition_states.hpp	/^struct AuthFailState : public IFsmState {};$/;"	s
+AuthSuccessState	recognition_states.hpp	/^struct AuthSuccessState : public IFsmState {};$/;"	s
+DetectingState	recognition_states.hpp	/^		explicit DetectingState(double enterThresh, double exitThresh)$/;"	f	struct:DetectingState
+DetectingState	recognition_states.hpp	/^struct DetectingState : public IFsmState {$/;"	s
+DoorOpenState	recognition_states.hpp	/^struct DoorOpenState : public IFsmState {};$/;"	s
+DuplicateFaceState	recognition_states.hpp	/^struct DuplicateFaceState : public IFsmState {};$/;"	s
+FsmContext	recognition_fsm.hpp	/^struct FsmContext {$/;"	s
+FsmParams	recognition_fsm_setup.hpp	/^struct FsmParams {$/;"	s
+HysteresisGate	recognition_fsm.hpp	/^		HysteresisGate(double enterThresh, double exitThresh, int confirmFrames = 3, int window = 3)$/;"	f	class:HysteresisGate
+HysteresisGate	recognition_fsm.hpp	/^class HysteresisGate {$/;"	c
+IFsmState	recognition_fsm.hpp	/^class IFsmState {$/;"	c
+IdleState	recognition_states.hpp	/^struct IdleState : public IFsmState {$/;"	s
+LockedOutState	recognition_states.hpp	/^struct LockedOutState : public IFsmState {};$/;"	s
+RecognitionFsm	recognition_fsm.cpp	/^RecognitionFsm::RecognitionFsm(QObject* parent) : QObject(parent)$/;"	f	class:RecognitionFsm
+RecognitionFsm	recognition_fsm.hpp	/^class RecognitionFsm : public QObject {$/;"	c
+RecognizingState	recognition_states.hpp	/^		explicit RecognizingState(double enterThresh, double exitThresh)$/;"	f	struct:RecognizingState
+RecognizingState	recognition_states.hpp	/^struct RecognizingState : public IFsmState {$/;"	s
+RegisteringState	recognition_states.hpp	/^struct RegisteringState : public IFsmState {};$/;"	s
+Transition	recognition_fsm.hpp	/^struct Transition {$/;"	s
+__anon0524f4710102	recognition_fsm_setup.hpp	/^		auto nowMs = [](const FsmContext& c) { return c.nowMs; };$/;"	f	function:setupRecognitionFsm	file:
+__anon0524f4710202	recognition_fsm_setup.hpp	/^				[P](const FsmContext& c) {$/;"	f	function:setupRecognitionFsm	file:
+__anon0524f4710302	recognition_fsm_setup.hpp	/^				[P](const FsmContext& c) {$/;"	f	function:setupRecognitionFsm	file:
+__anon0524f4710402	recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) {$/;"	f	function:setupRecognitionFsm	file:
+__anon0524f4710502	recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) {$/;"	f	function:setupRecognitionFsm	file:
+__anon0524f4710602	recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) {$/;"	f	function:setupRecognitionFsm	file:
+__anon0524f4710702	recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { return c.isDuplicate; },$/;"	f	function:setupRecognitionFsm	file:
+__anon0524f4710802	recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { return !c.doorOpened; },$/;"	f	function:setupRecognitionFsm	file:
+__anon0524f4710902	recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) { return c.failCount >= P.lockoutFails; },$/;"	f	function:setupRecognitionFsm	file:
+__anon0524f4710a02	recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) { return true; },$/;"	f	function:setupRecognitionFsm	file:
+__anon0524f4710b02	recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) { return c.timeout; },$/;"	f	function:setupRecognitionFsm	file:
+__anon0524f4710c02	recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { return c.registerRequested; },$/;"	f	function:setupRecognitionFsm	file:
+__anon0524f4710d02	recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { return !c.registerRequested; },$/;"	f	function:setupRecognitionFsm	file:
+addState	recognition_fsm.cpp	/^void RecognitionFsm::addState(RecognitionState s, std::unique_ptr<IFsmState> st) $/;"	f	class:RecognitionFsm	typeref:typename:void
+addTransition	recognition_fsm.cpp	/^void RecognitionFsm::addTransition(const Transition& t) $/;"	f	class:RecognitionFsm	typeref:typename:void
+buf_	recognition_fsm.hpp	/^	std::vector<double> buf_;$/;"	m	class:HysteresisGate	typeref:typename:std::vector<double>
+ctx_	recognition_fsm.hpp	/^		FsmContext ctx_;$/;"	m	class:RecognitionFsm	typeref:typename:FsmContext
+current	recognition_fsm.hpp	/^			RecognitionState current() const { return current_; }$/;"	f	class:RecognitionFsm	typeref:typename:RecognitionState
+current_	recognition_fsm.hpp	/^		RecognitionState current_ = RecognitionState::IDLE;$/;"	m	class:RecognitionFsm	typeref:typename:RecognitionState
+detectEnter	recognition_fsm_setup.hpp	/^		double detectEnter = 0.65;$/;"	m	struct:FsmParams	typeref:typename:double
+detectExit	recognition_fsm_setup.hpp	/^		double detectExit	 = 0.35;$/;"	m	struct:FsmParams	typeref:typename:double
+detectMinDwellMs	recognition_fsm_setup.hpp	/^		int		 detectMinDwellMs = 200;$/;"	m	struct:FsmParams	typeref:typename:int
+detectScore	recognition_fsm.hpp	/^		double detectScore = 0.0;				\/\/ 얼굴 검출 강도\/스코어$/;"	m	struct:FsmContext	typeref:typename:double
+doorOpened	recognition_fsm.hpp	/^		bool doorOpened = false;					\/\/ 리드 수위치 등 문 열림$/;"	m	struct:FsmContext	typeref:typename:bool
+enterTime_	recognition_fsm.hpp	/^		QElapsedTimer enterTime_;$/;"	m	class:RecognitionFsm	typeref:typename:QElapsedTimer
+enter_	recognition_fsm.hpp	/^	double enter_, exit_;$/;"	m	class:HysteresisGate	typeref:typename:double
+exit_	recognition_fsm.hpp	/^	double enter_, exit_;$/;"	m	class:HysteresisGate	typeref:typename:double
+facePresent	recognition_fsm.hpp	/^		bool facePresent = false;				\/\/ 얼굴 존재 여부$/;"	m	struct:FsmContext	typeref:typename:bool
+failCooldownMs	recognition_fsm_setup.hpp	/^		int failCooldownMs = 1000;$/;"	m	struct:FsmParams	typeref:typename:int
+failCount	recognition_fsm.hpp	/^		int failCount = 0;							\/\/ 연속 실패 횟수$/;"	m	struct:FsmContext	typeref:typename:int
+feed	recognition_fsm.hpp	/^		bool feed(double x) {$/;"	f	class:HysteresisGate	typeref:typename:bool
+from	recognition_fsm.hpp	/^		RecognitionState from;$/;"	m	struct:Transition	typeref:typename:RecognitionState
+gate	recognition_states.hpp	/^		HysteresisGate gate;		\/\/ 검출 히스테리시스$/;"	m	struct:DetectingState	typeref:typename:HysteresisGate
+gate	recognition_states.hpp	/^		HysteresisGate gate;	\/\/ 인식 신뢰도 히스테리시스 $/;"	m	struct:RecognizingState	typeref:typename:HysteresisGate
+guard	recognition_fsm.hpp	/^		std::function<bool(const FsmContext&)> guard;		\/\/ 전환 조건$/;"	m	struct:Transition	typeref:typename:std::function<bool (const FsmContext &)>
+isDuplicate	recognition_fsm.hpp	/^		bool isDuplicate = false;				\/\/ 중복 사용자 탐지$/;"	m	struct:FsmContext	typeref:typename:bool
+livenessOk	recognition_fsm.hpp	/^		bool livenessOk = true;					\/\/ 라이브니스 결과$/;"	m	struct:FsmContext	typeref:typename:bool
+lockoutFails	recognition_fsm_setup.hpp	/^		int lockoutFails = 5;$/;"	m	struct:FsmParams	typeref:typename:int
+lockoutMs	recognition_fsm_setup.hpp	/^		int lockoutMs = 30'000;$/;"	m	struct:FsmParams	typeref:typename:int
+minDwellMs	recognition_fsm.hpp	/^		int minDwellMs = 50;			\/\/ 상태 유지 최소 시간(히스테리시스)$/;"	m	struct:Transition	typeref:typename:int
+name	recognition_fsm.hpp	/^		const char* name = "unnamed";			\/\/ 전환 식별용 이름$/;"	m	struct:Transition	typeref:typename:const char *
+need_	recognition_fsm.hpp	/^	int need_, win_;$/;"	m	class:HysteresisGate	typeref:typename:int
+nowMs	recognition_fsm.hpp	/^		qint64 nowMs = 0;								\/\/ 단조 시간(ms)$/;"	m	struct:FsmContext	typeref:typename:qint64
+onEnter	recognition_fsm.hpp	/^		virtual void onEnter(const FsmContext&) {}$/;"	f	class:IFsmState	typeref:typename:void
+onEnter	recognition_states.hpp	/^		void onEnter(const FsmContext&) override { gate.reset(false); }$/;"	f	struct:DetectingState	typeref:typename:void
+onEnter	recognition_states.hpp	/^		void onEnter(const FsmContext&) override { gate.reset(false); }$/;"	f	struct:RecognizingState	typeref:typename:void
+onEnter	recognition_states.hpp	/^		void onEnter(const FsmContext&) override {$/;"	f	struct:IdleState	typeref:typename:void
+onExit	recognition_fsm.hpp	/^		virtual void onExit(const FsmContext&) {}$/;"	f	class:IFsmState	typeref:typename:void
+onExit	recognition_states.hpp	/^		void onExit(const FsmContext&) override {}$/;"	f	struct:IdleState	typeref:typename:void
+onUpdate	recognition_fsm.hpp	/^		virtual void onUpdate(const FsmContext&) {}$/;"	f	class:IFsmState	typeref:typename:void
+onUpdate	recognition_states.hpp	/^		void onUpdate(const FsmContext& c) override { $/;"	f	struct:RecognizingState	typeref:typename:void
+onUpdate	recognition_states.hpp	/^		void onUpdate(const FsmContext& c) override {$/;"	f	struct:DetectingState	typeref:typename:void
+onUpdate	recognition_states.hpp	/^		void onUpdate(const FsmContext&) override {}$/;"	f	struct:IdleState	typeref:typename:void
+recogConfidence	recognition_fsm.hpp	/^		double recogConfidence = 0.0;		\/\/ 인식 신뢰도(확률)$/;"	m	struct:FsmContext	typeref:typename:double
+recogEnter	recognition_fsm_setup.hpp	/^		double recogEnter = 0.80;$/;"	m	struct:FsmParams	typeref:typename:double
+recogExit	recognition_fsm_setup.hpp	/^		double recogExit	= 0.50;$/;"	m	struct:FsmParams	typeref:typename:double
+recogTimeoutMs	recognition_fsm_setup.hpp	/^		int		 recogTimeoutMs = 5000;$/;"	m	struct:FsmParams	typeref:typename:int
+registerRequested	recognition_fsm.hpp	/^		bool registerRequested = false;	\/\/ 등록 요청(버튼\/메뉴)$/;"	m	struct:FsmContext	typeref:typename:bool
+reset	recognition_fsm.hpp	/^	void reset(bool s = false) { state_ = s; buf_.clear(); }$/;"	f	class:HysteresisGate	typeref:typename:void
+setupRecognitionFsm	recognition_fsm_setup.hpp	/^inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)$/;"	f	typeref:typename:void
+start	recognition_fsm.cpp	/^void RecognitionFsm::start(RecognitionState initial) $/;"	f	class:RecognitionFsm	typeref:typename:void
+state_	recognition_fsm.hpp	/^	bool state_ = false;$/;"	m	class:HysteresisGate	typeref:typename:bool
+states_	recognition_fsm.hpp	/^		std::unordered_map<RecognitionState, std::unique_ptr<IFsmState>> states_;$/;"	m	class:RecognitionFsm	typeref:typename:std::unordered_map<RecognitionState,std::unique_ptr<IFsmState>>
+stop	recognition_fsm.cpp	/^void RecognitionFsm::stop() $/;"	f	class:RecognitionFsm	typeref:typename:void
+successHoldMs	recognition_fsm_setup.hpp	/^		int successHoldMs = 800;$/;"	m	struct:FsmParams	typeref:typename:int
+tick	recognition_fsm.cpp	/^void RecognitionFsm::tick() $/;"	f	class:RecognitionFsm	typeref:typename:void
+timeout	recognition_fsm.hpp	/^		bool timeout = false;						\/\/ 상태 타임아웃 여부$/;"	m	struct:FsmContext	typeref:typename:bool
+timer_	recognition_fsm.hpp	/^		QTimer timer_;$/;"	m	class:RecognitionFsm	typeref:typename:QTimer
+to	recognition_fsm.hpp	/^		RecognitionState to;$/;"	m	struct:Transition	typeref:typename:RecognitionState
+trans_	recognition_fsm.hpp	/^		std::vector<Transition> trans_;$/;"	m	class:RecognitionFsm	typeref:typename:std::vector<Transition>
+updateContext	recognition_fsm.cpp	/^void RecognitionFsm::updateContext(const FsmContext& c) $/;"	f	class:RecognitionFsm	typeref:typename:void
+win_	recognition_fsm.hpp	/^	int need_, win_;$/;"	m	class:HysteresisGate	typeref:typename:int

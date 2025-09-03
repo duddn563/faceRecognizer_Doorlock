@@ -55,6 +55,7 @@ bool AuthManager::shouldAllowEntry() const
 				qDebug() << "[AuthManager] shouldAllowEntry# The number of authentication attempts is insufficient";
 		}
 
+
 		return rc; 
 }
 

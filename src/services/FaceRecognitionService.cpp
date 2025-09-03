@@ -627,7 +627,7 @@ recogResult_t FaceRecognitionService::handleRecognition(Mat& frame, const Rect& 
 		if (recognizer && !recognizer->empty() && !storedFaces.empty() &&	fs::exists(LBPH_MODEL_FILE)) {
 				pl = -1;
 				recognizer->predict(alignedFace, pl, confident);
-				lbphOk = (confident < 60.00);
+				lbphOk = (confident < 70.00);			// confidence가 작으면 작을수록 일치
 		}
 
 		// 2) DNN으로 식별 + 이름
@@ -998,6 +998,11 @@ void FaceRecognitionService::drawCornerBox(Mat& img, Rect rect, Scalar color, in
 void FaceRecognitionService::procFrame()
 {
 		bool doorIsOpen = false;
+		if (!cap.isOpened()) {
+				qDebug() << "[FRS] The camera has shutdown. it will restart";
+				openCamera();
+		}
+
 		recogResult_t recogResult;
 		Mat frame, frameCopy;
 		{
@@ -1053,15 +1058,15 @@ void FaceRecognitionService::procFrame()
 								incAuthStreak();																		// 인증 성공 시 성공 횟수 누적
 								
 
+								qDebug() << "[FSM] AuthStreak(" << authStreak_ << ")";
 								if (!hasAlreadyUnlocked) {
 										authManager.handleAuthSuccess();
 					
 										if (authManager.shouldAllowEntry()) {
-												qDebug() << "[FaceRecognitionService] Authenticate 3 time success -> Door open!";
+												qDebug() << "[FaceRecognitionService] Authenticate 5 time success -> Door open!";
 												authManager.resetAuth();
 												hasAlreadyUnlocked = true;
 												resetAuthStreak();		// 최종 적으로 인식이 성공하면 성공 횟수 초기화 
-												setAllowEntry(true);
 
 												// =====  감지 전까지 열림 유지 시작 =====
 												if (!g_unlockMgr.running()) {
@@ -1069,18 +1074,21 @@ void FaceRecognitionService::procFrame()
 														qInfo() << "[Door] Unlock started (wait open, then wait close)";
 												}
 
-												doorIsOpen = true;
+												setAllowEntry(true);
+												setDoorOpened(true);
 
 										}	
 								}
 						} else {
 								setRecogConfidence(recogResult.confidence);			 
 								incFailCount();								 // 실패 누적
+								setDoorOpened(false);
 
-								qDebug() << "[FSM] Reset AuthStreak(" << authStreak_ << ")";
+								//qDebug() << "[FSM] Reset AuthStreak(" << authStreak_ << ")";
+								//qDebug() << "[FSM] failCount: " << failCount_;
 								resetAuthStreak();		// 중간에 얼굴인식 인증이 실패하면 인증 성공횟수 초기화
 								authManager.resetAuth();
-								doorIsOpen = false;
+								//doorIsOpen = false;
 						}
 				}
 				else {
@@ -1095,13 +1103,13 @@ void FaceRecognitionService::procFrame()
 				setRecogConfidence(0.0);
 		}
 
-		if (authStreak_ > 5) {
+		if (authStreak_ > 6) {
 				resetAuthStreak();		// 얼굴이 동시에 인증 성공 했을 때 스트릭이 초기화 되지 않아 임시 방법으로 사용 
 				authManager.resetAuth();
 				resetUnlockFlag();
 		}
 
-		setDoorOpened(doorIsOpen); // TODO: 센서 연결되어 있으면 사용
+		//setDoorOpened(doorIsOpen); // TODO: 센서 연결되어 있으면 사용
 
 
 		

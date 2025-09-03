@@ -9,8 +9,10 @@ struct FsmParams {
 		double detectExit	 = 0.35;
 		int		 detectMinDwellMs = 200;
 
-		double recogEnter = 0.80;
-		double recogExit	= 0.50;
+		//double recogEnter = 0.60;
+		//double recogExit	= 0.50;
+		double recogEnter = 70.00;
+		double recogExit = 50.00;
 		int		 recogTimeoutMs = 5000;
 
 		int successHoldMs = 800;
@@ -65,7 +67,7 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				"detect->recognizing",
 				RecognitionState::DETECTING, RecognitionState::RECOGNIZING,
 				[P] (const FsmContext& c) {
-						return c.facePresent && c.detectScore >= P.detectEnter * 0.95; //&& (!c.registerRequested); // 약간 관용
+						return (c.facePresent && c.detectScore >= P.detectEnter * 0.95) && (!c.registerRequested); // 약간 관용
 				},
 				P.detectMinDwellMs
 		});
@@ -75,17 +77,19 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				"recognizing->success",
 				RecognitionState::RECOGNIZING, RecognitionState::AUTH_SUCCESS,
 				[P] (const FsmContext& c) {
-						return c.livenessOk && (c.recogConfidence >= P.recogEnter); //&& (!c.registerRequested);
+						qDebug() << "[FSM] confidence: " << c.recogConfidence << "recogEnter:" << P.recogEnter;
+						return c.livenessOk && (c.recogConfidence > 0) && (c.recogConfidence < P.recogEnter); //&& (!c.registerRequested);
 				},
 				/*minDwellMs=*/150
 		});
+
 
 		// RECOGNIZING -> AUTH_FAIL: 타임아웃 또는 신뢰도 하방 이탈 지속
 		fsm.addTransition({
 				"recognizing->fail",
 				RecognitionState::RECOGNIZING, RecognitionState::AUTH_FAIL,
 				[P] (const FsmContext& c) {
-						return c.timeout || (!c.livenessOk) || (c.recogConfidence <= P.recogExit && !c.facePresent);
+						return c.timeout || (!c.livenessOk) || (c.recogConfidence >= P.recogExit && !c.facePresent);
 				},
 				/*minDwellMs=*/200
 		});
@@ -104,9 +108,20 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				RecognitionState::AUTH_SUCCESS, RecognitionState::DOOR_OPEN,
 				[P] (const FsmContext& c) { 
 						qDebug() << "[FSM] c.authStreak:" << c.authStreak;
-						return c.detectScore >= 0.8 && c.livenessOk && (c.recogConfidence >= P.recogEnter) && (c.authStreak >= P.authThresh) && c.allowEntry; 
+						return c.detectScore >= 0.8 && c.livenessOk && (c.recogConfidence < P.recogEnter) && (c.authStreak >= P.authThresh) && c.allowEntry; 
 				},
 				/*minDwellMs=*/150
+		});
+
+		fsm.addTransition({
+				"success->idle",
+				RecognitionState::AUTH_SUCCESS, RecognitionState::IDLE,
+				[P] (const FsmContext& c) {
+						qDebug() << "[FSM] c.recgConfidence: " << c.recogConfidence;
+						return (c.recogConfidence < P.recogExit);
+				},
+				/*mainDwellMs=*/200
+				
 		});
 
 

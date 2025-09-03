@@ -24,7 +24,7 @@ private:
 		AuthState state;
 
 		const int maxAuthDurationMs = 30000;		// 30 second limit
-		const int requiredSuccessCount = 3;			//  Authentication success count
+		const int requiredSuccessCount = 5;			//  Authentication success count
 };
 
 
