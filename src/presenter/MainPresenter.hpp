@@ -4,6 +4,8 @@
 
 #include "MainWindow.hpp"
 
+#include "services/LogDtos.hpp"
+
 #include "UserImagePresenter.hpp"
 #include "DoorSensorPresenter.hpp"
 #include "FaceSensorPresenter.hpp"
@@ -14,19 +16,34 @@
 #include "DoorSensorService.hpp"
 #include "FaceRecognitionService.hpp"
 #include "UserImageService.hpp"
+#include "QSqliteService.hpp"
 
 class MainPresenter : public QObject {
 		Q_OBJECT
 
 
 public:
-		MainPresenter(MainWindow* view);
+		MainPresenter(MainWindow* view, QObject* parent = nullptr);
 		~MainPresenter();
 
 		void startAllServices();
+		QSqliteService* service() const { return service_; }
+
+public slots:
+    // Auth
+    void requestAuthPage(int page, int pageSize, const QString& userLike);
+    // System
+    void requestSystemPage(int page, int pageSize, int minLevel,
+                           const QString& tagLike, const QString& sinceIso);
+
+signals:
+    void deliverAuthLogs(const QVector<AuthLog>& rows, int page, int total, int pageSize);
+    void deliverSystemLogs(const QVector<SystemLog>& rows, int page, int total, int pageSize);
+
 
 private:
 		MainWindow* view;
+        QSqliteService* service_;
 
 		QThread* faceRecognitionThread;
 		QThread* faceSensorThread;
@@ -43,7 +60,11 @@ private:
 		DoorSensorPresenter* doorSensorPresenter;
 		UserImagePresenter* userImagePresenter;
 
+        //QSqliteService& dbService;
+        //void openDB();
+
 		void connectUIEvents();
 		void onViewStateChanged();
+        bool wired = false;     // 중복 연결 방지
 };
 

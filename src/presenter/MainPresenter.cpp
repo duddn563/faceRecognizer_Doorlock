@@ -1,10 +1,14 @@
 #include "MainPresenter.hpp"
 
-MainPresenter::MainPresenter(MainWindow* view)
-		: view(view)
+MainPresenter::MainPresenter(MainWindow* view, QObject* p)
+    : QObject(p), view(view)
 {
-		//qDebug() << "[MainPresenter] Created";
-		faceRecognitionService = new FaceRecognitionService();
+        service_ = new QSqliteService(); 
+
+        //connect(this, &MainPresenter::deliverAuthLogs, view, &MainWindow::renderAuthLogs);
+        //connect(this, &MainPresenter::deliverSystemLogs, view, &MainWindow::renderSystemLogs);
+
+		faceRecognitionService = new FaceRecognitionService(/*&dbService*/);
 		faceRecognitionThread = new QThread();
 		faceRecognitionService->moveToThread(faceRecognitionThread);
 
@@ -20,38 +24,70 @@ MainPresenter::MainPresenter(MainWindow* view)
 		connect(faceSensorThread, &QThread::started, faceSensorService, &FaceSensorService::run);
 
 
+		/*
 		doorSensorService = new DoorSensorService();
 		doorSensorThread = new QThread();
 		doorSensorService->moveToThread(doorSensorThread);
+		*/
 
-		doorSensorPresenter = new DoorSensorPresenter(doorSensorService, view, view);
-		connect(doorSensorThread, &QThread::started, doorSensorService, &DoorSensorService::run);
+		//doorSensorPresenter = new DoorSensorPresenter(doorSensorService, view, view);
+		//connect(doorSensorThread, &QThread::started, doorSensorService, &DoorSensorService::run);
 
 		userImageService = new UserImageService(nullptr);
 		userImagePresenter = new UserImagePresenter(userImageService, view);
 		userImageService->setPresenter(userImagePresenter);
 
+
+		qDebug() << "[MainPresenter] FRS addr:" << faceRecognitionService;
+		qDebug() << "[MainPresenter] DSS addr:" << faceSensorService;
+		qDebug() << "[MainPresenter] UIS addr:" << userImageService;
+
+		qDebug() << "[MainPresenter] FRT addr:" << faceSensorThread;
+		qDebug() << "[MainPresenter] FST addr:" << faceRecognitionThread;
+
 		connectUIEvents();
 
+}
+
+
+void MainPresenter::requestAuthPage(int page, int pageSize, const QString& userLike) 
+{
+    const int offset = page * pageSize;
+    QVector<AuthLog> rows; int total=0;
+    if (service_->selectAuthLogs(offset, pageSize, userLike, &rows, &total)) {
+        emit deliverAuthLogs(rows, page, total, pageSize);
+    }
+}
+
+void MainPresenter::requestSystemPage(int page, int pageSize, int minLevel,
+                                      const QString& tagLike, const QString& sinceIso) 
+{
+    const int offset = page * pageSize;
+    QVector<SystemLog> rows; int total=0;
+    if (service_->selectSystemLogs(offset, pageSize, minLevel, tagLike, sinceIso, &rows, &total)) {
+        emit deliverSystemLogs(rows, page, total, pageSize);
+    }
 }
 
 void MainPresenter::startAllServices()
 {
 		faceRecognitionThread->start();
 		faceSensorThread->start();
-		doorSensorThread->start();
+		//doorSensorThread->start();
 }
 
 void MainPresenter::connectUIEvents()
 {
-		//qDebug() << "[MainPresenter] connectUIEvents called";
-		connect(view, &MainWindow::showUserImagesRequested, userImagePresenter, &UserImagePresenter::onShowImages);
-		connect(view, &MainWindow::imageClicked, userImagePresenter, &UserImagePresenter::handleImagePreview);
-		connect(view, &MainWindow::deleteImageRequested, userImagePresenter, &UserImagePresenter::handleDeleteImage);
+    connect(view, &MainWindow::showUserImagesRequested, userImagePresenter, &UserImagePresenter::onShowImages);
+    connect(view, &MainWindow::imageClicked, userImagePresenter, &UserImagePresenter::handleImagePreview);
+    connect(view, &MainWindow::deleteImageRequested, userImagePresenter, &UserImagePresenter::handleDeleteImage);
     connect(view, &MainWindow::registerFaceRequested, faceRecognitionPresenter, &FaceRecognitionPresenter::onRegisterFace);
-		connect(view, &MainWindow::resetRequested, faceRecognitionPresenter, &FaceRecognitionPresenter::onReset);
-		connect(view, &MainWindow::requestedShowUserList, userImagePresenter, &UserImagePresenter::onShowUserList);
+    connect(view, &MainWindow::resetRequested, faceRecognitionPresenter, &FaceRecognitionPresenter::onReset);
+    connect(view, &MainWindow::requestedShowUserList, userImagePresenter, &UserImagePresenter::onShowUserList);
+
+    qDebug() << "[Presenter] UI events connected";
 }
+
 
 MainPresenter::~MainPresenter()
 {
@@ -71,13 +107,12 @@ MainPresenter::~MainPresenter()
 		faceSensorThread->deleteLater();
 		delete faceSensorPresenter;
 
-		doorSensorService->stop();
-		doorSensorThread->quit();
-		doorSensorThread->wait();
+		//doorSensorService->stop();
+		//doorSensorThread->quit();
+		//doorSensorThread->wait();
 
-		doorSensorService->deleteLater();
-		doorSensorThread->deleteLater();
-		delete doorSensorPresenter;
+		//doorSensorService->deleteLater();
+		//doorSensorThread->deleteLater();
 
 		delete userImagePresenter;
 }

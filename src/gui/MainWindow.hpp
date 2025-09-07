@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QVector>
 #include <QList>
 #include <QString>
 #include <QThread>
@@ -19,7 +20,12 @@
 #include "styleConstants.hpp"
 #include "logger.hpp"
 #include "services/UserImageService.hpp"
+#include "services/LogDtos.hpp"
 #include "ControlTabView.hpp"
+
+class QStandardItemModel;          
+class QSortFilterProxyModel;      
+class LogTab;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -51,10 +57,10 @@ public:
 		Ui::MainWindow* ui;
 
 		// Presenter에서 호출용 메서드
-    void showUserImageGallery(const QList<UserImage>& images);
+        void showUserImageGallery(const QList<UserImage>& images);
 		void showImagePreview(const QString& imagePath);
-    void showInfo(const QString& title, const QString& message);
-    void showError(const QString& title, const QString& message);
+        void showInfo(const QString& title, const QString& message);
+        void showError(const QString& title, const QString& message);
 		void showStatusMessage(const QString& msg);
 		RecognitionState getRecognitionState();
 		void setCurrentUiState(UiState state);
@@ -63,7 +69,7 @@ public:
 		void showUserList(const QStringList& users);
 		void reset();
 		void showUnlockOverlayLabel();
-		
+        
 
 signals:
 		// === Outgoing events to Presenter === 
@@ -86,12 +92,12 @@ private:
 		void setupUi();
 		void setupControlTab();
 		void applyStyles();
-		void connectSignals();
 		void setupButtonLayout();
 		void setupUnlockOverlayLabel();	
 		void updateUnlockOverlay();
 		void showErrorMessage(const QString& title, const QString& message);
 		QList<QPushButton*> buttonList() const;
+		LogTab* logTab = nullptr;
 
 private:
 		// === Internal state/refs === 
@@ -101,11 +107,27 @@ private:
 		QPixmap standbyOrig_;
 		bool firstFrameShown_ = false;
 
+
 		QTimer* cameraWatchdog_ = nullptr;
 		qint64 lastFrameMs_ = 0;
 		QPointer<QDialog> galleryDialog = nullptr;
 		UiState currentUiState = UiState::IDLE;
 		RecognitionState currentRecognitionState = RecognitionState::IDLE;
+
+        int authPage = 0, sysPage = 0;
+        const int pageSize = 50;
+
+
+
+        // View log
+        // 정렬 지원용: 뷰에 QSortFilterProxyModel 적용
+        QStandardItemModel* authModel = nullptr;
+        QSortFilterProxyModel* authProxy = nullptr;
+
+        QStandardItemModel* sysModel = nullptr;
+        QSortFilterProxyModel* sysProxy = nullptr;
+
+        void connectSignals();
 };
 
 // 클릭 가능한 라벨

@@ -9,6 +9,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOUIC_SEARCH_PATHS ${CMAKE_SOURCE_DIR}/ui)
 
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
+find_package(Qt5 COMPONENTS Sql REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(PkgConfig REQUIRED)
 
@@ -23,30 +24,27 @@ include_directories(
 
 
 set(SOURCES
-    src/main.cpp
+    	src/main.cpp
 		src/fsm/recognition_fsm.cpp
 		src/fsm/fsm_logging.cpp
-
+        src/log/SystemLogger.cpp
 		src/ai/Embedder.cpp
-
-    src/gui/MainWindow.cpp
-
+        src/gui/MainWindow.cpp
+		src/gui/LogTab.cpp
+		src/gui/SingleLogDialog.cpp
 		src/hw/UnlockUntilReed.cpp
-
 		src/presenter/MainPresenter.cpp
 		src/presenter/UserImagePresenter.cpp
 		src/presenter/DoorSensorPresenter.cpp
 		src/presenter/FaceSensorPresenter.cpp
 		src/presenter/FaceRecognitionPresenter.cpp
 		src/presenter/FaceRegisterPresenter.cpp
-
 		src/services/UserImageService.cpp
 		src/services/DoorSensorService.cpp
 		src/services/FaceSensorService.cpp
 		src/services/FaceRecognitionService.cpp
-
+        src/services/QSqliteService.cpp
 		src/services/AuthManager.cpp
-
 		src/logger.cpp
 		src/util.cpp
 )
@@ -59,6 +57,7 @@ add_executable(face_doorlock	${SOURCES})
 
 target_link_libraries(face_doorlock PRIVATE 
 			Qt5::Widgets 
+            Qt5::Sql
 			${OpenCV_LIBS} 
 			wiringPi
 			PkgConfig::LIBGPIOD

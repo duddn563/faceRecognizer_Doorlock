@@ -29,3 +29,8 @@
 #define OPEN_IMAGE									"open_image.PNG"
 #define STANDBY_IMAGE								"standby.png" 
 
+
+// Sqlite DB 
+#define DB_PATH                             ASSERT "db/"
+#define DB                                  "doorlock.db"
+

@@ -8,6 +8,12 @@
 #include <QMouseEvent>
 #include <QMessageBox>
 #include <QDialogButtonBox>
+#include <QFont>
+#include <QStandardItemModel>        
+#include <QSortFilterProxyModel>    
+#include "gui/LogTab.hpp"
+//#include "gui/LogViewerDialog.hpp"
+#include "gui/SingleLogDialog.hpp"
 
 #include "presenter/MainPresenter.hpp"
 
@@ -30,14 +36,69 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 {
     qRegisterMetaType<RecognitionState>("RecognitionState");
 
-		setupUi();
+    setupUi();
 
-		mainPresenter = new MainPresenter(this);
-		if (!mainPresenter) {
-				qDebug() << "[MainWindow] Failed to allocate memory"; 
-				return;
-		}
-		mainPresenter->startAllServices();
+	logTab = new LogTab(this);
+	ui->rightTabWidget->addTab(logTab, tr("Logs"));
+	qDebug() << "[MW] logTab ptr=" << logTab
+			 << "parent=" << logTab->parent()
+			 << "idx=" << ui->rightTabWidget->indexOf(logTab)
+			 << "inThread=" << QThread::currentThread();
+
+	auto safeConnectSig = [this](auto* sender, auto signal, auto slot, const QString& name) {
+    	if (!sender) { LOG_WARN(QString("Is not exist sender: %1").arg(name)); return; }
+    	QObject::disconnect(sender, signal, this, nullptr);  // 중복 제거
+    	QMetaObject::Connection c = QObject::connect(sender, signal, this, std::move(slot));
+    	if (!c) {
+        	LOG_WARN(QString("Failed to connect signal: %1").arg(name));
+        	showError("Signal error", name + " Failed to connect signal");
+    	} else {
+        	qDebug() << "[safeConnectSig] connected:" << name;
+    	}
+	};
+
+	// "인증 로그 보기"
+	safeConnectSig(logTab, &LogTab::showAuthLogs, [this]{
+    	QVector<AuthLog> rows; int total=0;
+    	if (!mainPresenter || !mainPresenter->service()) { showError("Logs","서비스 준비 안됨"); return; }
+    	if (!mainPresenter->service()->selectAuthLogs(0, 200, "", &rows, &total)) {
+        	showError("Logs","인증 로그 조회 실패"); return;
+    	}
+
+    	SingleLogDialog dlg(LogKind::Auth, this);
+    	dlg.setWindowTitle(tr("Auth Logs (%1/%2)").arg(rows.size()).arg(total));
+    	dlg.setAuthLogs(rows);
+    	dlg.setWindowModality(Qt::ApplicationModal);
+    	dlg.exec();
+	}, "AuthLogs");
+
+	// "시스템 로그 보기"
+	safeConnectSig(logTab, &LogTab::showSystemLogs, [this]{
+    	QVector<SystemLog> rows; int total=0;
+    	if (!mainPresenter || !mainPresenter->service()) { showError("Logs","서비스 준비 안됨"); return; }
+    	if (!mainPresenter->service()->selectSystemLogs(0, 200, 0, "", "", &rows, &total)) {
+        	showError("Logs","시스템 로그 조회 실패"); return;
+    	}
+
+    	SingleLogDialog dlg(LogKind::System, this);
+    	dlg.setWindowTitle(tr("System Logs (%1/%2)").arg(rows.size()).arg(total));
+    	dlg.setSystemLogs(rows);
+    	dlg.setWindowModality(Qt::ApplicationModal);
+    	dlg.exec();
+	}, "SysLogs");
+
+
+
+    mainPresenter = new MainPresenter(this, this);
+    if (!mainPresenter) {
+        qDebug() << "[MainWindow] Failed to allocate memory"; 
+        return;
+    }
+    mainPresenter->startAllServices();
+
+     // 초기 로딩
+    mainPresenter->requestAuthPage(authPage, pageSize, "");
+    mainPresenter->requestSystemPage(sysPage, pageSize, 0, "", "");
 
 		// 컨트롤 탭 버튼/라벨이 실제로 존재하는지 방어
     Q_ASSERT(ui->rightTabWidget);
@@ -49,23 +110,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     Q_ASSERT(ui->ExitButton);
     Q_ASSERT(ui->recognitionLabel);
 
-		setupControlTab();
+	setupControlTab();
+
+    
 }
 
 void MainWindow::setupControlTab()
 {
-    // --- 새로 추가한 "장비 제어" Action 그룹 ---
-/*	
-    if (ui->btnFetchStatus) {
-        connect(ui->btnFetchStatus, &QPushButton::clicked, this, [this](){
-            setActionMsg(ui, "장비 상태 스냅샷 요청");
-            // TODO: presenter_->onClickFetchStatus();
-            // 나중에 DeviceStatus 수집 후, 각 라벨/뷰 업데이트
-        });
-    }
-*/
-
-
     if (ui->btnRefresh) {
         connect(ui->btnRefresh, &QPushButton::clicked, this, [this](){
             setActionMsg(ui, "화면 새로고침");
@@ -177,99 +228,10 @@ void MainWindow::setupUi()
 				ui->stackedWidget->setCurrentWidget(ui->standbyLabel);
 		}
 
-    applyStyles();
+        applyStyles();
 		setupUnlockOverlayLabel();
 		connectSignals();
 }
-/*
-void MainWindow::setupUi()
-{
-    // 1) 기본 창 설정
-    ui->setupUi(this);
-    setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT);
-
-    // 2) CameraLabel 스타일 (네 기존 스타일 유지)
-    if (ui->cameraLabel) {
-        ui->cameraLabel->setStyleSheet(CAM_LABEL_STYLE);
-        // 라벨 자체는 레이아웃에 의해 확장 가능해야 함
-        ui->cameraLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        ui->cameraLabel->setMinimumSize(1, 1);
-        ui->cameraLabel->setAlignment(Qt::AlignCenter);
-        // 실시간 프레임은 우리가 수동 스케일하므로 굳이 자동 스케일 필요 없음
-        ui->cameraLabel->setScaledContents(false);
-    }
-
-    // 3) StandbyLabel — 핵심: sizeHint(픽스맵 크기)에 끌려가지 않게 설정
-    if (ui->standbyLabel) {
-        // pixmap이 .ui에 지정된 경우에도 라벨 확장을 막지 않도록:
-        ui->standbyLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
-        ui->standbyLabel->setMinimumSize(1, 1);
-        ui->standbyLabel->setMaximumSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        ui->standbyLabel->setAlignment(Qt::AlignCenter);
-        // 자동 스케일은 끄고(우리가 고품질로 스케일), 필요시 true로 바꿔도 OK
-        ui->standbyLabel->setScaledContents(false);
-
-        // 3-1) 경로 구성 (실행파일 기준 상대경로) — 네가 정의한 상수 사용
-        const QString path = QString(IMAGES_PATH) + QString(STANDBY_IMAGE);
-
-        // 3-2) 로드 + 원본 보관
-        QPixmap pm;
-        bool ok = pm.load(path);
-        if (!ok || pm.isNull()) {
-            qWarning() << "[Standby] Load FAIL:" << path << " — .ui의 pixmap으로 폴백 시도";
-            // .ui에 지정된 pixmap으로부터 원본 확보 (Qt5/Qt6 분기)
-#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
-            QPixmap fromUi = ui->standbyLabel->pixmap();
-#elif QT_VERSION >= QT_VERSION_CHECK(5,15,0)
-            QPixmap fromUi = ui->standbyLabel->pixmap(Qt::ReturnByValue);
-#else
-            const QPixmap* p = ui->standbyLabel->pixmap();
-            QPixmap fromUi = p ? *p : QPixmap();
-#endif
-            if (!fromUi.isNull()) {
-                standbyOrig_ = fromUi;
-            } else {
-                qWarning() << "[Standby] .ui pixmap도 없음 — standby는 빈 화면일 수 있음";
-            }
-        } else {
-            standbyOrig_ = pm;
-        }
-
-        // 3-3) 초기 1회 라벨 크기에 맞춰 고품질 스케일
-        if (!standbyOrig_.isNull()) {
-            const QSize target = ui->standbyLabel->size();
-            ui->standbyLabel->setPixmap(
-                standbyOrig_.scaled(target, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        }
-    }
-
-    // 4) 초기 화면은 standby로 강제 (프레임 들어오면 camera로 전환)
-    if (ui->stackedWidget && ui->standbyLabel) {
-        ui->stackedWidget->setCurrentWidget(ui->standbyLabel);
-    }
-
-    // 5) 나머지 네 기존 초기화
-    applyStyles();
-    setupUnlockOverlayLabel();
-    connectSignals();
-
-    // [옵션] 카메라 무프레임 감시 (쓰지 않으면 제거해도 됨)
-    if (!cameraWatchdog_) {
-        cameraWatchdog_ = new QTimer(this);
-        cameraWatchdog_->setInterval(1000);
-        connect(cameraWatchdog_, &QTimer::timeout, this, [this]{
-            if (lastFrameMs_ == 0) return;
-            if (QDateTime::currentMSecsSinceEpoch() - lastFrameMs_ > 3000) {
-                if (ui->stackedWidget && ui->standbyLabel) {
-                    ui->stackedWidget->setCurrentWidget(ui->standbyLabel);
-                    firstFrameShown_ = false;
-                }
-            }
-        });
-        cameraWatchdog_->start();
-    }
-}
-*/
 
 void MainWindow::resizeEvent(QResizeEvent* e)
 {
@@ -312,7 +274,7 @@ void MainWindow::setupUnlockOverlayLabel()
 		unlockOverlayLabel->setVisible(false);
 		unlockOverlayLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
 	
-		updateUnlockOverlay();
+		//updateUnlockOverlay();
 }
 
 void MainWindow::updateUnlockOverlay()
@@ -330,7 +292,7 @@ void MainWindow::showEvent(QShowEvent* event)
 {
 		qDebug() << "[MainWindow] showEvent is called";;
 		QMainWindow::showEvent(event);
-		updateUnlockOverlay();
+		//updateUnlockOverlay();
 }
 
 
@@ -362,23 +324,34 @@ void MainWindow::applyStyles() {
 
 void MainWindow::connectSignals() {
 		qDebug() << "[MainWindow] connectSignals is called";
-    auto safeConnect = [this](QPushButton* btn, auto slot, const QString& name) {
-				if (!btn) {
-						LOG_WARN(QString("Is not exist button: %1").arg(name));
-						return;
-				}
-				if (!connect(btn, &QPushButton::clicked, this, slot)) {
-						LOG_WARN(QString("Failed to connect button: %1").arg(name));
-						showError("Button error", name + " Failed to connect button");
-				}
-    };
+		auto safeConnect = [this](QPushButton* btn, auto slot, const QString& name) {
+    		if (!btn) {
+        		LOG_WARN(QString("Is not exist button: %1").arg(name));
+        		return;
+    		}
+    	auto c = QObject::connect(btn, &QPushButton::clicked, this, slot);
+    	if (!c) {
+        	LOG_WARN(QString("Failed to connect button: %1").arg(name));
+        	showError("Button error", name + " Failed to connect button");
+    	}
+	};
 
 
-		safeConnect(ui->registerButton, [this]() { emit registerFaceRequested(); }, "User Registration");
-    safeConnect(ui->showUsersList, [this]() { emit requestedShowUserList(); }, "User list");
-		safeConnect(ui->showUserImages, [this]() { emit showUserImagesRequested(); }, "User Image"); 
-		safeConnect(ui->resetButton, [this]() { if (QMessageBox::question(this, "사용자 초기화", "사용자를 초기화할까요?") == QMessageBox::Yes) { emit resetRequested(); } else { return; } }, "Reset");
-		safeConnect(ui->ExitButton, [this]() { if (QMessageBox::question(this, "종료", "프로그램을 종료할까요?") == QMessageBox::Yes) QApplication::quit(); }, "Exit");
+	safeConnect(ui->registerButton,[this]() { emit registerFaceRequested(); }, "User Registration");
+	safeConnect(ui->showUsersList, [this]() { emit requestedShowUserList(); }, "User list");
+	safeConnect(ui->showUserImages, [this]() { emit showUserImagesRequested(); }, "User Image"); 
+	safeConnect(ui->resetButton, [this]() { 
+		if (QMessageBox::question(this, "사용자 초기화", "사용자를 초기화할까요?") == QMessageBox::Yes) { 
+			emit resetRequested(); 
+		} 
+		else { 
+			return; 
+		} 
+	}, "Reset");
+	safeConnect(ui->ExitButton, [this]() { 
+		if (QMessageBox::question(this, "종료", "프로그램을 종료할까요?") == QMessageBox::Yes) 
+			QApplication::quit(); 
+	}, "Exit");
 } 
 
 QList<QPushButton*> MainWindow::buttonList() const
@@ -389,6 +362,7 @@ QList<QPushButton*> MainWindow::buttonList() const
 				ui->showUsersList,
 				ui->showUserImages,
 				ui->ExitButton
+				
 		};
 }
 
@@ -420,7 +394,8 @@ RecognitionState MainWindow::getRecognitionState()
 }
 
 void MainWindow::reset() {
-		QMessageBox::information(this, "사용자 초기화", "초기화가 완료 됐습니다.");
+        qDebug() << "[MAINWINDOW] call reset";
+		//QMessageBox::information(this, "사용자 초기화", "초기화가 완료 됐습니다.");
 		ui->statusbar->showMessage("모든 사용자 삭제됨.");
 }
 
@@ -512,7 +487,7 @@ void MainWindow::showUserImageGallery(const QList<UserImage>& images) {
 				return;
 		}
 
-		galleryDialog->setWindowTitle("📸 사용자 이미지 갤러리");
+	galleryDialog->setWindowTitle("📸 사용자 이미지 갤러리");
     galleryDialog->resize(800, 600);
     galleryDialog->setStyleSheet("background-color: #1e1e1e; color: white;");
 
@@ -525,8 +500,8 @@ void MainWindow::showUserImageGallery(const QList<UserImage>& images) {
     const int maxCols = 4;
 
     for (const auto& img : images) {
-				QPixmap pixmap(img.filePath);
-				if (pixmap.isNull()) continue;
+        QPixmap pixmap(img.filePath);
+        if (pixmap.isNull()) continue;
 				
         QVBoxLayout* cellLayout = new QVBoxLayout();
         QWidget* cellWidget = new QWidget();
@@ -602,7 +577,7 @@ void MainWindow::showUserList(const QStringList& users)
 
 void MainWindow::showErrorMessage(const QString& title, const QString& message)
 {
-		QMessageBox::critical(this, title, message);
+    QMessageBox::critical(this, title, message);
 
 }
 
@@ -617,10 +592,25 @@ void MainWindow::showError(const QString& title, const QString& message) {
 
 void MainWindow::showStatusMessage(const QString& msg)
 {
-		if (ui->statusbar) {
-				ui->statusbar->showMessage(msg);
-		}
+    // 상태바 기본 폰트 가져오기
+    int fontSize = 16;
+
+    // 상태바 기본 폰트 가져오기
+    QFont font = ui->statusbar->font();
+
+    // 글씨 크기 설정 (기본값: 16pt)
+    ui->statusbar->setMinimumHeight(fontSize + 30);  // 상태바 높이 확보
+    ui->statusbar->layout()->setContentsMargins(0, 0, 0, 0);
+
+    ui->statusbar->setStyleSheet(QString("QStatusBar QLabel { font-size: %1pt; }").arg(fontSize));  // 글꼴 강제
+    font.setPointSize(fontSize);        // 내부 폰트 변경 setStyleSteet와 같이 써야 함
+    ui->statusbar->setFont(font);
+
+    if (ui->statusbar) {
+        ui->statusbar->showMessage(msg);
+    }
 }
+
 
 MainWindow::~MainWindow() {
     delete ui;

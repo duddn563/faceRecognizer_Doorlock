@@ -22,6 +22,7 @@
 #include "faceRecognitionState.hpp"
 #include "fsm/recognition_fsm.hpp"
 #include "fsm/recognition_fsm_setup.hpp"
+#include "QSqliteService.hpp"
 #include "AuthManager.hpp"
 #include "util.hpp"
 
@@ -46,6 +47,7 @@ typedef struct RecogResult_t {
         double   confidence = 999;	  // 얼굴인식 신뢰도
 		int		 result = false;	  // 인식 결과
         float    sim = -1.f;          // 임베딩 결과
+        QString  name;
 } recogResult_t;
 
 struct UserEmbedding {
@@ -66,7 +68,7 @@ class FaceRecognitionService : public QObject {
 		Q_OBJECT
 
 public:
-				explicit FaceRecognitionService(QObject *parent = nullptr, FaceRecognitionPresenter* presenter = nullptr);
+				explicit FaceRecognitionService(QObject *parent = nullptr, FaceRecognitionPresenter* presenter = nullptr/*, QSqliteService* db = nullptr*/);
 				void setPresenter(FaceRecognitionPresenter* presenter);
 				void init();
 				void stop();
@@ -169,6 +171,7 @@ private:
 
 private:
 				FaceRecognitionPresenter* presenter;
+                //QSqliteService* db;
 				std::atomic<bool> isRunning = true;
 				VideoCapture cap;
 
@@ -200,6 +203,7 @@ private:
 				QElapsedTimer stateTimer_;
 				RecognitionState prevState_ = RecognitionState::IDLE;
 
+				QAtomicInt isDoorOpenAtomic;
 				double detectScore_ = 0.0;
 				double recogConf_		= 0.0;
 				bool	 isDup_				= false;

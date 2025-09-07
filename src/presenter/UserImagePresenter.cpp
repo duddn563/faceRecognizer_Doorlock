@@ -65,3 +65,4 @@ void UserImagePresenter::presentUserList(const QStringList& users)
 		qDebug() << "[UserImagePresenter] view pointer:" << view;
 		view->showUserList(users);
 }
+

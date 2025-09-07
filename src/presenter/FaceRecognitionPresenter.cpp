@@ -76,11 +76,11 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 																										view->showStatusMessage("인식중...");
 																										break;
 							case RecognitionState::AUTH_SUCCESS:
-																										view->showStatusMessage("인증 성공!!");
+																										view->showStatusMessage("인증 대기 중...");
 																										//view->showUnlockOverlayLabel();
 																										break;
 							case RecognitionState::AUTH_FAIL:		
-																										view->showStatusMessage("인증 실패!!");
+																										view->showStatusMessage("인증 실패!");
 																										break;
 							case RecognitionState::LOCKED_OUT:		
 																										view->showStatusMessage("문이 잠깁니다...");
@@ -139,7 +139,10 @@ void FaceRecognitionPresenter::onReset()
 void FaceRecognitionPresenter::presentReset()
 {
 		qDebug() << "[FaceRecognitionPresenter] presentReset() is called";
-		if (!view) return;
+		if (!view) {
+            qDebug() << "[FRP] view is null";
+            return;
+        }
 
 		view->reset();
 }

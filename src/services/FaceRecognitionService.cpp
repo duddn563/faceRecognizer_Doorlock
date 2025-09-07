@@ -15,6 +15,7 @@
 #include "hw/UnlockUntilReed.hpp"
 #include "fsm/fsm_logging.hpp"
 #include "include/common_path.hpp"
+#include "log/SystemLogger.hpp"
 
 // #define DEBUG 
 // #define USE_LBPH_RECOGNIZER
@@ -44,7 +45,7 @@ using json = nlohmann::json;
 
 namespace fs = std::filesystem;
 
-FaceRecognitionService::FaceRecognitionService(QObject* parent, FaceRecognitionPresenter* presenter) : QObject(parent), presenter(presenter)
+FaceRecognitionService::FaceRecognitionService(QObject* parent, FaceRecognitionPresenter* presenter/*, QSqliteService* db*/) : QObject(parent), presenter(presenter)/*, db(db)*/
 {
 		// 0) Service initialize
 		init();
@@ -257,8 +258,10 @@ void FaceRecognitionService::openCamera()
 				cap.open(CAM_NUM);
 				if (!cap.isOpened()) {
 						std::cout << "[FRS] Failed to camera open!!" << std::endl;
+                        SystemLogger::error("FRS", "Failed to camera open.");
 				}
 				std::cout << "[FRS] Camera be opend!!" << std::endl;
+                SystemLogger::info("FRS", "Success to camera open.");
 		} catch(const cv::Exception& e) {
 				std::cout << "[FRS] OpenCV exception: " << e.what() << std::endl;
 		}
@@ -624,7 +627,7 @@ recogResult_t FaceRecognitionService::handleRecognition(Mat& frame, const Rect& 
         if (dnnEmbedder_->extract(alignedFace, emb) && !emb.empty()) {
             auto m = bestMatch(emb);
             sim = m.sim;
-            if (m.id >= 0 && m.sim >= 0.55f) {
+            if (m.id >= 0 && m.sim < 0.55f) {
                 name = m.name;
                 dnnOk = true;
             }
@@ -655,7 +658,7 @@ recogResult_t FaceRecognitionService::handleRecognition(Mat& frame, const Rect& 
         if (dnnEmbedder_->extract(alignedFace, emb) && !emb.empty()) {
             auto m = bestMatch(emb);
             sim = m.sim;
-            if (m.id >= 0 && m.sim >= 0.55f) {
+            if (m.id >= 0 && m.sim < 0.55f) {
                 name = m.name;
                 dnnOk = true;
             }
@@ -676,6 +679,7 @@ recogResult_t FaceRecognitionService::handleRecognition(Mat& frame, const Rect& 
 
     rv.sim = sim;
     rv.result = authFlag;
+    rv.name = name;
 
     return rv;
 }
@@ -1024,6 +1028,8 @@ void FaceRecognitionService::procFrame()
         openCamera();
     }
 
+
+
     Mat frame, frameCopy;
     {
         QMutexLocker locker(&frameMutex);
@@ -1037,6 +1043,7 @@ void FaceRecognitionService::procFrame()
 
     vector<Rect> faces;
     faceDetector.detectMultiScale(gray, faces, 1.1, 5, CASCADE_SCALE_IMAGE, Size(100, 100));
+
 
     // === FSM 스냅샷: 얼굴 검출 신호 공급 (히스테리시스용 detectScore) ===
     // 검출기에서 정량 스코어가 없다면, 임시로 얼굴 개수 기반으로 0.0/0.8 같은 프록시 신호를 사용
@@ -1073,21 +1080,21 @@ void FaceRecognitionService::procFrame()
             // === FSM 스냅샷: 인식 신뢰도/성공/실패 누적 ===
             // 당장 값이 없다면 임시로 성공/실패에 따른 프록시 값을 사용(히스테리시스가 안정화시켜줌).
             if (recogResult.result == AUTH_SUCCESSED) {						// 등록된 얼굴일 경우 if문 진입 
-                //setRecogConfidence(recogResult.confidence);				// FSM을 위한 스냅샷setting			
+                setAllowEntry(true);                                // entry가 false여서 첫 시도에서 open을실패하여 옮김, 필요성 검토 후 제거 예정
                 setRecogConfidence(recogResult.sim);				// FSM을 위한 스냅샷setting			
-                resetFailCount();																	// 성공 시 실패 누적 리셋
+                std::this_thread::sleep_for(std::chrono::milliseconds(500));
                 incAuthStreak();																		// 인증 성공 시 성공 횟수 누적
 								
 
                 qDebug() << "[FSM] AuthStreak(" << authStreak_ << ")";
                 if (!hasAlreadyUnlocked) {
                     authManager.handleAuthSuccess();
-					
+                    //setRecogConfidence(recogResult.sim);				// FSM을 위한 스냅샷setting			
                     if (authManager.shouldAllowEntry()) {
                         qDebug() << "[FaceRecognitionService] Authenticate 5 time success -> Door open!";
-                        authManager.resetAuth();
-                        hasAlreadyUnlocked = true;
-                        resetAuthStreak();		// 최종 적으로 인식이 성공하면 성공 횟수 초기화 
+                        setDoorOpened(true);
+
+
 
                         // =====  감지 전까지 열림 유지 시작 =====
                         if (!g_unlockMgr.running()) {
@@ -1095,11 +1102,23 @@ void FaceRecognitionService::procFrame()
                             qInfo() << "[Door] Unlock started (wait open, then wait close)";
                         }
 
-                        setAllowEntry(true);
-                        setDoorOpened(true);
+                        // QSplite 로그 쓰기
+                       // 압축 저장
+                        std::vector<uchar> buf;
+                        cv::imencode(".jpg", frame, buf);
+                        QByteArray blob(reinterpret_cast<const char*>(buf.data()), static_cast<int>(buf.size()));
+                        
+                        QSqliteService svc;
+                        svc.insertAuthLog(recogResult.name, "Authenticate 5 times success -> Door open",
+                                          QDateTime::currentDateTime(), blob);
 
+                        //resetAuthStreak();		// 최종 적으로 인식이 성공하면 성공 횟수 초기화 
+                        //authManager.resetAuth();
+
+                        hasAlreadyUnlocked = true;
                     }	
                 }
+                resetFailCount();																	// 성공 시 실패 누적 리셋
             } else {
                 //setRecogConfidence(recogResult.confidence);			 
                 setRecogConfidence(recogResult.sim);			 
@@ -1109,7 +1128,7 @@ void FaceRecognitionService::procFrame()
 
                 //qDebug() << "[FSM] Reset AuthStreak(" << authStreak_ << ")";
                 //qDebug() << "[FSM] failCount: " << failCount_;
-                resetAuthStreak();		// 중간에 얼굴인식 인증이 실패하면 인증 성공횟수 초기화
+                //resetAuthStreak();		// 중간에 얼굴인식 인증이 실패하면 인증 성공횟수 초기화
                 authManager.resetAuth();
                 //doorIsOpen = false;
             }
@@ -1126,13 +1145,14 @@ void FaceRecognitionService::procFrame()
         setRecogConfidence(0.0);
     }
 
-    if (authStreak_ > 6) {
+    if (authStreak_ >= 5) {
+        qDebug() << "[FRS] init outside loop"; 
         resetAuthStreak();		// 얼굴이 동시에 인증 성공 했을 때 스트릭이 초기화 되지 않아 임시 방법으로 사용 
         authManager.resetAuth();
         resetUnlockFlag();
     }
 
-    //setDoorOpened(doorIsOpen); // TODO: 센서 연결되어 있으면 사용
+    setDoorOpened(true); // TODO: 센서 연결되어 있으면 사용, 테스트로 상태가 바로 변경되도록 true로 유지중..
 
 
 		
@@ -1143,16 +1163,16 @@ void FaceRecognitionService::procFrame()
 
 
 void FaceRecognitionService::setDetectScore(double v)				{ detectScore_ = v; facePresent_ = (v > 0.0); }
-void FaceRecognitionService::setRecogConfidence(double v)		{ recogConf_ = v; }
-void FaceRecognitionService::setDuplicate(bool v)						{ isDup_ = v; }
-void FaceRecognitionService::setRegisterRequested(bool v)   { regReq_ = v; }
+void FaceRecognitionService::setRecogConfidence(double v)		    { recogConf_ = v; }
+void FaceRecognitionService::setDuplicate(bool v)					{ isDup_ = v; }
+void FaceRecognitionService::setRegisterRequested(bool v)           { regReq_ = v; }
 void FaceRecognitionService::setLivenessOk(bool v)					{ livenessOk_ = v; }
 void FaceRecognitionService::setDoorOpened(bool v)					{ doorOpened_ = v; }
-void FaceRecognitionService::incFailCount()									{ failCount_++; }
-void FaceRecognitionService::incAuthStreak()								{ authStreak_++; }
+void FaceRecognitionService::incFailCount()							{ failCount_++; }
+void FaceRecognitionService::incAuthStreak()						{ authStreak_++; }
 void FaceRecognitionService::setAllowEntry(bool v)					{ allowEntry_ = v; }
-void FaceRecognitionService::resetFailCount()								{ failCount_ = 0; }
-void FaceRecognitionService::resetAuthStreak()							{ authStreak_ = 0;	}
+void FaceRecognitionService::resetFailCount()						{ failCount_ = 0; }
+void FaceRecognitionService::resetAuthStreak()						{ authStreak_ = 0;	}
 
 void FaceRecognitionService::onTick() 
 {
@@ -1160,16 +1180,16 @@ void FaceRecognitionService::onTick()
 
 		FsmContext c;
 		c.detectScore					= detectScore_;
-		c.recogConfidence			= recogConf_;
+		c.recogConfidence			    = recogConf_;
 		c.isDuplicate					= isDup_;
-		c.registerRequested		= regReq_;
+		c.registerRequested		        = regReq_;
 		c.livenessOk					= livenessOk_;
 		c.doorOpened					= doorOpened_;
 		c.failCount						= failCount_;
 		c.authStreak					= authStreak_;
 		c.facePresent					= facePresent_;
 		c.allowEntry					= allowEntry_;
-		c.nowMs								= monotonic_.elapsed();
+		c.nowMs							= monotonic_.elapsed();
 
 		// 상태별 타임아웃 계산 예시:
     // - RECOGNIZING 상태에서 5초 초과 시 timeout = true

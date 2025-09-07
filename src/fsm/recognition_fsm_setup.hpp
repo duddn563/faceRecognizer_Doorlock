@@ -7,10 +7,10 @@
 struct FsmParams {
 		double detectEnter = 0.65;			
 		double detectExit	 = 0.35;
-		int		 detectMinDwellMs = 200;
+		int		 detectMinDwellMs = 100;
 
-		double recogEnter = 0.60;
-		double recogExit	= 0.50;
+		double recogEnter = 0.55f;
+		double recogExit	= 0.70f;
 		//double recogEnter = 70.00;
 		//double recogExit = 50.00;
 		int		 recogTimeoutMs = 5000;
@@ -18,7 +18,7 @@ struct FsmParams {
 		int successHoldMs = 800;
 		int failCooldownMs = 1000;
 
-		int authThresh = 5;					// 얼굴 인증 임계값(어떤 조건을 만족하기 위해 넘아야 하는 경계치)
+		int authThresh = 4;					// 얼굴 인증 임계값(어떤 조건을 만족하기 위해 넘아야 하는 경계치)
 
 		int lockoutFails = 5;
 		int lockoutMs = 30'000;
@@ -78,7 +78,12 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				RecognitionState::RECOGNIZING, RecognitionState::AUTH_SUCCESS,
 				[P] (const FsmContext& c) {
 						qDebug() << "[FSM] confidence: " << c.recogConfidence << "recogEnter:" << P.recogEnter;
-						return c.livenessOk && (c.recogConfidence > 0) && (c.recogConfidence > P.recogEnter); //&& (!c.registerRequested);
+
+                        qDebug() << "[FSM] c.livenessOk:" << c.livenessOk;
+                        qDebug() << "[FSM] c.recogConfidence > 0.20f:" << (c.recogConfidence > 0.20f);
+                        qDebug() << "[FSM] c.recogConfidence < P.recogEnter:" << (c.recogConfidence < P.recogEnter);
+                        
+						return c.livenessOk && (c.recogConfidence > 0.20f) && (c.recogConfidence < P.recogEnter); //&& (!c.registerRequested);
 				},
 				/*minDwellMs=*/150
 		});
@@ -107,8 +112,14 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				"success->dooropen",
 				RecognitionState::AUTH_SUCCESS, RecognitionState::DOOR_OPEN,
 				[P] (const FsmContext& c) { 
-						qDebug() << "[FSM] c.authStreak:" << c.authStreak;
-						return c.detectScore >= 0.8 && c.livenessOk && (c.recogConfidence > P.recogEnter) && (c.authStreak >= P.authThresh) && c.allowEntry; 
+						qDebug() << "[FSM] c.authStreak:" << c.authStreak << ", P.authThresh:" << P.authThresh;
+                        qDebug() << "[FSM] c.detectScore:" << (c.detectScore >= 0.8);
+                        qDebug() << "[FSM] c.livenessOk:" << (c.livenessOk);
+                        qDebug() << "[FSM] c.recogConfidence <= P.recogEnter:" << (c.recogConfidence <= P.recogEnter);
+                        qDebug() << "[FSM] c.authStreak >= P.authThresh:" << (c.authStreak >= P.authThresh);
+                        qDebug() << "[FSM] c.allowEntry:" << (c.allowEntry);
+                        
+						return c.detectScore >= 0.8 && c.livenessOk && (c.recogConfidence <= P.recogEnter) && (c.authStreak >= P.authThresh) && c.allowEntry; 
 				},
 				/*minDwellMs=*/150
 		});
@@ -118,7 +129,8 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				RecognitionState::AUTH_SUCCESS, RecognitionState::IDLE,
 				[P] (const FsmContext& c) {
 						qDebug() << "[FSM] c.recgConfidence: " << c.recogConfidence;
-						return (c.recogConfidence < P.recogExit);
+						//return (c.recogConfidence > P.recogExit);
+                        return (c.recogConfidence <= 0);
 				},
 				/*mainDwellMs=*/200
 				
@@ -129,10 +141,9 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 		fsm.addTransition({
 				"dooropen->idle",
 				RecognitionState::DOOR_OPEN, RecognitionState::IDLE,
-				[] (const FsmContext& c) { return !c.doorOpened; },
+				[] (const FsmContext& c) { qDebug() << "[FSM] !c.doorOpened:" << !c.doorOpened; return /*!c.doorOpened*/true; },         // 테스트 용으로 true유지
 				/*minDwellMs=*/200
 		});
-
 
 
 		// AUTH_FAIL -> LOCKED_OUT: 실패 누적
@@ -155,7 +166,7 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 		fsm.addTransition({
 				"lockout->idle",
 				RecognitionState::LOCKED_OUT, RecognitionState::IDLE,
-				[P] (const FsmContext& c) { return c.timeout; },
+				[P] (const FsmContext& c) { return true/*c.timeout*/; },            // 현재 상태는 timeout 플래그의 세터가 없는 상황이라 테스트로그를 위해 true 
 				/*minDwellMs=*/0
 		});
 

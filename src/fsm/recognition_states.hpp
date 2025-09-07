@@ -17,14 +17,14 @@ struct DetectingState : public IFsmState {
 				: gate(enterThresh, exitThresh, /*need=*/3, /*window=*/5) {}
 
 		void onEnter(const FsmContext&) override { 
-				qDebug() << "[FSM] Enter DETECT";
+				//qDebug() << "[FSM] Enter DETECT";
 				gate.reset(false); }
 		void onUpdate(const FsmContext& c) override {
-				qDebug() << "[FSM] Enter DETECT";
+				//qDebug() << "[FSM] Enter DETECT";
 				gate.feed(c.detectScore);
 		}
 		void onExit(const FsmContext& c) override {
-				qDebug() << "[FSM] Exit DETECT";
+				//qDebug() << "[FSM] Exit DETECT";
 		}
 };
 
@@ -34,86 +34,86 @@ struct RecognizingState : public IFsmState {
 				: gate(enterThresh, exitThresh, 2, 4) {}
 
 		void onEnter(const FsmContext&) override { 
-				qDebug() << "[FSM] Enter RECOGNIZING";
+				//qDebug() << "[FSM] Enter RECOGNIZING";
 				gate.reset(false); 
 		}
 		void onUpdate(const FsmContext& c) override { 
-				qDebug() << "[FSM] Update RECOGNIZING";
+				//qDebug() << "[FSM] Update RECOGNIZING";
 				gate.feed(c.recogConfidence);
 		}
 		void onExit(const FsmContext&) override {
-				qDebug() << "[FSM] Exit RECOGNIZING";
+				//qDebug() << "[FSM] Exit RECOGNIZING";
 		}
 };
 
 struct AuthSuccessState : public IFsmState {
 		void onEnter(const FsmContext&) override { 
-				qDebug() << "[FSM] Enter AUTH_SUCCESS";
+				//qDebug() << "[FSM] Enter AUTH_SUCCESS";
 		}
 		void onUpdate(const FsmContext&) override {
-				qDebug() << "[FSM] Update AUTH_SUCCESS";
+				//qDebug() << "[FSM] Update AUTH_SUCCESS";
 		}
 		void onExit(const FsmContext&) override {
-				qDebug() << "[FSM] Exit AUTH_SUCCESS";
+				//qDebug() << "[FSM] Exit AUTH_SUCCESS";
 		}
 };
 struct DoorOpenState : public IFsmState { 
 		void onEnter(const FsmContext&) override { 
-				qDebug() << "[FSM] Enter DOOR_OPEN";
+				//qDebug() << "[FSM] Enter DOOR_OPEN";
 		}
 		void onUpdate(const FsmContext&) override {
-				qDebug() << "[FSM] Update DOOR_OPEN";
+				//qDebug() << "[FSM] Update DOOR_OPEN";
 		}
 		void onExit(const FsmContext&) override {
-				qDebug() << "[FSM] Exit DOOR_OPEN";
+				//qDebug() << "[FSM] Exit DOOR_OPEN";
 		}
 };
 
 struct RegisteringState : public IFsmState {
 		void onEnter(const FsmContext&) override { 
-				qDebug() << "[FSM] Enter REGISTERING";
+				//qDebug() << "[FSM] Enter REGISTERING";
 		}
 		void onUpdate(const FsmContext&) override {
-				qDebug() << "[FSM] Update REGISTERING";
+				//qDebug() << "[FSM] Update REGISTERING";
 		}
 		void onExit(const FsmContext&) override {
-				qDebug() << "[FSM] Exit REGISTERING";
+				//qDebug() << "[FSM] Exit REGISTERING";
 		}
 
 };
 struct DuplicateFaceState : public IFsmState {
 		void onEnter(const FsmContext&) override { 
-				qDebug() << "[FSM] Enter DUPLICATE_FACE";
+				//qDebug() << "[FSM] Enter DUPLICATE_FACE";
 		}
 		void onUpdate(const FsmContext&) override {
-				qDebug() << "[FSM] Update DUPLICATE_FACE";
+				//qDebug() << "[FSM] Update DUPLICATE_FACE";
 		}
 		void onExit(const FsmContext&) override {
-				qDebug() << "[FSM] Exit DUPLICATE_FACE";
+				//qDebug() << "[FSM] Exit DUPLICATE_FACE";
 		}
 
 };
 struct AuthFailState : public IFsmState {
 		void onEnter(const FsmContext&) override { 
-				qDebug() << "[FSM] Enter AUTH_FAIL";
+				//qDebug() << "[FSM] Enter AUTH_FAIL";
 		}
 		void onUpdate(const FsmContext&) override {
-				qDebug() << "[FSM] Update AUTH_FAIL";
+				//qDebug() << "[FSM] Update AUTH_FAIL";
 		}
 		void onExit(const FsmContext&) override {
-				qDebug() << "[FSM] Exit AUTH_FAIL";
+				//qDebug() << "[FSM] Exit AUTH_FAIL";
 		}
 
 };
 struct LockedOutState : public IFsmState {
 		void onEnter(const FsmContext&) override { 
-				qDebug() << "[FSM] Enter LOCKED_OUT";
+				//qDebug() << "[FSM] Enter LOCKED_OUT";
 		}
 		void onUpdate(const FsmContext&) override {
-				qDebug() << "[FSM] Update LOCKED_OUT";
+				//qDebug() << "[FSM] Update LOCKED_OUT";
 		}
 		void onExit(const FsmContext&) override {
-				qDebug() << "[FSM] Exit LOCKED_OUT";
+				//qDebug() << "[FSM] Exit LOCKED_OUT";
 		}
 
 };

@@ -4,6 +4,8 @@
 #include <exception>
 #include "MainWindow.hpp"
 #include "fsm/fsm_logging.hpp"
+#include "services/QSqliteService.hpp"
+#include "log/SystemLogger.hpp"
 
 int main(int argc, char *argv[]) 
 {
@@ -18,6 +20,22 @@ int main(int argc, char *argv[])
 						"fsm.warn.debug=false\n"
 				);
 
+                  // DB 준비
+                QSqliteService svc;
+                if (!svc.initializeDatabase()) {
+                    qCritical() << "데이터베이스 초기화 실패";
+                    return -1;
+                }
+
+                // 시스템로거 준비
+                SystemLogger::init();
+                SystemLogger::info("APP", "Logger initialized");
+
+				    QObject::connect(&app, &QCoreApplication::aboutToQuit, []{
+        				SystemLogger::info("APP", "aboutToQuit");
+        				SystemLogger::shutdown();
+    				});
+
 				MainWindow w;
 				w.show();
 				return app.exec();
@@ -26,6 +44,7 @@ int main(int argc, char *argv[])
 		} catch (...) {
 				qCritical() << "[" << __func__ << "] Unknown fatal exception!";
 		}
+
 
 		return -1;
 }
