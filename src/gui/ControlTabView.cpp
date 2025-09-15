@@ -7,6 +7,7 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QHeaderView>
+#include <QProcess>
 
 static QString hhmmss(qint64 secs) {
     qint64 h = secs / 3600;

@@ -52,7 +52,7 @@
 #include "fsm/recognition_fsm_setup.hpp"
 
 // Utile
-#include "util.hpp"
+//#include "util.hpp"
 
 // Camera number
 #define CAM_NUM							-1

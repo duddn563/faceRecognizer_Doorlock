@@ -18,7 +18,7 @@
 #include "ui_MainWindow.h"
 #include "faceRecognitionState.hpp"
 #include "styleConstants.hpp"
-#include "logger.hpp"
+#include "log/logger.hpp"
 #include "services/UserImageService.hpp"
 #include "services/LogDtos.hpp"
 #include "ControlTabView.hpp"
@@ -26,6 +26,7 @@
 class QStandardItemModel;          
 class QSortFilterProxyModel;      
 class LogTab;
+class DevInfoDialog;
 class DevInfoTab;
 
 QT_BEGIN_NAMESPACE
@@ -100,8 +101,10 @@ private:
 		void setupUnlockOverlayLabel();	
 		void updateUnlockOverlay();
 		void showErrorMessage(const QString& title, const QString& message);
+		void closeEvent(QCloseEvent* e);
 		QList<QPushButton*> buttonList() const;
 		LogTab* logTab = nullptr;
+		DevInfoDialog* devInfoDlg_ = nullptr;
 		DevInfoTab* devInfoTab = nullptr;
 
 private:

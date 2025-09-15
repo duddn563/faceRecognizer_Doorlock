@@ -28,11 +28,16 @@ set(SOURCES
 		src/fsm/recognition_fsm.cpp
 		src/fsm/fsm_logging.cpp
         src/log/SystemLogger.cpp
-		src/ai/Embedder.cpp
+		src/log/logger.cpp
         src/gui/MainWindow.cpp
 		src/gui/DevInfoTab.cpp
 		src/gui/LogTab.cpp
+		src/gui/DevInfoDialog.cpp
 		src/gui/SingleLogDialog.cpp
+		src/gui/BasicInfoWidget.cpp
+		src/gui/NetworkInfoWidget.cpp
+		src/gui/CpuInfoWidget.cpp
+		src/gui/MemInfoWidget.cpp
 		src/hw/UnlockUntilReed.cpp
 		src/presenter/MainPresenter.cpp
 		src/presenter/UserImagePresenter.cpp
@@ -46,8 +51,7 @@ set(SOURCES
 		src/services/FaceRecognitionService.cpp
         src/services/QSqliteService.cpp
 		src/services/AuthManager.cpp
-		src/logger.cpp
-		src/util.cpp
+		src/ai/Embedder.cpp
 )
 
 qt5_wrap_ui(UISrcs ${UI_FILES})
@@ -62,6 +66,5 @@ target_link_libraries(face_doorlock PRIVATE
 			${OpenCV_LIBS} 
 			wiringPi
 			PkgConfig::LIBGPIOD
-
 )
 

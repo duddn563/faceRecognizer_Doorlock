@@ -14,6 +14,7 @@
 
 #include "gui/LogTab.hpp"
 #include "gui/SingleLogDialog.hpp"
+#include "gui/DevInfoDialog.hpp"
 #include "gui/DevInfoTab.hpp"
 
 #include "presenter/MainPresenter.hpp"
@@ -33,28 +34,47 @@ namespace {
     }
 }
 
+void MainWindow::closeEvent(QCloseEvent* e)
+{
+	if (devInfoDlg_) {
+		devInfoDlg_->close();
+		devInfoDlg_->deleteLater();
+		devInfoDlg_ = nullptr;
+	}
+
+	e->accept();
+}
+
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) 
 {
     qRegisterMetaType<RecognitionState>("RecognitionState");
 
     setupUi();
 
+	// 로그 정보 탭
 	logTab = new LogTab(this);
 	ui->rightTabWidget->addTab(logTab, tr("Logs"));	
+
+	// 디바이스 정보 탭
+	devInfoDlg_ = new DevInfoDialog(this);
+	ui->rightTabWidget->addTab(devInfoDlg_, tr("Information"));
 
 #ifdef DEBUG
 	qDebug() << "[MW] logTab ptr=" << logTab
 			 << "parent=" << logTab->parent()
 			 << "idx=" << ui->rightTabWidget->indexOf(logTab)
+			 << "devInfoTab ptr=" <, devInfoTab
+			 << "parent=" << devInfoTab->parent()
+			 << "idx=" << ui->rightTabWidget->indexOf(devInfoTab)
 			 << "inThread=" << QThread::currentThread();
+			
 #endif
-
-	devInfoTab = new DevInfoTab(this);
-	ui->rightTabWidget->addTab(devInfoTab, tr("Information"));
 	
 
 	auto safeConnectSig = [this](auto* sender, auto signal, auto slot, const QString& name) {
-    	if (!sender) { LOG_WARN(QString("Is not exist sender: %1").arg(name)); return; }
+    	if (!sender) { 
+			LOG_WARN(QString("Is not exist sender: %1").arg(name)); 
+		return; }
     	QObject::disconnect(sender, signal, this, nullptr);  // 중복 제거
     	QMetaObject::Connection c = QObject::connect(sender, signal, this, std::move(slot));
     	if (!c) {
@@ -69,6 +89,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	// "장비 정보 보기"
 	safeConnectSig(devInfoTab, &DevInfoTab::showDevInfo, [this] {
 		qDebug() << "[MainWindow] clieck DevInfo btn";	
+		if (!devInfoDlg_) {
+			devInfoDlg_ = new DevInfoDialog(this);
+		}
+
+		// 중앙에 위치시키고 모달 실행 (원하면 show()로 모델리스)
+		devInfoDlg_->exec();
 	}, "DevInfo");
 
 	// "인증 로그 보기"
@@ -336,7 +362,8 @@ void MainWindow::applyStyles() {
 						shadow->setColor(QColor(0, 0, 0, 60));
 						btn->setGraphicsEffect(shadow);
         } else {
-            LOG_WARN("Null value exist in buttonlist()");
+            //LOG_WARN("Null value exist in buttonlist()");
+				
         }
     }
 }
