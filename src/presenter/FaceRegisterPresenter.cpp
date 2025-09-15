@@ -6,7 +6,7 @@ FaceRegisterPresenter::FaceRegisterPresenter(FaceRecognitionService* service, Ma
     : QObject(parent), service(service), view(view)
 {
 		qDebug() << "[FaceRegisterPresenter] constructor start!"; 
-		connectService();
+		//connectService();
 
     // 워치독 타이머 기본 설정
     m_registerTimer.setSingleShot(true);
@@ -44,12 +44,14 @@ FaceRegisterPresenter::FaceRegisterPresenter(FaceRecognitionService* service, Ma
             Qt::UniqueConnection);
 }
 
+/*
 void FaceRegisterPresenter::connectService() 
 {
 		if (!service) return;
 
 		QObject::connect(service, &FaceRecognitionService::registerFinished, this, &FaceRegisterPresenter::presentRegistration);
 }
+*/
 
 void FaceRegisterPresenter::presentRegistration(bool success, const QString& message)
 {
@@ -87,7 +89,7 @@ void FaceRegisterPresenter::onRegisterFace() {
 		qDebug() << "[Presenter] Register mode On";
 		
 		if (m_registerTimer.isActive()) m_registerTimer.stop();
-		m_registerTimer.start(12000);		// 10,000ms
+		m_registerTimer.start(30000);		// 30,000ms
 
 
 #ifdef DEBUG

@@ -23,7 +23,7 @@ private slots:
 		void onRegistrationCompleted(bool ok, const QString& msg);
 
 private:
-		void connectService();		
+		//void connectService();		
 
 		QPointer<FaceRecognitionService> service;
 		MainWindow* view{nullptr};

@@ -11,9 +11,10 @@
 #include <QFont>
 #include <QStandardItemModel>        
 #include <QSortFilterProxyModel>    
+
 #include "gui/LogTab.hpp"
-//#include "gui/LogViewerDialog.hpp"
 #include "gui/SingleLogDialog.hpp"
+#include "gui/DevInfoTab.hpp"
 
 #include "presenter/MainPresenter.hpp"
 
@@ -39,11 +40,18 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     setupUi();
 
 	logTab = new LogTab(this);
-	ui->rightTabWidget->addTab(logTab, tr("Logs"));
+	ui->rightTabWidget->addTab(logTab, tr("Logs"));	
+
+#ifdef DEBUG
 	qDebug() << "[MW] logTab ptr=" << logTab
 			 << "parent=" << logTab->parent()
 			 << "idx=" << ui->rightTabWidget->indexOf(logTab)
 			 << "inThread=" << QThread::currentThread();
+#endif
+
+	devInfoTab = new DevInfoTab(this);
+	ui->rightTabWidget->addTab(devInfoTab, tr("Information"));
+	
 
 	auto safeConnectSig = [this](auto* sender, auto signal, auto slot, const QString& name) {
     	if (!sender) { LOG_WARN(QString("Is not exist sender: %1").arg(name)); return; }
@@ -57,11 +65,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     	}
 	};
 
+
+	// "장비 정보 보기"
+	safeConnectSig(devInfoTab, &DevInfoTab::showDevInfo, [this] {
+		qDebug() << "[MainWindow] clieck DevInfo btn";	
+	}, "DevInfo");
+
 	// "인증 로그 보기"
 	safeConnectSig(logTab, &LogTab::showAuthLogs, [this]{
     	QVector<AuthLog> rows; int total=0;
-    	if (!mainPresenter || !mainPresenter->service()) { showError("Logs","서비스 준비 안됨"); return; }
-    	if (!mainPresenter->service()->selectAuthLogs(0, 200, "", &rows, &total)) {
+    	if (!mainPresenter || !mainPresenter->db_) { showError("Logs","서비스 준비 안됨"); return; }
+    	if (!mainPresenter->db_->selectAuthLogs(0, 200, "", &rows, &total)) {
         	showError("Logs","인증 로그 조회 실패"); return;
     	}
 
@@ -73,10 +87,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	}, "AuthLogs");
 
 	// "시스템 로그 보기"
-	safeConnectSig(logTab, &LogTab::showSystemLogs, [this]{
+	safeConnectSig(logTab, &LogTab::showSysLogs, [this]{
     	QVector<SystemLog> rows; int total=0;
-    	if (!mainPresenter || !mainPresenter->service()) { showError("Logs","서비스 준비 안됨"); return; }
-    	if (!mainPresenter->service()->selectSystemLogs(0, 200, 0, "", "", &rows, &total)) {
+    	if (!mainPresenter || !mainPresenter->db_) { showError("Logs","서비스 준비 안됨"); return; }
+    	if (!mainPresenter->db_->selectSystemLogs(0, 200, 0, "", "", &rows, &total)) {
         	showError("Logs","시스템 로그 조회 실패"); return;
     	}
 
@@ -132,7 +146,7 @@ void MainWindow::setupControlTab()
                 QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
             if (ret == QMessageBox::Yes) {
                 setActionMsg(ui, "카메라 재시작 요청");
-                // TODO: frService_->restartCamera();
+				emit CamRestart();
             }
         });
     }
@@ -194,6 +208,11 @@ void MainWindow::setupControlTab()
             // TODO: presenter_->onTabHidden();
         }
     });
+}
+
+void MainWindow::PresentCamRestart()
+{
+	setActionMsg(ui, "카메라 재시작 완료");
 }
 
 void MainWindow::setupUi() 

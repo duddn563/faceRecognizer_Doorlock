@@ -17,9 +17,15 @@
 #define USER_FACES_DIR								ASSERT "face_images/"
 
 
+#define YNMODEL_PATH							ASSERT "models/"
+#define YNMODEL									YNMODEL_PATH "face_detection_yunet_2023mar.onnx"
+
+
+
 // Embedding related paths
 #define MOBILEFACE_PATH							ASSERT "mobileFaceNet/"
-#define MOBILEFACE_MODEL						"mobileface.onnx"	
+#define MOBILEFACE_MODEL						"mobileface_sim.onnx"	
+
 #define EMBEDDING_JSON_PATH					ASSERT "embedding/"
 #define EMBEDDING_JSON							"embeddings.json"
 

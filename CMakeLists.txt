@@ -30,6 +30,7 @@ set(SOURCES
         src/log/SystemLogger.cpp
 		src/ai/Embedder.cpp
         src/gui/MainWindow.cpp
+		src/gui/DevInfoTab.cpp
 		src/gui/LogTab.cpp
 		src/gui/SingleLogDialog.cpp
 		src/hw/UnlockUntilReed.cpp

@@ -26,6 +26,7 @@
 class QStandardItemModel;          
 class QSortFilterProxyModel;      
 class LogTab;
+class DevInfoTab;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -69,6 +70,8 @@ public:
 		void showUserList(const QStringList& users);
 		void reset();
 		void showUnlockOverlayLabel();
+
+		void PresentCamRestart();
         
 
 signals:
@@ -76,11 +79,12 @@ signals:
     void showUserImagesRequested();
     void deleteImageRequested(const QString& imagePath);
     void imageClicked(const QString& imagePath); // 미리보기 요청
-		void stateChangedFromView(RecognitionState state);
-		void registerFaceRequested();
-		void resetRequested();
-		void requestedShowUserList();
-		void registerClicked();
+	void stateChangedFromView(RecognitionState state);
+	void registerFaceRequested();
+	void resetRequested();
+	void requestedShowUserList();
+	void registerClicked();
+	void CamRestart();
 
 protected:
 		// === Qt Override (lifecycle hooks) ===
@@ -98,6 +102,7 @@ private:
 		void showErrorMessage(const QString& title, const QString& message);
 		QList<QPushButton*> buttonList() const;
 		LogTab* logTab = nullptr;
+		DevInfoTab* devInfoTab = nullptr;
 
 private:
 		// === Internal state/refs === 

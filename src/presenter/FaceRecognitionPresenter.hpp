@@ -35,6 +35,9 @@ public:
 				void onReset();
 				void presentReset();
 
+				void onCamRestart();
+				void presentCamRestart();
+
 				QTimer* throttleTimer_;
 				QImage pendingFrame_;
 				QImage lastFrame_;

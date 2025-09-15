@@ -7,7 +7,6 @@ FaceSensorPresenter::FaceSensorPresenter(FaceSensorService* service, MainWindow*
 {
 		connect(service, &FaceSensorService::personDetected, view, [=]() {
 						//view->showStatusMessage("Face Detected");
-						//view->setRecognitionState(RecognitionState::DETECTING_PERSON);
 						//std::cout << "Face detected" << std::endl;
 						view->ui->cameraLabel->setVisible(true);
 						if (view->ui->standbyLabel) view->ui->standbyLabel->setVisible(false);
@@ -26,4 +25,6 @@ FaceSensorPresenter::~FaceSensorPresenter()
 {
 		std::cout << "[FaceSensorPresenter] The face sensor presenter disappeared." << std::endl;
 }
+
+
 

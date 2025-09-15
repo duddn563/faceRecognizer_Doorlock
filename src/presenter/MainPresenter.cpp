@@ -3,12 +3,12 @@
 MainPresenter::MainPresenter(MainWindow* view, QObject* p)
     : QObject(p), view(view)
 {
-        service_ = new QSqliteService(); 
+        db_ = new QSqliteService(); 
 
         //connect(this, &MainPresenter::deliverAuthLogs, view, &MainWindow::renderAuthLogs);
         //connect(this, &MainPresenter::deliverSystemLogs, view, &MainWindow::renderSystemLogs);
 
-		faceRecognitionService = new FaceRecognitionService(/*&dbService*/);
+		faceRecognitionService = new FaceRecognitionService(nullptr, nullptr, db_);
 		faceRecognitionThread = new QThread();
 		faceRecognitionService->moveToThread(faceRecognitionThread);
 
@@ -54,7 +54,7 @@ void MainPresenter::requestAuthPage(int page, int pageSize, const QString& userL
 {
     const int offset = page * pageSize;
     QVector<AuthLog> rows; int total=0;
-    if (service_->selectAuthLogs(offset, pageSize, userLike, &rows, &total)) {
+    if (db_->selectAuthLogs(offset, pageSize, userLike, &rows, &total)) {
         emit deliverAuthLogs(rows, page, total, pageSize);
     }
 }
@@ -64,7 +64,7 @@ void MainPresenter::requestSystemPage(int page, int pageSize, int minLevel,
 {
     const int offset = page * pageSize;
     QVector<SystemLog> rows; int total=0;
-    if (service_->selectSystemLogs(offset, pageSize, minLevel, tagLike, sinceIso, &rows, &total)) {
+    if (db_->selectSystemLogs(offset, pageSize, minLevel, tagLike, sinceIso, &rows, &total)) {
         emit deliverSystemLogs(rows, page, total, pageSize);
     }
 }
@@ -91,14 +91,6 @@ void MainPresenter::connectUIEvents()
 
 MainPresenter::~MainPresenter()
 {
-		faceRecognitionService->stop();
-		faceRecognitionThread->quit();
-		faceRecognitionThread->wait();
-
-		faceRecognitionService->deleteLater();
-		faceRecognitionThread->deleteLater();
-		delete faceRecognitionPresenter;
-
 		faceSensorService->stop();
 		faceSensorThread->quit();
 		faceSensorThread->wait();
@@ -107,6 +99,14 @@ MainPresenter::~MainPresenter()
 		faceSensorThread->deleteLater();
 		delete faceSensorPresenter;
 
+
+		faceRecognitionService->stop();
+		faceRecognitionThread->quit();
+		faceRecognitionThread->wait();
+
+		faceRecognitionService->deleteLater();
+		faceRecognitionThread->deleteLater();
+		delete faceRecognitionPresenter;
 		//doorSensorService->stop();
 		//doorSensorThread->quit();
 		//doorSensorThread->wait();

@@ -27,7 +27,8 @@ public:
 		~MainPresenter();
 
 		void startAllServices();
-		QSqliteService* service() const { return service_; }
+		//QSqliteService* db_() const { return db_; }
+        QSqliteService* db_;
 
 public slots:
     // Auth
@@ -43,7 +44,6 @@ signals:
 
 private:
 		MainWindow* view;
-        QSqliteService* service_;
 
 		QThread* faceRecognitionThread;
 		QThread* faceSensorThread;
@@ -60,8 +60,6 @@ private:
 		DoorSensorPresenter* doorSensorPresenter;
 		UserImagePresenter* userImagePresenter;
 
-        //QSqliteService& dbService;
-        //void openDB();
 
 		void connectUIEvents();
 		void onViewStateChanged();

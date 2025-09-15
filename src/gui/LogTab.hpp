@@ -10,10 +10,10 @@ public:
 
 signals:
     void showAuthLogs();
-    void showSystemLogs();
+    void showSysLogs();
 
 private:
-    QPushButton* btnAuth = nullptr;
-    QPushButton* btnSystem = nullptr;
+    QPushButton* btnAuthLog = nullptr;
+    QPushButton* btnSysLog = nullptr;
 };
 

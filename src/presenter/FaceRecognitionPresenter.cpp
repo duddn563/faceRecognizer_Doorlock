@@ -11,25 +11,15 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 {
 		faceRegisterPresenter = new FaceRegisterPresenter(service, view);
 
-		throttleTimer_ = new QTimer(this);
-		throttleTimer_->setInterval(40);
-		throttleTimer_->setSingleShot(true);
+		//throttleTimer_ = new QTimer(this);
+		//throttleTimer_->setInterval(40);
+		//throttleTimer_->setSingleShot(true);
 		
-		/*
-		connect(service, &FaceRecognitionService::frameReady, this, [=](const QImage& image) {
-					if (!image.isNull()) {
-							view->ui->cameraLabel->setPixmap(QPixmap::fromImage(image));
-					}
-					else {
-							std::cout << "Image is null!" << std::endl;
-					}
-		}, Qt::QueuedConnection);
-		*/
-
 		static bool first = true;
-		connect(service, &FaceRecognitionService::frameReady, this, [=](const QImage& image) {
+		auto ok = connect(service, &FaceRecognitionService::frameReady, this, [=](const QImage& image) {
 		    // 카메라 라벨이 화면에 "보이지" 않으면 드롭 (대기화면일 때)
 		    if (!view->ui->cameraLabel->isVisible()) {
+				qDebug() << "[FRP] cameraLabel not visible -> drop";
 		        return;
 		    }
 		
@@ -39,19 +29,14 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 								first = false;
 						}
 						view->ui->cameraLabel->setPixmap(QPixmap::fromImage(image));
-
-						/*
-		        const QSize target = view->ui->cameraLabel->size();
-						view->ui->cameraLabel->setPixmap(QPixmap::fromImage(image));
-		        QPixmap pm = QPixmap::fromImage(image)
-		                        .scaled(target, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-		        view->ui->cameraLabel->setPixmap(pm);
-		        lastFrame_ = image;  // 리사이즈 대응용 캐시
-						*/
 		    } else {
 		        qDebug() << "Image is null!";
 		    }
 		}, Qt::QueuedConnection);
+
+		if (!ok) {
+			qCritical() << "[FRP] connect to frameReady failed!";
+		}
 
 		
 		connect(service, &FaceRecognitionService::stateChanged, this, [=] (RecognitionState s) {
@@ -111,6 +96,20 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 									view->showInfo("등록 결과", message);
 							}
 		});
+
+		// 카메라 다시 시작 버튼 방출
+		connect(view, &MainWindow::CamRestart, this, &FaceRecognitionPresenter::onCamRestart);
+}
+
+void FaceRecognitionPresenter::onCamRestart()
+{
+	if (!service) return;
+	service->camRestart();
+}
+void FaceRecognitionPresenter::presentCamRestart()
+{
+	if (!view) return;
+	view->PresentCamRestart();
 }
 
 void FaceRecognitionPresenter::onViewStateChanged(RecognitionState state)

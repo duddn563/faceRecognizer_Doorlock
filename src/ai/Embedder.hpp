@@ -3,6 +3,7 @@
 #include <opencv2/dnn.hpp>
 #include <QString>
 #include <vector>
+#include <mutex>
 
 class Embedder {
 public:
@@ -25,6 +26,7 @@ public:
 
 private:
 		Options opt_;
+		mutable std::mutex mtx_;
 		mutable cv::dnn::Net net_;
 		bool ready_ = false;
 
