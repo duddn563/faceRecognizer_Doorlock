@@ -38,6 +38,8 @@ set(SOURCES
 		src/gui/NetworkInfoWidget.cpp
 		src/gui/CpuInfoWidget.cpp
 		src/gui/MemInfoWidget.cpp
+		src/hw/DoorlockController.cpp
+		src/hw/ReedSensor.cpp
 		src/hw/UnlockUntilReed.cpp
 		src/presenter/MainPresenter.cpp
 		src/presenter/UserImagePresenter.cpp

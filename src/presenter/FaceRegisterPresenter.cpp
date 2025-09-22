@@ -60,51 +60,53 @@ void FaceRegisterPresenter::presentRegistration(bool success, const QString& mes
 
 void FaceRegisterPresenter::onRegisterFace() {
 
-		// 0) 연타 디바운스
-		if (m_registerInProgress) {
-				qDebug() << "[Presenter] Register click ignored (already in progress)";
-				return;
-		}
+	// 0) 연타 디바운스
+	if (m_registerInProgress) {
+		qDebug() << "[Presenter] Register click ignored (already in progress)";
+		return;
+	}
 
-		// 1) UI 입력
-		emit registrationStarted();
-    QString name = QInputDialog::getText(view, "사용자 등록", "이름을 입력하세요:");
-    if (name.isEmpty()) {
-				emit registrationResult(false, "이름이 입력되지 않았습니다.");
-				return;
-		}
+	// 1) UI 입력
+	emit registrationStarted();
+	QString name = QInputDialog::getText(view, "사용자 등록", "이름을 입력하세요:");
+	if (name.isEmpty()) {
+		qWarning() << "[Presenter] name is empty -> skip";
+		emit registrationResult(false, "이름이 입력되지 않았습니다.");
+		return;
+	}
 
-		// 2) Service 존재/수명 체크
-		if (!service) {
-				emit registrationResult(false, "FaceRecognitionService가 존재하지 않습니다.");
-				return;
-		}
+	// 2) Service 존재/수명 체크
+	if (!service) {
+		emit registrationResult(false, "FaceRecognitionService가 존재하지 않습니다.");
+		return;
+	}
 
-		// 3) 진행중 플래그 + 버튼 잠금 + 요청 On
-		m_registerInProgress = true;
-		if (view && view->ui && view->ui->registerButton) 
-				view->ui->registerButton->setEnabled(false);
+	// 3) 진행중 플래그 + 버튼 잠금 + 요청 On
+	m_registerInProgress = true;
+	if (view && view->ui && view->ui->registerButton) 
+		view->ui->registerButton->setEnabled(false);
 
-		service->setRegisterRequested(true);
-		qDebug() << "[Presenter] Register mode On";
-		
-		if (m_registerTimer.isActive()) m_registerTimer.stop();
-		m_registerTimer.start(30000);		// 30,000ms
+	service->setRegisterRequested(true);
+	qDebug() << "[Presenter] Register mode On";
+
+	if (m_registerTimer.isActive()) m_registerTimer.stop();
 
 
 #ifdef DEBUG
-    qDebug() << "[WD] started"
-             << " isActive=" << m_registerTimer.isActive()
-             << " rem=" << m_registerTimer.remainingTime()
-             << " thread(presenter)=" << this->thread()
-             << " thread(timer)=" << m_registerTimer.thread()
-             << " thread(service)=" << (service ? service->thread() : nullptr);
+	qDebug() << "[WD] started"
+		<< " isActive=" << m_registerTimer.isActive()
+		<< " rem=" << m_registerTimer.remainingTime()
+		<< " thread(presenter)=" << this->thread()
+		<< " thread(timer)=" << m_registerTimer.thread()
+		<< " thread(service)=" << (service ? service->thread() : nullptr);
 #endif
 
-		// 5) 실제 등록 작업 시작 (서비스 스레드로 안전하게 넘김)
-    QMetaObject::invokeMethod(service, [svc=service.data(), name]() {
-				if (svc) svc->startRegistering(name);
-    }, Qt::QueuedConnection);
+	// 5) 실제 등록 작업 시작 (서비스 스레드로 안전하게 넘김)
+	QMetaObject::invokeMethod(service, [svc=service.data(), name]() {
+ 			qDebug() << "[Presenter->Service] invoke startRegistering name=" << name;
+			if (svc) svc->startRegistering(name);
+			}, Qt::QueuedConnection);
+	m_registerTimer.start(30000);		// 30,000ms
 }
 
 void FaceRegisterPresenter::onRegistrationCompleted(bool ok, const QString& msg)

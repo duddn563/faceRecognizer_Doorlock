@@ -9,6 +9,7 @@ class Embedder {
 public:
 		struct Options {
 				QString modelPath;
+				QString detectorModel;
 				int inputSize = 128;		// 128x128 입력
 				bool useRGB = true;			// 모델이 RGB 입력 모델
                                             //
@@ -23,6 +24,7 @@ public:
 
 		// 코사인 유사도 계산
 		static float cosine(const std::vector<float>& a, const std::vector<float>& b);
+		bool isTrivialFrame(const cv::Mat& bgr, double meanMin=1.0, double stdMin=1.0);
 
 private:
 		Options opt_;

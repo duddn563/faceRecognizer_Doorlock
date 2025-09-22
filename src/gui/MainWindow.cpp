@@ -243,39 +243,39 @@ void MainWindow::PresentCamRestart()
 
 void MainWindow::setupUi() 
 {
-		// 1) Main Mindow setup
-    ui->setupUi(this);
-    setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT);
+	// 1) Main Mindow setup
+	ui->setupUi(this);
+	setMinimumSize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT);
 
-		// 2) CameraLabel setup
-    if (ui->cameraLabel) {
-        ui->cameraLabel->setStyleSheet(CAM_LABEL_STYLE);
-    }
+	// 2) CameraLabel setup
+	if (ui->cameraLabel) {
+		ui->cameraLabel->setStyleSheet(CAM_LABEL_STYLE);
+	}
 
-		// 3) StandbyLabel setup
-	  // 3-1) 경로 구성 (실행파일 기준 상대경로) 
-		QString path = QString(IMAGES_PATH) + QString(STANDBY_IMAGE);
+	// 3) StandbyLabel setup
+	// 3-1) 경로 구성 (실행파일 기준 상대경로) 
+	QString path = QString(IMAGES_PATH) + QString(STANDBY_IMAGE);
 
 
-    // 3-2) 로드 확인
-		QPixmap pm;
-		if (pm.load(path)) {
-				standbyOrig_ = pm; // 원본 보관
-				ui->standbyLabel->setScaledContents(false);
-				ui->standbyLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-				ui->standbyLabel->setMinimumSize(1,1);
-				// 초기 1회 그리기
-				ui->standbyLabel->setPixmap(standbyOrig_.scaled(
-        ui->standbyLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-		}
+	// 3-2) 로드 확인
+	QPixmap pm;
+	if (pm.load(path)) {
+		standbyOrig_ = pm; // 원본 보관
+		ui->standbyLabel->setScaledContents(false);
+		ui->standbyLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+		ui->standbyLabel->setMinimumSize(1,1);
+		// 초기 1회 그리기
+		ui->standbyLabel->setPixmap(standbyOrig_.scaled(
+					ui->standbyLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+	}
 
-		if (ui->stackedWidget && ui->standbyLabel) {
-				ui->stackedWidget->setCurrentWidget(ui->standbyLabel);
-		}
+	if (ui->stackedWidget && ui->standbyLabel) {
+		ui->stackedWidget->setCurrentWidget(ui->standbyLabel);
+	}
 
-        applyStyles();
-		setupUnlockOverlayLabel();
-		connectSignals();
+	applyStyles();
+	setupUnlockOverlayLabel();
+	connectSignals();
 }
 
 void MainWindow::resizeEvent(QResizeEvent* e)

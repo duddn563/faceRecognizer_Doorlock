@@ -13,7 +13,14 @@ MainPresenter::MainPresenter(MainWindow* view, QObject* p)
 		faceRecognitionService->moveToThread(faceRecognitionThread);
 
 		faceRecognitionPresenter = new FaceRecognitionPresenter(faceRecognitionService, view, view);
-		connect(faceRecognitionThread, &QThread::started, faceRecognitionService, &FaceRecognitionService::procFrame);
+		//connect(faceRecognitionThread, &QThread::started, faceRecognitionService, &FaceRecognitionService::procFrame);
+		// QThread 시작 시 서비스 타이머 연결
+		QObject::connect(faceRecognitionThread, &QThread::started, faceRecognitionService, [svc=faceRecognitionService](){
+				auto timer = new QTimer(svc);
+				QObject::connect(timer, &QTimer::timeout, svc, &FaceRecognitionService::procFrame);
+				timer->start(30);  // 30ms마다 1프레임
+		});
+
 		faceRecognitionService->setPresenter(faceRecognitionPresenter);
 
 		faceSensorService = new FaceSensorService();

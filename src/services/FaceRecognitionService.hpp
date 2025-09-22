@@ -55,7 +55,7 @@
 //#include "util.hpp"
 
 // Camera number
-#define CAM_NUM							-1
+#define CAM_NUM							-1	
 
 // Recognition Result
 #define AUTH_SUCCESSED 					1
@@ -74,16 +74,10 @@ namespace cv {
 class FaceDetectorYN;
 }
 
-// ===== Temporal smoothing / Identity lock (cpp-지역 상태) =====
-#include <deque>
-static std::deque<QString> g_recentNames;   // size <= 5
-static QString             g_lockedName;    // 현재 락된 이름 (빈 문자열이면 없음)
-static double              g_lockedSim = 0; // 락 시점 유사도(참고)
-static QElapsedTimer       g_lockTimer;
-
 // 간단한 리턴 구조체
 struct recogResult_t {
     QString name;
+	int idx = -1;
     float   sim = -1.0f;			// 임베딩 결과 
     bool result = AUTH_FAILED;		// 인식 결과
 };
@@ -96,9 +90,9 @@ struct MatchResult {
 // top-2 매칭 결과
 struct MatchTop2 {
     int   bestIdx   = -1;
-    float bestSim   = -1.0f;
+    float bestSim   = -2.0f;
     int   secondIdx = -1;
-    float secondSim = -1.0f;
+    float secondSim = -2.0f;
 };
 
 // 갤러리 항목
@@ -106,6 +100,7 @@ struct UserEmbedding {
     int                 id = -1;
     QString             name;
     std::vector<float>  embedding; // L2 정규화된 벡터
+	cv::Mat proto;				   // 1xD, CV_32F, L2=1 고정 클론
 };
 
 // 편의형 원자 래퍼 (cpp에서 loadRelaxed/storeRelaxed 사용)
@@ -189,6 +184,8 @@ private:
     void init();
     bool initializeDnnOnly();
     bool loadDetector();
+	bool loadRecognizer();
+	bool loadEmbJsonFile();
 
     // 파일 IO
     bool loadEmbeddingsFromFile();
@@ -215,7 +212,6 @@ private:
     void saveCapturedFace(const cv::Rect& face,
                           const cv::Mat& alignedFace,
                           const cv::Mat& frame);
-    void clearRegistrationBuffers();
     void finalizeRegistration();
     bool isDuplicateFaceDNN(const cv::Mat& alignedFace, int* dupIdOut, float* simOut) const;
 
@@ -265,6 +261,7 @@ private:
 
     // 원자 플래그
     RelaxedAtomicInt            isRegisteringAtomic;
+	RelaxedAtomicInt			isOpenDoorAtomic;
     std::atomic<bool>           m_cancelReg{false};
 
     // 동기화

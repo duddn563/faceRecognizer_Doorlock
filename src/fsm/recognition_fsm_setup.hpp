@@ -11,7 +11,7 @@ struct FsmParams {
 		int		 detectMinDwellMs = 100;	// 아주 짧은 깜박 방지(100ms~150ms)
 
 		// 2) Recognition단계 (유사도 히스테리시스)
-		double recogEnter = 0.78f;			// 인식 성공 "진입": 보수적으로 높임			
+		double recogEnter = 0.80f;			// 인식 성공 "진입": 보수적으로 높임			
 		double recogExit	= 0.68f;		// 인식 성공 "유지/해제": 약간 낮춤
 		int		 recogTimeoutMs = 3500;		// 한 번의 시도 제한 (3.5s 내 못 넘으면 실패 처리)
 
@@ -82,7 +82,7 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
                         //qDebug() << "[FSM] c.livenessOk:" << c.livenessOk;
                         //qDebug() << "[FSM] c.recogConfidence > 0.20f:" << (c.recogConfidence > 0.20f);
                         //qDebug() << "[FSM] c.recogConfidence < P.recogEnter:" << (c.recogConfidence < P.recogEnter);
-						return c.livenessOk && (c.recogConfidence > 0.20f) && (c.recogConfidence < P.recogEnter); //&& (!c.registerRequested);
+						return c.livenessOk && (c.recogConfidence > 0.85f) && (c.recogConfidence > P.recogEnter); //&& (!c.registerRequested);
 				},
 				/*minDwellMs=*/150
 		});
@@ -118,7 +118,7 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
                         //qDebug() << "[FSM] c.authStreak >= P.authThresh:" << (c.authStreak >= P.authThresh);
                         //qDebug() << "[FSM] c.allowEntry:" << (c.allowEntry);
                         
-						return c.detectScore >= 0.8 && c.livenessOk && (c.recogConfidence <= P.recogEnter) && (c.authStreak >= P.authThresh) && c.allowEntry; 
+						return c.detectScore >= 0.8 && c.livenessOk && (c.recogConfidence >= P.recogEnter) && (c.authStreak >= P.authThresh) && c.allowEntry; 
 				},
 				/*minDwellMs=*/150
 		});
