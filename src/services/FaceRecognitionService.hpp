@@ -122,6 +122,10 @@ public:
     void camRestart();
     void openCamera();
 
+	void requestedDoorOpen();
+	void requestedDoorClose();
+	void requestedRetrainRecog();
+
     // Presenter 연결
     void setPresenter(FaceRecognitionPresenter* presenter);
 

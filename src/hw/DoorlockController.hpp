@@ -17,6 +17,10 @@ public:
 	bool setUnlocked(bool on); 		// true=열림(ON), false=잠금(OFF)
 	bool lock();
 	bool unlock();
+	bool isReady();
+
+private:
+	bool isReady_;
 };
 
 

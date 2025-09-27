@@ -179,6 +179,7 @@ void MainWindow::setupControlTab()
 
     if (ui->btnUnlockDoor) {
         connect(ui->btnUnlockDoor, &QPushButton::clicked, this, [this](){
+			/*
             const auto ret = QMessageBox::warning(
                 this, tr("도어 열기"),
                 tr("도어를 수동으로 엽니다. 정말 진행할까요?"),
@@ -186,7 +187,12 @@ void MainWindow::setupControlTab()
             if (ret == QMessageBox::Yes) {
                 setActionMsg(ui, "도어 열기 요청");
                 // TODO: doorService_->requestUnlock();
+				emit doorOpen();
             }
+			*/
+            setActionMsg(ui, "도어 열기 요청");
+			emit doorOpen();
+
         });
     }
 
@@ -194,6 +200,7 @@ void MainWindow::setupControlTab()
         connect(ui->btnLockDoor, &QPushButton::clicked, this, [this](){
             setActionMsg(ui, "도어 잠금 요청");
             // TODO: doorService_->requestLock();
+			emit doorClose();
         });
     }
 
@@ -205,6 +212,7 @@ void MainWindow::setupControlTab()
                 QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
             if (ret == QMessageBox::Yes) {
                 setActionMsg(ui, "재학습 요청");
+				emit retrainRecog();
                 // TODO: frService_->retrainAsync();
             }
         });
@@ -236,9 +244,23 @@ void MainWindow::setupControlTab()
     });
 }
 
-void MainWindow::PresentCamRestart()
+void MainWindow::PresentCamRestart(const QString& msg)
 {
-	setActionMsg(ui, "카메라 재시작 완료");
+	setActionMsg(ui, msg);
+}
+
+void MainWindow::PresentDoorOpen(const QString& msg)
+{
+	setActionMsg(ui, msg); 
+}
+void MainWindow::PresentDoorClose(const QString& msg)
+{
+	setActionMsg(ui, msg); 
+}
+
+void MainWindow::PresentRetrainRecog(const QString& msg)
+{
+	setActionMsg(ui, msg);
 }
 
 void MainWindow::setupUi() 

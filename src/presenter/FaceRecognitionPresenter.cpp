@@ -98,17 +98,58 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 
 	// 카메라 다시 시작 버튼 방출
 	connect(view, &MainWindow::CamRestart, this, &FaceRecognitionPresenter::onCamRestart);
+	connect(view, &MainWindow::doorOpen, this, &FaceRecognitionPresenter::onDoorOpen);
+	connect(view, &MainWindow::doorClose, this, &FaceRecognitionPresenter::onDoorClose);
+	connect(view, &MainWindow::retrainRecog, this, &FaceRecognitionPresenter::onRetrainRecog);
 }
+
 
 void FaceRecognitionPresenter::onCamRestart()
 {
 	if (!service) return;
 	service->camRestart();
 }
-void FaceRecognitionPresenter::presentCamRestart()
+void FaceRecognitionPresenter::presentCamRestart(const QString& msg)
 {
 	if (!view) return;
-	view->PresentCamRestart();
+
+	view->PresentCamRestart(msg);
+}
+
+void FaceRecognitionPresenter::onDoorOpen()
+{
+	if(!service) return;
+	service->requestedDoorOpen();
+}
+
+void FaceRecognitionPresenter::presentDoorOpen(const QString& msg)
+{
+	if (!view) return;
+	view->PresentDoorOpen(msg);
+}
+
+void FaceRecognitionPresenter::onDoorClose()
+{
+	if (!service) return;
+	service->requestedDoorClose();
+}
+
+void FaceRecognitionPresenter::presentDoorClose(const QString& msg)
+{
+	if (!view) return;
+	view->PresentDoorClose(msg);
+}
+
+void FaceRecognitionPresenter::onRetrainRecog()
+{
+	if (!service) return;
+	service->requestedRetrainRecog();
+}
+
+void FaceRecognitionPresenter::presentRetrainRecog(const QString& msg)
+{
+	if (!view) return;
+	view->PresentRetrainRecog(msg);
 }
 
 void FaceRecognitionPresenter::onViewStateChanged(RecognitionState state)

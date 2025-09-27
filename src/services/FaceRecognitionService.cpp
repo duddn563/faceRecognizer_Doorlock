@@ -580,17 +580,24 @@ void FaceRecognitionService::openCamera()
 void FaceRecognitionService::camRestart()
 {
 	qDebug() << "[FRS] Camera is restart!";
+	QString msg;
 	try {
 		cap.open(CAM_NUM);
 		if (!cap.isOpened()) {
 			SystemLogger::error("FRS", "Failed to camera restart.");
+			msg = QStringLiteral("카메라 열기 실패");
+			presenter->presentCamRestart(msg);
+			return;
 		}
 		std::cout << "[FRS] Camera restart!!" << std::endl;
 		SystemLogger::info("FRS", "Success to camera restart.");
 	} catch(const cv::Exception& e) {
 		std::cout << "[FRS] OpenCV exception: " << e.what() << std::endl;
+		msg = QStringLiteral("카메라 열기 실패(Qt error)");
+		presenter->presentCamRestart(msg);
 	}
-	presenter->presentCamRestart();
+	msg = QStringLiteral("카메라 열기 성공");
+	presenter->presentCamRestart(msg);
 }
 
 
@@ -738,6 +745,7 @@ bool FaceRecognitionService::loadEmbeddingsFromFile()
 {
 	try {
 		const QString qpath = QString::fromStdString(embeddingsPath_);
+		gallery_.clear(); 
 		QFile f(qpath);
 		if (!f.exists()) {
 			qWarning() << "[DNN] loadEmbeddingsFromFile: file not found ->" << qpath;
@@ -1314,8 +1322,7 @@ recogResult_t FaceRecognitionService::handleRecognition(cv::Mat& frame,
 	std::vector<float> emb;
 	if (!dnnEmbedder_->extract(alignedFace, emb) || emb.empty()) {
 		rv.name="Unknown"; rv.sim=-1.f; rv.result=AUTH_FAILED;
-		labelText="Unknown"; boxColor=cv::Scalar(0,0,255);
-		return rv;
+	labelText="Unknown"; boxColor=cv::Scalar(0,0,255); return rv;
 	}
 
 	// 간단 임계/마진 (고정값)
@@ -1326,14 +1333,15 @@ recogResult_t FaceRecognitionService::handleRecognition(cv::Mat& frame,
 	const float T_IN	= 0.80f;
 	const float MARGIN	= 0.020f;
 
-#if 0 
+#if 1 
 	//Top-1만으로 판정
 	const auto r = bestMatch(emb);
 	cosBest = float(r.sim);
-	const double COS_THRESH = 0.90;
+	const double COS_THRESH = 0.97;
 	const double MIN_MARGIN = 0.15;
 
-	const bool isKnown  = (r.sim >= COS_THRESH) && marginOk;
+	id = r.id;
+	const bool isKnown  = (r.sim >= COS_THRESH);
 	name = isKnown ? r.name : "Unknown";
 #else
 	// Top-2 마진 판정
@@ -1362,8 +1370,13 @@ recogResult_t FaceRecognitionService::handleRecognition(cv::Mat& frame,
 #endif
 
 	if (isKnown) {
+#if  1
+		name = getName(gallery_[r.id]);
+		id = r.id;	
+#else
 		name = getName(gallery_[t2.bestIdx]);
 		id = t2.bestIdx;	
+#endif
 		matched = true;
 	} else {
 		name = "Unknown";
@@ -1552,7 +1565,7 @@ static inline cv::Mat alignBy5pts(
 				static_cast<float>(m10*p.x + m11*p.y + m12)
 				);
 	};
-#ifdef DEBUG
+#if 1 
 	// 1) 원본 5점을 어파인으로 보낸 좌표 vs 템플릿 좌표의 평균오차/최대오차
 	double mae = 0.0, maxErr = 0.0;
 	cv::Mat vis = aligned112.clone();
@@ -1982,6 +1995,87 @@ bool FaceRecognitionService::computeTimeout(const FsmContext& c)
 	}
 
 	return false;
+}
+void FaceRecognitionService::requestedDoorOpen()
+{
+	QString msg;
+	if (!g_reed.isClosed()) {		
+		qDebug() << "[requestedDoorOpen] already door was opend!";	
+		msg = QStringLiteral("이미 문이 열려 있습니다.");
+		presenter->presentDoorOpen(msg);
+		return;
+	}
+	
+	
+	if (!g_door.isReady()) {
+		qDebug() << "[requestedDoorOpen] g_door is nullptr";
+		msg = QStringLiteral("문 열기에 실패 했습니다."); 
+		presenter->presentDoorOpen(msg);
+		return;
+	}		
+	
+	g_door.setUnlocked(true);
+	qDebug() << "[requestedDoorOpen] door was opend!";	
+	msg = QStringLiteral("문이 열렸습니다."); presenter->presentDoorOpen(msg); QThread::msleep(1000);
+	//QThread::msleep(2000);
+	//g_door.setUnlocked(false);
+}
+
+void FaceRecognitionService::requestedDoorClose()
+{
+	QString msg;
+	// 테스트로 항상 true이기 때문에 리드 스위치 결합하면 주석풀기   
+	/*
+	if (g_reed.isClosed()) {
+		qDebug() << "[requestedDoorClose] already door was close!";
+		msg = QStringLiteral("이미 문이 닫혀 있습니다.");
+		presenter->presentDoorClose(msg);
+		return;
+	}
+	*/
+
+	if (!g_door.isReady()) {
+		qDebug() << "[requestedDoorClose] g_door si nullptr";
+		msg = QStringLiteral("문 닫기에 실패했습니다.");
+		presenter->presentDoorClose(msg);
+		return;
+
+	}
+	/*
+	// =====  리드 스위치 감지 전까지 열림 유지 시작 =====
+	if (!g_unlockMgr.running()) {
+		g_unlockMgr.start();
+		qInfo() << "[Door] Unlock started (wait open, then wait close)";
+	}
+	*/
+	qDebug() << "[requestedDoorClose] door was closed!";	
+	msg = QStringLiteral("문이 닫혔습니다.");
+	g_door.setUnlocked(false);
+	presenter->presentDoorClose(msg);
+	//QThread::msleep(2000);
+	//g_door.setUnlocked(true);
+	
+}
+void FaceRecognitionService::requestedRetrainRecog()
+{
+	QString msg;
+	if (embeddingsPath_.empty()) {
+		msg = QStringLiteral("인식기 모델 경로를 알 수 없습니다.");
+		presenter->presentRetrainRecog(msg);
+		return;
+	}
+
+
+	if (!loadEmbeddingsFromFile()) {
+		msg = QStringLiteral("인식기학습을 실패했습니다."); 
+		presenter->presentRetrainRecog(msg);
+		return;
+	}
+	else {
+		msg = QStringLiteral("인식기가 학습되었습니다.");
+		presenter->presentRetrainRecog(msg);
+		return;
+	}
 }
 
 

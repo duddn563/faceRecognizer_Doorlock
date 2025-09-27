@@ -72,7 +72,10 @@ public:
 		void reset();
 		void showUnlockOverlayLabel();
 
-		void PresentCamRestart();
+		void PresentCamRestart(const QString& msg);
+		void PresentDoorOpen(const QString& msg);
+		void PresentDoorClose(const QString& msg);
+		void PresentRetrainRecog(const QString& msg);
         
 
 signals:
@@ -86,6 +89,9 @@ signals:
 	void requestedShowUserList();
 	void registerClicked();
 	void CamRestart();
+	void doorOpen();
+	void doorClose();
+	void retrainRecog();
 
 protected:
 		// === Qt Override (lifecycle hooks) ===

@@ -36,7 +36,16 @@ public:
 				void presentReset();
 
 				void onCamRestart();
-				void presentCamRestart();
+				void presentCamRestart(const QString& msg);
+
+				void onDoorOpen();
+				void presentDoorOpen(const QString& msg);
+
+				void onDoorClose();
+				void presentDoorClose(const QString& msg);
+
+				void onRetrainRecog();
+				void presentRetrainRecog(const QString& msg);
 
 				QTimer* throttleTimer_;
 				QImage pendingFrame_;
