@@ -7,28 +7,29 @@
 #include "services/LogDtos.hpp"
 
 #include "UserImagePresenter.hpp"
-#include "DoorSensorPresenter.hpp"
-#include "FaceSensorPresenter.hpp"
 #include "FaceRecognitionPresenter.hpp"
 #include "FaceRegisterPresenter.hpp"
 
-#include "FaceSensorService.hpp"
-#include "DoorSensorService.hpp"
 #include "FaceRecognitionService.hpp"
 #include "UserImageService.hpp"
 #include "QSqliteService.hpp"
 
+#include "capture/FrameCapture.hpp"
+#include "ble/BleServer.hpp"
+#include "include/capture/LatestFrameMailbox.hpp"
+
 class MainPresenter : public QObject {
 		Q_OBJECT
-
 
 public:
 		MainPresenter(MainWindow* view, QObject* parent = nullptr);
 		~MainPresenter();
 
 		void startAllServices();
-		//QSqliteService* db_() const { return db_; }
-        QSqliteService* db_;
+    QSqliteService* db_;
+
+		void startBle();
+		void stopBle();
 
 public slots:
     // Auth
@@ -41,28 +42,28 @@ signals:
     void deliverAuthLogs(const QVector<AuthLog>& rows, int page, int total, int pageSize);
     void deliverSystemLogs(const QVector<SystemLog>& rows, int page, int total, int pageSize);
 
-
 private:
 		MainWindow* view;
 
 		QThread* faceRecognitionThread;
-		QThread* faceSensorThread;
 		QThread* doorSensorThread;
+		QThread* bleThread;
 
 		FaceRecognitionService* faceRecognitionService;
-		FaceSensorService* faceSensorService;
-		DoorSensorService* doorSensorService;
 		UserImageService* userImageService;
+		BleServer* bleServer;
 
 		FaceRecognitionPresenter* faceRecognitionPresenter;
 		FaceRegisterPresenter* faceRegisterPresenter;
-		FaceSensorPresenter* faceSensorPresenter;
-		DoorSensorPresenter* doorSensorPresenter;
 		UserImagePresenter* userImagePresenter;
+
+		std::unique_ptr<BleServer> ble_;
+		std::unique_ptr<FrameCapture> capture_;
+		LatestFrameMailbox mailbox_;	
 
 
 		void connectUIEvents();
 		void onViewStateChanged();
-        bool wired = false;     // 중복 연결 방지
+    bool wired = false;     // 중복 연결 방지
 };
 

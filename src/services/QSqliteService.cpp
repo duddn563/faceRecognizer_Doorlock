@@ -44,6 +44,7 @@ bool QSqliteService::initializeDatabase()
 
     QSqlQuery q(db);
 
+		try {
     // 인증로그
     if (!q.exec(
         "CREATE TABLE IF NOT EXISTS auth_logs ("
@@ -56,6 +57,7 @@ bool QSqliteService::initializeDatabase()
         qCritical() << "Failed to create auth_logs:" << q.lastError().text();
         return false;
     }
+		} catch (std::exception& ex) {}
 
     // 시스템로그
     if (!q.exec(
@@ -108,10 +110,12 @@ bool QSqliteService::insertAuthLog(const QString& userName,
     q.addBindValue(timeSafe);
     q.addBindValue(image);
 
+		try {
     if (!q.exec()) {
         qCritical() << "Insert auth log failed:" << q.lastError().text();
         return false;
     }
+		} catch(const std::exception& ex) {}
     return true;
 }
 

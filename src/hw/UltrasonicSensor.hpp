@@ -1,34 +1,36 @@
-#ifndef FACESENSORSERVICE_H 
-#define	FACESENSORSERVICE_H 
+#ifndef ULTRASONICSENSOR_H 
+#define	ULTRASONICSENSOR_H
 
 #include <wiringPi.h>
 #include <chrono>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <iostream>
+#include <atomic>
 
-#include <QObject>
 #include <QThread>
 
-#define TRIG_PIN 2
-#define ECHO_PIN 4
+#define TRIG_PIN 4
+#define ECHO_PIN 5
 
-class FaceSensorService : public QObject {
-    Q_OBJECT
-public:
-				explicit FaceSensorService(QObject *parent = nullptr);
-				void stop();
+class UltrasonicSensor {
+	public:
+		UltrasonicSensor();
+		~UltrasonicSensor();
 
-public slots:
-				void run();
-			
+		void start();
+		void stop();
+		float latestDist() const;
 
-signals:
-				void personDetected();      // 사람이 가까이 오면 emit
-				void personLeft();          // 사람이 멀어지면 emit
+	private:
+		void main_loop();
 
-private:
-				std::atomic<bool> isRunning = true;
+		std::thread th_;
+		std::atomic<bool> isRunning{false};
+
+		std::atomic<float> latestDist_{-1.0f};
 };
 
-#endif // FACESENSORSERVICE_H 
+#endif // ULTRASONICSENSOR_H 
 

@@ -45,6 +45,16 @@ void MainWindow::closeEvent(QCloseEvent* e)
 	e->accept();
 }
 
+void MainWindow::onPreviewReady(const QImage& img)
+{
+    //qDebug() << "[onPreviewReady] cnt=" << cnt << "imgNull=" << img.isNull() << "size=" << img.size();
+		if (img.isNull()) return;
+		ui->cameraLabel->setScaledContents(true);
+		ui->cameraLabel->setPixmap(QPixmap::fromImage(img));
+		ui->cameraLabel->raise();
+		ui->cameraLabel->show();
+}
+
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) 
 {
     qRegisterMetaType<RecognitionState>("RecognitionState");
@@ -58,6 +68,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	// 디바이스 정보 탭
 	devInfoDlg_ = new DevInfoDialog(this);
 	ui->rightTabWidget->addTab(devInfoDlg_, tr("Information"));
+
+	// MainWindow 생성자 등 UI 초기화 시
+	ui->cameraLabel->setScaledContents(false); // 왜곡 방지
+	ui->cameraLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	ui->cameraLabel->setMinimumSize(1280, 720); // 원하는 최소 크기로 늘리기
+	if (auto *lay = ui->centralwidget->layout())
+		lay->setContentsMargins(0,0,0,0);
+
+
 
 #ifdef DEBUG
 	qDebug() << "[MW] logTab ptr=" << logTab
@@ -279,89 +298,9 @@ void MainWindow::setupUi()
 	QString path = QString(IMAGES_PATH) + QString(STANDBY_IMAGE);
 
 
-	// 3-2) 로드 확인
-	QPixmap pm;
-	if (pm.load(path)) {
-		standbyOrig_ = pm; // 원본 보관
-		ui->standbyLabel->setScaledContents(false);
-		ui->standbyLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-		ui->standbyLabel->setMinimumSize(1,1);
-		// 초기 1회 그리기
-		ui->standbyLabel->setPixmap(standbyOrig_.scaled(
-					ui->standbyLabel->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
-	}
-
-	if (ui->stackedWidget && ui->standbyLabel) {
-		ui->stackedWidget->setCurrentWidget(ui->standbyLabel);
-	}
-
 	applyStyles();
-	setupUnlockOverlayLabel();
 	connectSignals();
 }
-
-void MainWindow::resizeEvent(QResizeEvent* e)
-{
-    QMainWindow::resizeEvent(e);
-
-    // standby: 원본 기준으로 항상 고품질 재스케일
-    if (ui->standbyLabel && !standbyOrig_.isNull()) {
-        ui->standbyLabel->setPixmap(
-            standbyOrig_.scaled(ui->standbyLabel->size(),
-                                Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    }
-
-    // cameraLabel: 다음 프레임이 들어오며 갱신되지만,
-    // 현재 픽스맵이 있다면 임시로 재스케일해서 깜빡임 줄이기
-    if (ui->cameraLabel) {
-#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
-        QPixmap pm = ui->cameraLabel->pixmap();
-#elif QT_VERSION >= QT_VERSION_CHECK(5,15,0)
-        QPixmap pm = ui->cameraLabel->pixmap(Qt::ReturnByValue);
-#else
-        const QPixmap* p = ui->cameraLabel->pixmap();
-        QPixmap pm = p ? *p : QPixmap();
-#endif
-        if (!pm.isNull()) {
-            ui->cameraLabel->setPixmap(
-                pm.scaled(ui->cameraLabel->size(),
-                          Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        }
-    }
-}
-
-
-
-void MainWindow::setupUnlockOverlayLabel()
-{
-		qDebug() << "[MainWindow] setupUnlockOverlayLabel is called";
-		unlockOverlayLabel = new QLabel(ui->cameraLabel);
-		unlockOverlayLabel->setAlignment(Qt::AlignCenter);
-		unlockOverlayLabel->setStyleSheet("background-color: rgba(0, 0, 0, 128);");
-		unlockOverlayLabel->setVisible(false);
-		unlockOverlayLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
-	
-		//updateUnlockOverlay();
-}
-
-void MainWindow::updateUnlockOverlay()
-{
-		qDebug() << "[MainWindow] updateUnlockOverlay is called";
-		if (!unlockOverlayLabel || !ui->cameraLabel) return;
-
-		QSize labelSize = ui->cameraLabel->size();
-		unlockOverlayLabel->setGeometry(0, 0, labelSize.width(), labelSize.height());
-		unlockOverlayLabel->setPixmap(QPixmap(OPEN_IMAGE).scaled(
-						labelSize, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-}
-
-void MainWindow::showEvent(QShowEvent* event)
-{
-		qDebug() << "[MainWindow] showEvent is called";;
-		QMainWindow::showEvent(event);
-		//updateUnlockOverlay();
-}
-
 
 void MainWindow::applyStyles() {
 		qDebug() << "[MainWindow] appelyStyles is called";
@@ -371,7 +310,7 @@ void MainWindow::applyStyles() {
 
     for (QPushButton* btn : buttonList()) {
         if (btn) {
-						btn->setMinimumHeight(40);
+						btn->setMinimumHeight(100);
 						btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
 						btn->setStyleSheet("");
@@ -444,17 +383,6 @@ void MainWindow::setCurrentUiState(UiState state)
 		currentUiState = state;
 }
 
-void MainWindow::showUnlockOverlayLabel()
-{
-		unlockOverlayLabel->setVisible(true);
-		showStatusMessage("Door was opend!");
-
-		// 3초 후에 숨기고 상태 복귀
-		QTimer::singleShot(3000, this, [this]() {
-						unlockOverlayLabel->setVisible(false);
-						cout << "setVisibel false" << endl;	
-		});
-}
 
 RecognitionState MainWindow::getRecognitionState() 
 {

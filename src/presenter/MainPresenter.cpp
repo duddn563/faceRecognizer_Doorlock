@@ -3,57 +3,47 @@
 MainPresenter::MainPresenter(MainWindow* view, QObject* p)
     : QObject(p), view(view)
 {
-        db_ = new QSqliteService(); 
+	db_ = new QSqliteService(); 
 
-        //connect(this, &MainPresenter::deliverAuthLogs, view, &MainWindow::renderAuthLogs);
-        //connect(this, &MainPresenter::deliverSystemLogs, view, &MainWindow::renderSystemLogs);
+	faceRecognitionService = new FaceRecognitionService(nullptr, nullptr, db_);
+	faceRecognitionThread = new QThread();
+	faceRecognitionService->moveToThread(faceRecognitionThread);
 
-		faceRecognitionService = new FaceRecognitionService(nullptr, nullptr, db_);
-		faceRecognitionThread = new QThread();
-		faceRecognitionService->moveToThread(faceRecognitionThread);
+	faceRecognitionPresenter = new FaceRecognitionPresenter(faceRecognitionService, view, view);
+	faceRecognitionService->setPresenter(faceRecognitionPresenter);
 
-		faceRecognitionPresenter = new FaceRecognitionPresenter(faceRecognitionService, view, view);
-		//connect(faceRecognitionThread, &QThread::started, faceRecognitionService, &FaceRecognitionService::procFrame);
-		// QThread 시작 시 서비스 타이머 연결
-		QObject::connect(faceRecognitionThread, &QThread::started, faceRecognitionService, [svc=faceRecognitionService](){
-				auto timer = new QTimer(svc);
-				QObject::connect(timer, &QTimer::timeout, svc, &FaceRecognitionService::procFrame);
-				timer->start(30);  // 30ms마다 1프레임
-		});
+	bleThread = new QThread(this);
 
-		faceRecognitionService->setPresenter(faceRecognitionPresenter);
+	bleServer = new BleServer(nullptr, faceRecognitionService);
+	bleServer->setInterfaceName("hci0");
+	bleServer->setDbPath("/root/trunk/faceRecognizer_Doorlock/assert/db/doorlock.db");
 
-		faceSensorService = new FaceSensorService();
-		faceSensorThread = new QThread();
-		faceSensorService->moveToThread(faceSensorThread);
-
-		faceSensorPresenter = new FaceSensorPresenter(faceSensorService, view, view);
-		connect(faceSensorThread, &QThread::started, faceSensorService, &FaceSensorService::run);
+	// 스레드 이동
+	bleServer->moveToThread(bleThread);
+	// 수명 관리
+	connect(bleThread, &QThread::finished, bleServer, &QObject::deleteLater);
 
 
-		/*
-		doorSensorService = new DoorSensorService();
-		doorSensorThread = new QThread();
-		doorSensorService->moveToThread(doorSensorThread);
-		*/
+	// 로깅/상태
+	connect(bleServer, &BleServer::log, this, [](const QString& s){ qDebug().noquote() << s; });
+	connect(bleServer, &BleServer::ready, this, [](){ qDebug() << "[Ble] ready"; });
 
-		//doorSensorPresenter = new DoorSensorPresenter(doorSensorService, view, view);
-		//connect(doorSensorThread, &QThread::started, doorSensorService, &DoorSensorService::run);
-
-		userImageService = new UserImageService(nullptr);
-		userImagePresenter = new UserImagePresenter(userImageService, view);
-		userImageService->setPresenter(userImagePresenter);
+	// 스레드 시작 시 run() 진입
+	connect(bleThread, &QThread::started, bleServer, &BleServer::run, Qt::QueuedConnection);
 
 
-		qDebug() << "[MainPresenter] FRS addr:" << faceRecognitionService;
-		qDebug() << "[MainPresenter] DSS addr:" << faceSensorService;
-		qDebug() << "[MainPresenter] UIS addr:" << userImageService;
+	userImageService = new UserImageService(nullptr);
+	userImagePresenter = new UserImagePresenter(userImageService, view);
+	userImageService->setPresenter(userImagePresenter);
 
-		qDebug() << "[MainPresenter] FRT addr:" << faceSensorThread;
-		qDebug() << "[MainPresenter] FST addr:" << faceRecognitionThread;
 
-		connectUIEvents();
+	qDebug() << "[MainPresenter] FRS addr:" << faceRecognitionService;
+	qDebug() << "[MainPresenter] UIS addr:" << userImageService;
 
+	qDebug() << "[MainPresenter] FST addr:" << faceRecognitionThread;
+
+	connectUIEvents();
+	startBle();
 }
 
 
@@ -61,7 +51,7 @@ void MainPresenter::requestAuthPage(int page, int pageSize, const QString& userL
 {
     const int offset = page * pageSize;
     QVector<AuthLog> rows; int total=0;
-    if (db_->selectAuthLogs(offset, pageSize, userLike, &rows, &total)) {
+		if (db_->selectAuthLogs(offset, pageSize, userLike, &rows, &total)) {
         emit deliverAuthLogs(rows, page, total, pageSize);
     }
 }
@@ -79,8 +69,6 @@ void MainPresenter::requestSystemPage(int page, int pageSize, int minLevel,
 void MainPresenter::startAllServices()
 {
 		faceRecognitionThread->start();
-		faceSensorThread->start();
-		//doorSensorThread->start();
 }
 
 void MainPresenter::connectUIEvents()
@@ -95,31 +83,33 @@ void MainPresenter::connectUIEvents()
     qDebug() << "[Presenter] UI events connected";
 }
 
+void MainPresenter::startBle()
+{
+	if (!bleThread->isRunning()) {
+		bleThread->start();
+	}
+}
+
+void MainPresenter::stopBle()
+{
+	if (bleThread->isRunning()) {
+		QMetaObject::invokeMethod(bleServer, "stop", Qt::BlockingQueuedConnection);
+		bleThread->quit();
+		bleThread->wait();
+	}
+}
+
 
 MainPresenter::~MainPresenter()
 {
-		faceSensorService->stop();
-		faceSensorThread->quit();
-		faceSensorThread->wait();
-
-		faceSensorService->deleteLater();
-		faceSensorThread->deleteLater();
-		delete faceSensorPresenter;
-
-
-		faceRecognitionService->stop();
 		faceRecognitionThread->quit();
 		faceRecognitionThread->wait();
 
 		faceRecognitionService->deleteLater();
 		faceRecognitionThread->deleteLater();
 		delete faceRecognitionPresenter;
-		//doorSensorService->stop();
-		//doorSensorThread->quit();
-		//doorSensorThread->wait();
 
-		//doorSensorService->deleteLater();
-		//doorSensorThread->deleteLater();
+		stopBle();
 
 		delete userImagePresenter;
 }

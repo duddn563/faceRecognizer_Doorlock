@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QStorageInfo>
+#include <QRegularExpression>
 
 MemInfoWidget::MemInfoWidget(QWidget* parent)
     : QWidget(parent)
@@ -74,7 +75,7 @@ QString MemInfoWidget::humanBytes(qulonglong bytes) {
 qulonglong MemInfoWidget::parseLineKB(const QString& text, const QString& key) {
     for (const QString& ln : text.split('\n')) {
         if (ln.startsWith(key)) {
-            const QStringList parts = ln.split(QRegExp("\\s+"));
+            const QStringList parts = ln.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
             if (parts.size() >= 2) return parts[1].toULongLong();
         }
     }

@@ -1,0 +1,75 @@
+#pragma once
+#include <QObject>
+#include <QThread>
+#include <QAtomicInteger>
+#include <QElapsedTimer>
+#include <QString>
+
+#include <opencv2/opencv.hpp>
+
+// Qt 시그널로 cv::Mat을 쓰기 위한 등록 필요 (cpp에서 qRegisterMetaType)
+Q_DECLARE_METATYPE(cv::Mat)
+
+class FrameCapture : public QObject
+{
+    Q_OBJECT
+public:
+    explicit FrameCapture(QObject* parent = nullptr);
+    ~FrameCapture();
+
+    // 설정
+    void setCameraIndex(int idx);                // /dev/videoN (기본 0)
+    void setDevicePath(const QString& path);     // 우선순위: devicePath > cameraIndex
+    void setResolution(int w, int h);            // 기본 640x480
+    void setFps(double fps);                     // 요청 FPS (드라이버가 보장하진 않음)
+    void setFourcc(int fourcc);                  // 예: cv::VideoWriter::fourcc('M','J','P','G')
+    void setUseV4L2(bool v4l2);                  // CAP_V4L2 사용 (기본 true)
+    void setUseGst(bool gst);                    // GStreamer 파이프 사용 (기본 false)
+    void setGstPipeline(const QString& pipe);    // GStreamer 파이프 문자열
+
+    // 제어
+    bool start();            // 캡쳐 스레드 시작
+    void stop();             // 캡쳐 스레드 종료 요청 (블로킹)
+
+    bool running() const { return running_.loadRelaxed(); }
+
+signals:
+    // 새 프레임 준비됨 (BGR, CV_8UC3)
+    void frameReady(const cv::Mat& bgr);
+    // 상태/오류
+    void cameraOpened(const QString& src);
+    void cameraClosed(const QString& src);
+    void cameraError(const QString& msg);
+
+private slots:
+    void loop();             // 스레드 루프
+
+private:
+    bool openCamera();
+    void closeCamera();
+    bool readOne(cv::Mat& out);
+    QString sourceDesc() const;
+
+private:
+    QThread           thread_;
+    cv::VideoCapture  cap_;
+    QAtomicInteger<int> running_{0};
+    QAtomicInteger<int> reopenRequested_{0};
+
+    // 설정값
+    int      camIndex_   = 0;
+    QString  devicePath_ = QString();     // 예: "/dev/video0"
+    int      width_      = 640;
+    int      height_     = 480;
+    double   fpsReq_     = 30.0;
+    int      fourcc_     = 0;             // 0이면 설정 안함
+    bool     useV4L2_    = true;
+    bool     useGst_     = false;
+    QString  gstPipe_;
+
+    // 내부 상태
+    int      failCount_  = 0;
+    int      maxFailBeforeReopen_ = 20;   // 이 횟수 이상 실패 시 재연결
+    int      reopenSleepMs_        = 350; // 재연결 대기
+};
+

@@ -1,60 +1,92 @@
-#include "FaceSensorService.hpp"
+#include "UltrasonicSensor.hpp"
 #include <QDebug>
-
 
 // #define DEBUG
 
-UltrasonicSensor::(QObject *parent) : QObject(parent) 
-{
-    wiringPiSetup();
+UltrasonicSensor::UltrasonicSensor()  { qDebug() << "[UltrasonicSensor] ctor"; }
 
-    pinMode(TRIG_PIN, OUTPUT);
-    pinMode(ECHO_PIN, INPUT);
-    digitalWrite(TRIG_PIN, LOW);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(30));
+UltrasonicSensor::~UltrasonicSensor() {
+	stop();
 }
 
 
-void FaceSensorService::run() {
-		bool personPreviouslyDetected = false;
+void UltrasonicSensor::start()
+{
+	if (isRunning.exchange(true)) return;
+	qDebug() << "[init] Ultrasonic sensor init OK";
 
-    while (isRunning) {
-				QThread::msleep(100);
-				
-			  // 초음파 신호 전송
+	th_ = std::thread([this]() { 
+			this->main_loop();
+			isRunning.store(false, std::memory_order_release);
+		});
+}
+
+void UltrasonicSensor::stop()
+{
+	bool wasRunning = isRunning.exchange(false);
+	if (wasRunning && th_.joinable()) {
+		th_.join();
+	}
+}
+
+float UltrasonicSensor::latestDist() const 
+{
+	return latestDist_.load(std::memory_order_acquire);
+}
+void UltrasonicSensor::main_loop()
+{
+	wiringPiSetup();
+
+	pinMode(TRIG_PIN, OUTPUT);
+	pinMode(ECHO_PIN, INPUT);
+	pullUpDnControl(ECHO_PIN, PUD_DOWN);
+	digitalWrite(TRIG_PIN, LOW);
+	delay(50);
+
+	auto waitState = [](int pin, int level, unsigned timeout_us)->bool {
+        unsigned deadline = micros() + timeout_us;
+        while (digitalRead(pin) != level) {
+            if ((int)(micros() - deadline) >= 0) return false; // timeout
+        }
+        return true;
+    };
+
+	while (isRunning.load(std::memory_order_acquire)) {
+		  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+        // 1) 트리거 전, ECHO가 LOW로 안정될 때까지 (timeout)
+        if (!waitState(ECHO_PIN, LOW, 200000)) {
+            latestDist_.store(-1.0f, std::memory_order_release);
+            continue;
+        }
+
+        // 2) 트리거 10us
+        digitalWrite(TRIG_PIN, LOW);  delayMicroseconds(2);
+        digitalWrite(TRIG_PIN, HIGH); delayMicroseconds(10);
         digitalWrite(TRIG_PIN, LOW);
-        delayMicroseconds(2);
-        digitalWrite(TRIG_PIN, HIGH);
-        delayMicroseconds(10);
-        digitalWrite(TRIG_PIN, LOW);
 
-        while (digitalRead(ECHO_PIN) == LOW);
-        long startTime = micros();
+        // 3) 상승/하강 각각 timeout
+        if (!waitState(ECHO_PIN, HIGH, 200000)) {
+            latestDist_.store(-1.0f, std::memory_order_release);
+            continue;
+        }
+        unsigned start = micros();
 
-        while (digitalRead(ECHO_PIN) == HIGH);
-        long endTime = micros();
+        if (!waitState(ECHO_PIN, LOW, 200000)) {
+            latestDist_.store(-1.0f, std::memory_order_release);
+            continue;
+        }
+        unsigned end = micros();
 
-        double dist = (endTime - startTime) * 0.034 / 2.0;
-
-#ifdef DEBUG
-				std::cout << "Face Sensor dist:" <<  dist << " cm" << std::endl;
-#endif
-
-				// 상태 변경 여부 감지
-				if (dist < 50.0 && !personPreviouslyDetected) {
-						emit personDetected();
-						personPreviouslyDetected = true;
-				} else if (dist >= 50.0 && personPreviouslyDetected) {
-						emit personLeft();
-						personPreviouslyDetected = false;
-				}
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        // 4) 거리 계산(+ 유효 범위 클램프)
+        unsigned elapsed = end - start;              // wrap-safe
+        float dist = (elapsed * 0.0343f) / 2.0f;     // cm
+        if (dist < 2.0f || dist > 400.0f) {          // HC-SR04 대략 범위
+            latestDist_.store(-1.0f, std::memory_order_release);
+            continue;
+        }
+        latestDist_.store(dist, std::memory_order_release);
     }
 }
 
-void FaceSensorService::stop()
-{
-		isRunning = false;
-}
+

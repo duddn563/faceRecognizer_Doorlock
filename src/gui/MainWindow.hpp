@@ -76,7 +76,9 @@ public:
 		void PresentDoorOpen(const QString& msg);
 		void PresentDoorClose(const QString& msg);
 		void PresentRetrainRecog(const QString& msg);
-        
+
+public slots:
+	void onPreviewReady(const QImage& img);
 
 signals:
 		// === Outgoing events to Presenter === 
@@ -93,10 +95,6 @@ signals:
 	void doorClose();
 	void retrainRecog();
 
-protected:
-		// === Qt Override (lifecycle hooks) ===
-		void resizeEvent(QResizeEvent *event) override;
-		void showEvent(QShowEvent *event) override;
 
 private:
 		// == Setup helpers ===
@@ -104,8 +102,6 @@ private:
 		void setupControlTab();
 		void applyStyles();
 		void setupButtonLayout();
-		void setupUnlockOverlayLabel();	
-		void updateUnlockOverlay();
 		void showErrorMessage(const QString& title, const QString& message);
 		void closeEvent(QCloseEvent* e);
 		QList<QPushButton*> buttonList() const;
@@ -117,7 +113,6 @@ private:
 		// === Internal state/refs === 
 		QTimer* timer = nullptr;
 		MainPresenter* mainPresenter;
-		QLabel *unlockOverlayLabel;
 		QPixmap standbyOrig_;
 		bool firstFrameShown_ = false;
 

@@ -46,23 +46,20 @@ bool ReedSensor::init()
 		return -1;
 	}
 
+	pinMode(REED_PIN, INPUT); // 입력모드로 설정
 	pinMode(REED_PIN, PUD_UP);
-
 	qDebug() << "[HW] Reed init OK";
 	return 1;
 }
 
-#define TC_ALWAYS_TRUE 
 bool ReedSensor::isClosed() const 
 {
-	int val = digitalRead(REED_PIN);
-#ifndef TC_ALWAYS_TRUE
-	if (val == LOW) 
+	int st = digitalRead(REED_PIN);
+	//qDebug() << "[isClosed] statu=" << st;
+	if (st == LOW) 
 		return true; 
 	else 
 		return false;
-#endif
-	return true;
 }
 #endif
 

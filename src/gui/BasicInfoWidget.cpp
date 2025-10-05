@@ -8,6 +8,7 @@
 #include <QStorageInfo>
 #include <QProcess>
 #include <QHBoxLayout>
+#include <QRegularExpression>
 
 static QString runCmd(const QString& cmd, const QStringList& args = {}) {
     QProcess p;
@@ -120,9 +121,9 @@ void BasicInfoWidget::refresh()
     qulonglong memTotalKB = 0, memAvailKB = 0;
     for (const auto& line : meminfo.split('\n')) {
         if (line.startsWith("MemTotal:")) {
-            memTotalKB = line.split(QRegExp("\\s+")).value(1).toULongLong();
+            memTotalKB = line.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts).value(1).toULongLong();
         } else if (line.startsWith("MemAvailable:")) {
-            memAvailKB = line.split(QRegExp("\\s+")).value(1).toULongLong();
+            memAvailKB = line.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts).value(1).toULongLong();
         }
     }
     const qulonglong memUsedKB = (memTotalKB > memAvailKB) ? (memTotalKB - memAvailKB) : 0;

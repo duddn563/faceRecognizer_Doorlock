@@ -6,6 +6,7 @@
 #include <QVBoxLayout>
 #include <QFormLayout>
 #include <QHeaderView>
+#include <QRegularExpression>
 
 static QString trimEachLine(const QString& s) {
     QStringList out;
@@ -87,7 +88,7 @@ QStringList NetworkInfoWidget::queryDnsServers() {
     for (const QString& ln : text.split('\n')) {
         const QString s = ln.trimmed();
         if (s.startsWith("nameserver")) {
-            const QStringList parts = s.split(QRegExp("\\s+"));
+            const QStringList parts = s.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
             if (parts.size() >= 2) dns << parts[1];
         }
     }
@@ -102,7 +103,7 @@ QStringList NetworkInfoWidget::queryIpAddrs(const QString& ifname, bool v6) {
     const QString out = runCmd("ip", {"-o", fam, "addr", "show", "dev", ifname});
     // 한 줄 예: "2: eth0    inet 192.168.0.20/24 brd 192.168.0.255 scope global dynamic eth0"
     for (const QString& ln : out.split('\n', Qt::SkipEmptyParts)) {
-        const QStringList tok = ln.split(QRegExp("\\s+"));
+        const QStringList tok = ln.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
         int idx = tok.indexOf(v6 ? "inet6" : "inet");
         if (idx >= 0 && idx+1 < tok.size()) addrs << tok[idx+1]; // "IP/프리픽스"
     }

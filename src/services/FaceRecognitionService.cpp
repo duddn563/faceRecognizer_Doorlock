@@ -27,29 +27,23 @@
 #include "hw/DoorlockController.hpp"
 #include "hw/ReedSensor.hpp"
 #include "hw/UnlockUntilReed.hpp"
+#include "hw/UltrasonicSensor.hpp"
 #include "fsm/fsm_logging.hpp"
 #include "include/common_path.hpp"
 #include "log/SystemLogger.hpp"
 #include "services/QSqliteService.hpp"
 
+
 // #define DEBUG 
-// ===== 하드웨어 핀/옵션 =====
-static constexpr const char* GPIOCHIP = "/dev/gpiochip0";
-static constexpr unsigned RELAY_GPIO  = 17;   // 릴레이 IN
-static constexpr bool     RELAY_ACTIVE_HIGH = false; // LOW=ON 릴레이면 false
-
-static constexpr unsigned REED_GPIO   = 0;   // 리드 스위치 DOUT
-static constexpr bool     REED_ACTIVE_HIGH = true;   // 자석 감지 시 HIGH면 true, LOW면 false (현장 확인 필요)
-
 // ===== 컨트롤러/매니저(정적) =====
-//static DoorlockController    g_door(GPIOCHIP, RELAY_GPIO, RELAY_ACTIVE_HIGH);
 static DoorlockController      g_door;
-//static ReedSensor            g_reed(GPIOCHIP, REED_GPIO, REED_ACTIVE_HIGH);
 static ReedSensor			   g_reed;
+static UltrasonicSensor		   g_uls;
+
 static UnlockUntilReed::Opt    g_unlockOpt{/*pollMs*/50, /*hits*/6, /*openTimeoutMs*/5000, /*maxUnlockMs*/10000};
 static UnlockUntilReed         g_unlockMgr(&g_door, &g_reed, g_unlockOpt);
 
-using json = nlohmann::json;
+
 namespace fs = std::filesystem;
 
 
@@ -59,20 +53,20 @@ struct Thresh { float T_in=0.84f, T_out=0.80f, DELTA=0.08f; float z_thr=2.5f; };
 struct Vote  { int M=5, N=3; };
 
 class Voter {
-    struct Item{ int idx; float s; };
-    std::deque<Item> q_; Vote v_;
-public:
-    explicit Voter(Vote v):v_(v){}
-    bool feed(int idx, float s, float T_out){
-        q_.push_back({idx,s});
-        while((int)q_.size()>v_.M) q_.pop_front();
-        int c=0; for(auto& it:q_) if(it.idx==idx && it.s>=T_out) ++c;
-        return (c>=v_.N);
-    }
+	struct Item{ int idx; float s; };
+	std::deque<Item> q_; Vote v_;
+	public:
+	explicit Voter(Vote v):v_(v){}
+	bool feed(int idx, float s, float T_out){
+		q_.push_back({idx,s});
+		while((int)q_.size()>v_.M) q_.pop_front();
+		int c=0; for(auto& it:q_) if(it.idx==idx && it.s>=T_out) ++c;
+		return (c>=v_.N);
+	}
 };
-													
+
 // === helpers === 
-													// 로컬 헬퍼: L2 정규화(0 division 방지 포함)
+// 로컬 헬퍼: L2 정규화(0 division 방지 포함)
 static inline void l2normInPlace(std::vector<float>& v) {
 	double s = 0.0;
 	for (float x : v) s += double(x) * x;
@@ -101,6 +95,20 @@ FaceRecognitionService::FaceRecognitionService(QObject* parent, FaceRecognitionP
 	// 4) FSM 시작
 	fsm_.start(RecognitionState::IDLE);
 
+	// 5) Detect init
+	std::string detect_model_name = std::string(YNMODEL_PATH) + YNMODEL;
+	detector_.init(detect_model_name, 
+			/*inputW*/320, /*inputH*/240, 
+			/*scoreThr*/0.6f, /*nmsThr*/0.3f, /*topK*/500);
+
+	// 6) Decision init
+	decision_.setParams(DecisionParams {
+			.acceptSim				= 0.90f,
+			.strongAcceptSim	= 0.96,
+			.minTop2Gap				= 0.04,
+			.minBestOnly			= 0.40f
+			});
+
 	cv::setUseOptimized(true);
 	cv::setNumThreads(2);
 }
@@ -110,115 +118,27 @@ void FaceRecognitionService::setPresenter(FaceRecognitionPresenter* _presenter)
 	presenter = _presenter;
 }
 
-// === YuNet helpers ====
-// Laplacian variance 기반 블러 판정
-
-// 등록/인식 분리 게이트
-
-bool FaceRecognitionService:: passQualityForRecog(const cv::Rect& box, const cv::Mat& face) 
+bool FaceRecognitionService::passQualityForRecog(const cv::Rect& box, const cv::Mat& face)
 {
-	if (face.empty() || face.cols < 64 || face.rows < 64) {
-		qDebug() << "[Qual:FAIL] empty/too small crop"
-			<< "crop=" << face.cols << "x" << face.rows;
-		return false;
-	}
-
-	const int     kMinBoxW      = 120;
-	const int     kMinBoxH      = 120;
-	const double  kBlurThr      = 60.0;
-	const double  kMinMean      = 50.0;
-	const double  kMaxMean      = 205.0;
-	const double  kMinStd       = 18.0;
-	const double  kClipRatioMax = 0.25;
-
-	if (box.width < kMinBoxW || box.height < kMinBoxH) {
-		qDebug() << "[Qual:FAIL] small box"
-			<< "box=" << box.width << "x" << box.height
-			<< "need>=" << kMinBoxW << "x" << kMinBoxH;
-		return false;
-	}
-
-	cv::Mat gray;
-	if (face.channels() == 3) cv::cvtColor(face, gray, cv::COLOR_BGR2GRAY);
-	else if (face.channels() == 4) cv::cvtColor(face, gray, cv::COLOR_BGRA2GRAY);
-	else gray = face;
-
-	cv::Mat lap; cv::Laplacian(gray, lap, CV_64F);
-	cv::Scalar mu, sigma;
-	cv::meanStdDev(lap, mu, sigma);
-	const double lapVar = sigma[0]*sigma[0];
-	//qDebug() << "[passQualityForRecog] Blur check: variance=" << lapVar << "thr=" << kBlurThr;
-	if (lapVar < kBlurThr) {
-		qDebug() << "[Qual:FAIL] too blur var=" << lapVar << "thr=" << kBlurThr;
-		return false;
-	}
-
-	cv::Scalar mean, stddev;
-	cv::meanStdDev(gray, mean, stddev);
-	const double m = mean[0];
-	const double s = stddev[0];
-	if (m < kMinMean || m > kMaxMean) {
-		qDebug() << "[Qual:FAIL] bad exposure mean=" << m
-			<< "range=" << kMinMean << "~" << kMaxMean;
-		return false;
-	}
-	if (s < kMinStd) {
-		qDebug() << "[Qual:FAIL] low contrast std=" << s << "need>=" << kMinStd;
-		return false;
-	}
-
-	int histSize = 256; float range[] = {0,256}; const float* ranges = { range };
-	cv::Mat hist;
-	cv::calcHist(&gray, 1, 0, cv::Mat(), hist, 1, &histSize, &ranges, true, false);
-	const double total = (double)gray.total();
-	const double clip0   = hist.at<float>(0)   / total;
-	const double clip255 = hist.at<float>(255) / total;
-	if (clip0 > kClipRatioMax || clip255 > kClipRatioMax) {
-		qDebug() << "[Qual:FAIL] clipping"
-			<< "clip0=" << clip0 << "clip255=" << clip255
-			<< "limit=" << kClipRatioMax;
-		return false;
-	}
-
-	{
-		int cx = std::max(0, std::min(face.cols/2 - 32, face.cols - 64));
-		int cy = std::max(0, std::min(face.rows/2 - 32, face.rows - 64));
-		cv::Rect cR(cx, cy, 64, 64);
-		cv::Mat center = gray(cR);
-		cv::Scalar cm, cs; cv::meanStdDev(center, cm, cs);
-		if (cs[0] < (kMinStd - 2)) {
-			qDebug() << "[Qual:FAIL] low center contrast std=" << cs[0]
-				<< "need>=" << (kMinStd - 2);
-			return false;
-		}
-	}
-
-#ifdef DEBUG
-	qDebug() << "[Qual:PASS]"
-		<< "box=" << box.width << "x" << box.height
-		<< "mean=" << m << "std=" << s << "var=" << lapVar;
-#endif
-	return true;
+	return liveness_.passQualityForRecog(box, face);
 }
 
 void FaceRecognitionService::init()
 {
 	qDebug() << "[init] Face Recognition Service initiallize!!";
-	openCamera();
+	//openCamera();
 	if (!this->initializeDnnOnly()) {
 		SystemLogger::error("DNN", "DNN-only init failed (YuNet/MobileFaceNet)");
 		return;
 	}
 
+	qDebug() << "[init] g_door or g_reed init!!";
 	// ===== 여기 추가: 도어락/리드스위치 초기화 =====
-	if (!g_door.init())  { qWarning() << "[HW] Door init failed"; }
-	if (!g_reed.init())  { qWarning() << "[HW] Reed init failed"; }
+	if (!g_door.init())  { qWarning() << "[init] Door init failed"; }
+	if (!g_reed.init())  { qWarning() << "[init] Reed init failed"; }
 	// g_unlockMgr는 위에서 g_door/g_reed 참조만 하므로 별도 init 불필요
-
-
-	QTimer *timer = new QTimer(this);
-	connect(timer, &QTimer::timeout, this, &FaceRecognitionService::procFrame);
-	timer->start(30);
+	qDebug() << "[init] g_door or g_reed init complete!!";
+	g_uls.start();
 }
 
 bool FaceRecognitionService::idExists(int id) const
@@ -255,73 +175,38 @@ int FaceRecognitionService::nextSequentialId()
 	return id;
 }
 
-bool FaceRecognitionService::loadDetector()
+bool FaceRecognitionService::ensureEmbFile()
 {
-	try {
-		const QString yuModelQ = QStringLiteral(YNMODEL_PATH) + QStringLiteral(YNMODEL);
-		const std::string model = yuModelQ.toStdString();
+	if (embeddingsPath_.isEmpty()) return false;
+	if (QFile::exists(embeddingsPath_)) return false;
 
-		QFileInfo fi(yuModelQ);
-		if (!fi.exists() || !fi.isFile()) {
-			qWarning() << "[loadDetector] YuNet file not found:" << yuModelQ
-				<< " size=" << fi.size();
-			return false;
-		}
+	int dim = 128;
 
-		if (!fi.isReadable()) {
-			qWarning() << "[loadDetector] YuNet file nost readable (perm):" << yuModelQ;
-			return false;
-		}
-		if (fi.size() <= 1024) {
-			qWarning() << "[loadDetector] YuNet file too small (" << fi.size() << "bytes):" << yuModelQ;
-			return false;
-		}
+	QJsonObject root;
+	root["version"] = 1;
+	root["dim"]			= dim;					// TODO: 실제 임베딩 파일에서 DIM을 받아오기
+	root["count"]		= 0;
+	root["items"]		= QJsonArray{};
 
-		yunet_ = cv::FaceDetectorYN::create(
-				model, "", cv::Size(320, 320),
-				/*scoreThreshold=*/0.7f,
-				/*nmsThreshold=*/0.3f,
-				/*topK=*/1000,
-				cv::dnn::DNN_BACKEND_OPENCV,
-				cv::dnn::DNN_TARGET_CPU
-				);
+	const QByteArray out = QJsonDocument(root).toJson(QJsonDocument::Indented);
 
-		if (yunet_.empty()) {
-			qWarning() << "[loadDetector] YuNet create failed. path=" << yuModelQ
-				<< " size=" << fi.size();
-			return false;
-		}
-
-		// Warnming up
-		{
-			cv::Mat dummy(320, 320, CV_8UC3, cv::Scalar(0,0,0));	
-			cv::Mat out;
-			try {
-				yunet_->setInputSize(dummy.size());
-				yunet_->detect(dummy, out);
-				qDebug() << "[loadDetector] warmup dectet ok out shape="
-					<< out.rows << "x" << out.cols;
-			} catch (const cv::Exception& e) {
-				qWarning() << "[loadDetector] warnmup detect failed:" << e.what()
-					<< " path=" << yuModelQ;
-				yunet_.release();
-				return false;
-			}
-		}
-
-		qInfo() << "[loadDetector] YuNet detect loaded:" << yuModelQ
-			<< " (" << fi.size() << " bytes)";
-		return true;
-		if (yunet_.empty()) {
-			qWarning() << "[loadDetector] YuNet create failed";
-			return false;
-		}
-		qInfo() << "[loadDetector] Yunet detector is loaded(" << yuModelQ << ")";
-		return true;
-	} catch (const cv::Exception& e) {
-		qWarning() << "[loadDetector] YuNet load error:" << e.what();
+	QFile f(embeddingsPath_);
+	if (!f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+		qWarning() << "[ensureEmbFile] open failed:" << embeddingsPath_ << f.errorString();
 		return false;
 	}
+
+	if (f.write(out) != out.size()) {
+		qWarning() << "[ensureEmbFile] write failed:" << embeddingsPath_;
+		f.close();
+		QFile::remove(embeddingsPath_);
+		return false;
+	}
+	f.close();
+
+	qInfo() << "[ensureEmbFile] created empty file:" << embeddingsPath_
+		<< "dim=" << dim;
+	return true;
 }
 
 bool FaceRecognitionService::loadRecognizer()
@@ -392,13 +277,9 @@ bool FaceRecognitionService::loadEmbJsonFile()
 {
 	bool rc = false;
 	const QString embPath = QStringLiteral(EMBEDDING_JSON_PATH) + QStringLiteral(EMBEDDING_JSON);
+	embeddingsPath_ = embPath.toUtf8().constData();
 	if (!QFile::exists(embPath)) {
-		qDebug() << "[loadEmbeddingJsonFile] Embedding json file is not found(" << embPath << ")";
-		return rc;
-	}
-	else {
-		rc = true;
-		embeddingsPath_ = embPath.toUtf8().constData();
+		ensureEmbFile();
 	}
 
 
@@ -411,7 +292,7 @@ bool FaceRecognitionService::loadEmbJsonFile()
 		rc = false;
 	}
 	else {
-		qInfo() << "[DNN] Loaded embeddings:" << (int)gallery_.size()
+		qInfo() << "[loadEmbJsonFile] Loaded embeddings:" << (int)gallery_.size()
 			<< "users from" << embPath;
 		rc = true;
 	}
@@ -429,8 +310,6 @@ bool FaceRecognitionService::initializeDnnOnly()
 {
 	int rc = 0;
 	bool rv = false;
-
-	if (!loadDetector()) rc--;
 
 	if (!loadRecognizer()) rc--;
 
@@ -480,126 +359,6 @@ cv::Rect FaceRecognitionService::expandRect(const cv::Rect& r, float scale, cons
 	// 좌상단(x1, y1)과 우하단(x2, y2) 좌표로 새로운 확장된 사각형 반환
 	return cv::Rect(cv::Point(x1,y1), cv::Point(x2,y2));
 }
-
-// === 서비스 중단 ===
-void FaceRecognitionService::stop()
-{
-	std::cout << "Face Recognition Service stop" << std::endl;
-
-	// 이미 중단 됬는지 확인	
-	if (!isRunning) return;
-
-	// 중단 확정 
-	isRunning = false;
-
-	// 카메라 닫기 
-	if (cap.isOpened()) {
-		cap.release();
-	}
-
-	// 현재 상태 아무것도 않함으로 변경
-	currentState = RecognitionState::IDLE;
-}
-
-// === 카메라 열기 (V4L2 전용) ===
-void FaceRecognitionService::openCamera()
-{
-    qDebug() << "[FaceRecognitionService] openCamera is called";
-
-    try {
-        // 1) V4L2: 경로(/dev/video1)로 직접 오픈
-        if (!cap.open("/dev/video1", cv::CAP_V4L2)) {
-            qWarning() << "[openCamera] V4L2 open by path failed, try index 1";
-            cap.open(1, cv::CAP_V4L2);
-        }
-
-        if (!cap.isOpened()) {
-            std::cout << "[FRS] Failed to camera open!!" << std::endl;
-            SystemLogger::error("FRS", "Failed to camera open.");
-            return;
-        }
-
-        // 2) 장치 설정 (우선 MJPG)
-        cap.set(cv::CAP_PROP_FRAME_WIDTH,  640);
-        cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
-        cap.set(cv::CAP_PROP_FPS,          30);
-        cap.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M','J','P','G'));
-
-        // 실제 적용된 값 확인
-        int fourcc = static_cast<int>(cap.get(cv::CAP_PROP_FOURCC));
-        double w   = cap.get(cv::CAP_PROP_FRAME_WIDTH);
-        double h   = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
-        double fps = cap.get(cv::CAP_PROP_FPS);
-        qInfo() << "[Cam] applied fourcc=" << fourcc << " w=" << w << " h=" << h << " fps=" << fps;
-
-        // 3) 적용 실패 시(YUYV로 재시도)
-        if (fps <= 0.0 || w != 640 || h != 480) {
-            qWarning() << "[Cam] MJPG config not honored. Retrying with YUYV...";
-            cap.release();
-
-            if (!cap.open("/dev/video1", cv::CAP_V4L2)) {
-                qWarning() << "[openCamera] V4L2 reopen by path failed, try index 1";
-                cap.open(1, cv::CAP_V4L2);
-            }
-            if (!cap.isOpened()) {
-                std::cout << "[FRS] Failed to camera open after retry!!" << std::endl;
-                SystemLogger::error("FRS", "Failed to camera open after retry.");
-                return;
-            }
-
-            cap.set(cv::CAP_PROP_FRAME_WIDTH,  640);
-            cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
-            cap.set(cv::CAP_PROP_FPS,          30);
-            cap.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('Y','U','Y','V'));
-
-            fourcc = static_cast<int>(cap.get(cv::CAP_PROP_FOURCC));
-            w      = cap.get(cv::CAP_PROP_FRAME_WIDTH);
-            h      = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
-            fps    = cap.get(cv::CAP_PROP_FPS);
-            qInfo() << "[Cam:YUYV] applied fourcc=" << fourcc << " w=" << w << " h=" << h << " fps=" << fps;
-        }
-
-        // 4) 워밍업 프레임 드랍
-        for (int i = 0; i < 15; ++i) {
-            cv::Mat tmp; cap >> tmp;
-#ifdef QT_CORE_LIB
-            QThread::msleep(10);
-#else
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-#endif
-        }
-
-        std::cout << "[FRS] Camera be opend!!" << std::endl;
-        SystemLogger::info("FRS", "Success to camera open.");
-
-    } catch (const cv::Exception& e) {
-        std::cout << "[FRS] OpenCV exception: " << e.what() << std::endl;
-    }
-}
-
-void FaceRecognitionService::camRestart()
-{
-	qDebug() << "[FRS] Camera is restart!";
-	QString msg;
-	try {
-		cap.open(CAM_NUM);
-		if (!cap.isOpened()) {
-			SystemLogger::error("FRS", "Failed to camera restart.");
-			msg = QStringLiteral("카메라 열기 실패");
-			presenter->presentCamRestart(msg);
-			return;
-		}
-		std::cout << "[FRS] Camera restart!!" << std::endl;
-		SystemLogger::info("FRS", "Success to camera restart.");
-	} catch(const cv::Exception& e) {
-		std::cout << "[FRS] OpenCV exception: " << e.what() << std::endl;
-		msg = QStringLiteral("카메라 열기 실패(Qt error)");
-		presenter->presentCamRestart(msg);
-	}
-	msg = QStringLiteral("카메라 열기 성공");
-	presenter->presentCamRestart(msg);
-}
-
 
 // ===  취소 플래그 OFF === 
 void FaceRecognitionService::cancelRegistering() 
@@ -664,313 +423,145 @@ QString FaceRecognitionService::getUserName() const { return registeringUserName
 
 // === 임베딩 json파일에 저장===
 // gallery_ -> 파일 (안전하게 임시 파일에 쓴 뒤 rename) 
-bool FaceRecognitionService::saveEmbeddingsToFile()
+bool FaceRecognitionService::saveEmbeddingsToFile() const
 {
-	try {
-		// 1) 스키마 메타 포함 JSON구성
-		nlohmann::json root;
-		root["version"] = 1;		// 스키마 버전
-		root["dim"] 	= gallery_.empty() ? 0 : int(gallery_.front().embedding.size());
-		root["count"] 	= int(gallery_.size());
-		root["items"]	= nlohmann::json::array();
+	if (embeddingsPath_.isEmpty()) return false;
 
-		for (const auto& u : gallery_) {
-			nlohmann::json o = nlohmann::json::object();
-			o["id"]			= u.id;
-			o["name"]		= std::string(u.name.toUtf8().constData());		// UTF-8보장
-			o["embedding"]	= u.embedding;		// 이미 L2 정규화된 상태를 저장(권장)
-			root["items"].push_back(std::move(o));
-		}
+	// snapshot
+	std::vector<UserEmbedding> snapshot;
+	{ QMutexLocker lk(&embMutex_); snapshot = gallery_; }
 
-		// 2) 경로 보장(디렉토리 없으면 생성)
-		const QString qpath = QString::fromStdString(embeddingsPath_);
-		const QFileInfo fi(qpath);
-		if (!fi.absoluteDir().exists()) {
-			QDir().mkpath(fi.absolutePath());
-		}
+	// dim
+	int dim = 128;				// TODO: 실제 임베더에 DIM 구하는 함수 구현
+	if (dnnEmbedder_) {
+		//int d = dnnEmbedder_->embeddingDim();
+		//if (d > 0) dim = d;
+	}
 
-		// 3) 원자적 저장: QSaveFile
-		// 		- 임시 파일에 씀 -> fsync -> commit() 에서 rename
-		QSaveFile file(qpath);
-		if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-			qWarning() << "[DNN] saveEmbeddingsToFile: open failed" << qpath << file.errorString();
-			return false;
-		}
+	QJsonArray items;
+	for (const auto& ue : snapshot) {
+		QJsonObject o;
+		o["id"] = ue.id;
+		o["name"] = ue.name;
+		QJsonArray emb;
+		for (float v : ue.embedding) emb.append(double(v));
+		o["embedding"] = emb;
+		items.append(o);
+	}
 
-		const QByteArray bytes = QByteArray::fromStdString(root.dump(2)); // pretty print
-		const qint64 written = file.write(bytes);
-		if (written != bytes.size()) {
-			qWarning() << "[DNN] saveEmbeddingsToFile: short write" << written << "/" << bytes.size();
-			file.cancelWriting();
-			return false;
-		}
+	QJsonObject root;
+	root["count"] = int(items.size());
+	root["dim"] = dim;
+	root["items"] = items;
+	root["version"] = 1;
 
-		// 4) commit()이 성공하면 원자적으로 교체
-		if (!file.commit()) {
-			qWarning() << "[DNN] saveEmbeddingsToFile: commit failed" << qpath << file.errorString();
-			return false;
-		}
+	const QByteArray out = QJsonDocument(root).toJson(QJsonDocument::Indented);
+	const QString tmp = embeddingsPath_ + ".tmp";
+	const QString bak = embeddingsPath_ + ".bak";
 
-
-		qInfo() << "[DNN] Saved embeddings:" << root["count"].get<int>() 
-			<< "users, dim=" << root["dim"].get<int>()
-			<< "->" << qpath;
-		return true;
-
-	} catch (const std::exception& e) { 
-		qWarning() << "[DNN] saveEmbeddingsToFile error:" << e.what();
-		return false; 
-	} catch (...) {
-		qWarning() << "[DNN] saveEmbeddingsToFile unknown error";
+	QFile tf(tmp);
+	if (!tf.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+		qWarning() << "[Embedding] temp open failed:" << tmp << "err=" << tf.errorString();
 		return false;
 	}
+	if (tf.write(out) != out.size()) { tf.close(); tf.remove(); return false; }
+	tf.close();
+
+	QFile::remove(bak);
+	if (QFile::exists(embeddingsPath_)) QFile::copy(embeddingsPath_, bak);
+	QFile::remove(embeddingsPath_);
+	if (!QFile::rename(tmp, embeddingsPath_)) {
+		qWarning() << "[Embedding] rename tmp->final failed:" << tmp;
+		return false;
+	}
+	qInfo() << "[Embedding] saved users=" << items.size() << "to" << embeddingsPath_;
+	return true;
 }
 
+int FaceRecognitionService::appendUserEmbedding(const QString& name, const std::vector<float>& emb)
+{
+	if (emb.empty()) return -1;
 
-// 로컬 헬퍼: JSON array -> std::vector<float>
-static inline bool jsonToFloatVec(const nlohmann::json& arr, std::vector<float>& out) {
-	if (!arr.is_array() || arr.empty()) return false;
-	out.clear(); out.reserve(arr.size());
-	try {
-		for (const auto& v : arr) {
-			// 숫자면 double/float 상관없이 float로 캐스팅
-			if (!v.is_number()) return false;
-			out.push_back(static_cast<float>(v.get<double>()));
-		}
-		return true;
-	} catch (...) { return false; }
+	// 새 id: 현재 갤러리 id 최대값+1
+	int newId = 0;
+	{
+		QMutexLocker lk(&embMutex_);
+		for (const auto& g : gallery_) newId = std::max(newId, g.id + 1);
+		UserEmbedding ue;
+		ue.id = newId;
+		ue.name = name;
+		ue.embedding = emb;
+		gallery_.push_back(std::move(ue));
+	}
+	if (!saveEmbeddingsToFile()) {
+		qWarning() << "[Embedding] save failed after append";
+	}
+	return newId;
 }
 
 bool FaceRecognitionService::loadEmbeddingsFromFile()
 {
-	try {
-		const QString qpath = QString::fromStdString(embeddingsPath_);
-		gallery_.clear(); 
-		QFile f(qpath);
-		if (!f.exists()) {
-			qWarning() << "[DNN] loadEmbeddingsFromFile: file not found ->" << qpath;
-			return false;
-		}
-		if (!f.open(QIODevice::ReadOnly)) {
-			qWarning() << "[DNN] loadEmbeddingsFromFile: open failed ->" << qpath << f.errorString();
-			return false;
-		}
-		const QByteArray bytes = f.readAll();
-		f.close();
+	gallery_.clear();
 
-		nlohmann::json root = nlohmann::json::parse(bytes.constData(), bytes.constData() + bytes.size());
-
-		std::vector<UserEmbedding> tmp; // 임시 컨테이너에 먼저 채운 뒤 교체(부분 로드 방지)
-		tmp.reserve(256);
-
-		int dim = 0;
-		auto pushItem = [&](int id, const QString& name, const nlohmann::json& embJ) -> bool {
-			UserEmbedding u;
-			u.id = id;
-			u.name = name;
-			if (!jsonToFloatVec(embJ, u.embedding)) return false;
-			l2normInPlace(u.embedding);
-
-			// dim 일관성 체크
-			if (dim == 0) dim = int(u.embedding.size());
-			else if (int(u.embedding.size()) != dim) {
-				qWarning() << "[DNN] load: dimension mismatch for" << name
-					<< "expected" << dim << "got" << int(u.embedding.size());
-				return false;
-			}
-			u.proto = cv::Mat(1, dim, CV_32F, u.embedding.data()).clone();
-
-			// L2 정규화(로드 시 1회) - 저장 시에도 정규화했더라도 한 번 더 걸어도 무해
-			l2normInPlace(u.embedding);
-			tmp.push_back(std::move(u));
-			return true;
-		};
-
-		// ----- 신 스키마 -----
-		if (root.is_object() && root.contains("items") && root["items"].is_array()) {
-			const int ver   = root.value("version", 1);
-			if (ver != 1) {
-				qWarning() << "[loadEmbeddingsFromFile] Unsupported schema version:" << ver;
-				return false;
-			}
-
-			const int count = root.value("count", 0);
-			const int sdim  = root.value("dim", 0);
-
-			for (const auto& o : root["items"]) {
-				if (!o.is_object()) continue;
-				// id/name/embedding 필수
-				if (!o.contains("id") || !o.contains("name") || !o.contains("embedding")) continue;
-
-				const int id = o["id"].get<int>();
-				const QString name = QString::fromStdString(o["name"].get<std::string>());
-
-				if (!pushItem(id, name, o["embedding"])) {
-					qWarning() << "[DNN] load: skip item (invalid embedding)" << name;
-					continue;
-				}
-			}
-
-			if (sdim && dim && sdim != dim) {
-				qWarning() << "[DNN] load: header dim mismatch, header=" << sdim << "actual=" << dim;
-			}
-			if (count && count != (int)tmp.size()) {
-				qInfo() << "[DNN] load: header count" << count << "!= actual" << (int)tmp.size();
-			}
-			qInfo() << "[DNN] Loaded (schema v" << ver << ")"
-				<< (int)tmp.size() << "users, dim=" << dim;
-		}
-		else {
-			qWarning() << "[DNN] loadEmbeddingsFromFile: invalid schema root";
-			return false;
-		}
-
-		// 간단한 중복/무결성 검사(선택)
-		{
-			QSet<int> seenId;
-			QSet<QString> seenName;
-			for (const auto& u : tmp) {
-				if (seenId.contains(u.id)) {
-					qWarning() << "[DNN] duplicate id:" << u.id;
-				}
-				if (seenName.contains(u.name)) {
-					qWarning() << "[DNN] duplicate name:" << u.name;
-				}
-				seenId.insert(u.id);
-				seenName.insert(u.name);
-			}
-		}
-
-		// 최종 교체(원자성: 전체 성공 시점에만 반영)
-		gallery_.swap(tmp);
-		qDebug() << "[FRS] gallery loaded +  normalized,, users=" << int(gallery_.size())
-			<< "dim=" << (gallery_.empty() ? 0 : int(gallery_.front().embedding.size()));
-
-		return !gallery_.empty();
-
-	} catch (const std::exception& e) {
-		qWarning() << "[DNN] loadEmbeddingsFromFile error:" << e.what();
-		return false;
-	} catch (...) {
-		qWarning() << "[DNN] loadEmbeddingsFromFile unknown error";
+	QFile f(embeddingsPath_);
+	if (!f.exists()) {
+		qWarning() << "[loadEmbeddingsFromFile] file not found ->" << embeddingsPath_;
 		return false;
 	}
+	if (!f.open(QIODevice::ReadOnly)) {
+		qWarning() << "[loadEmbeddingsFromFile]: open failed ->" << embeddingsPath_ << f.errorString();
+		return false;
+	}
+
+	const QJsonDocument jd = QJsonDocument::fromJson(f.readAll());
+	f.close();
+	if (!jd.isObject()) return false;
+
+	const auto root		= jd.object();
+	const auto items  = root.value("items").toArray();
+
+	std::vector<UserEmbedding> temp;
+	temp.reserve(items.size());
+
+	for (const auto& v : items) {
+		const auto o = v.toObject();
+		UserEmbedding ue;
+		ue.id		= o.value("id").toInt(-1);
+		ue.name = o.value("name").toString();
+
+		const auto embArr = o.value("embedding").toArray();
+		ue.embedding.reserve(embArr.size());
+		for (const auto& ev : embArr) ue.embedding.push_back(float(ev.toDouble()));
+
+		if (!ue.embedding.empty()) {
+			ue.proto = cv::Mat(1, int(ue.embedding.size()), CV_32F, ue.embedding.data()).clone();
+		}
+		if (ue.id >= 0) temp.push_back(std::move(ue));
+	}
+
+	{ QMutexLocker lk(&embMutex_); gallery_ = std::move(temp); }
+	qInfo() << "[loadEmbeddingsFromFile] " << int(gallery_.size()) << "users from" << embeddingsPath_;
+	return true;
 }
 
 MatchResult FaceRecognitionService::bestMatch(const std::vector<float>& emb) const
 {
-	MatchResult r;
-
-	if (gallery_.empty()) {
-		qWarning() << "[FRS] bestMatch: gallery_ is empty";
-		return r;
-	}
-	if (emb.empty()) {
-		qWarning() << "[FRS] bestMatch: input embedding is empty";
-		return r;
-	}
-
-	const int d_in = static_cast<int>(emb.size());
-	int mismatch = 0;
-
-	for (const auto& u : gallery_) {
-		const int d_g = static_cast<int>(u.embedding.size());
-		if (d_g != d_in) {
-			++mismatch;
-			continue; // 차원 다른 건 스킵
-		}
-
-
-		float s = Embedder::cosine(emb, u.embedding); // L2 정규화 가정 → dot=cosine
-		if (s > r.sim) {
-			r.sim  = s;
-			r.id   = u.id;
-			r.name = u.name;
-		}
-	}
-
-	if (mismatch > 0) {
-		qWarning() << "[FRS] bestMatch: dim mismatch count =" << mismatch
-			<< " input_dim=" << d_in;
-	}
-
-	// 디버깅: 최고 유사도 찍기
-	qDebug() << "[FRS] bestMatch result:" << r.name << "sim=" << r.sim;
-
-	return r;
+	return FaceMatcher::bestMatch(emb, gallery_);
 }
 
-MatchTop2 FaceRecognitionService::bestMatchTop2(const std::vector<float>& emb) const {
-    MatchTop2 r;
-    if (gallery_.empty() || emb.empty()) return r;
-
-    const int dim = int(emb.size());
-    cv::Mat q(1, dim, CV_32F, const_cast<float*>(emb.data()));
-    q = q.clone(); // 헤더 공유 차단
-    double nq = cv::norm(q, cv::NORM_L2);
-    if (nq <= 0.0) return r;
-    q /= (nq + 1e-9); // 쿼리 L2=1로 보정
-
-    int mismatch = 0;
-    for (int i = 0; i < (int)gallery_.size(); ++i) {
-        const auto& u = gallery_[i];
-
-        // 차원 체크
-        if ((int)u.embedding.size() != dim) { ++mismatch; continue; }
-
-        // proto 존재/타입 가드
-        if (u.proto.empty() || u.proto.type() != CV_32F || u.proto.total() != (size_t)dim) {
-            qWarning() << "[FRS] proto invalid at i=" << i << " empty/type/size";
-            continue;
-        }
-
-        // === DEBUG & 안전 검사 (원인 추적용) ===
-        if (q.data == u.proto.data) {
-            qWarning() << "[bestMatchTop2] self-match: q and proto share SAME data i=" << i;
-        }
-        double np = cv::norm(u.proto, cv::NORM_L2);
-        if (np <= 0.0) {
-            qWarning() << "[bestMatchTop2] proto L2==0 at i=" << i;
-            continue;
-        }
-
-        // 각도/차이 로그 (필요시 주석 처리 가능)
-        {
-            double cosn = q.dot(u.proto) / ((1.0) * (np + 1e-9)); // q는 이미 L2=1
-            cosn = std::max(-1.0, std::min(1.0, cosn));
-            double deg = std::acos(cosn) * 180.0 / M_PI;
-            double diff = cv::norm(q - (u.proto / (np + 1e-9)), cv::NORM_L2);
-            qDebug() << "[bestMatchTop2] i=" << i
-                     << " cos=" << cosn
-                     << " angle(deg)=" << deg
-                     << " ||q-p||=" << diff;
-        }
-        // ================================
-
-        // 최종 유사도 (정상 경로): q는 L2=1, proto도 L2정규화해서 dot
-        float s = q.dot(u.proto / (np + 1e-9f));
-
-        if (s > r.bestSim) {
-            r.secondIdx = r.bestIdx;
-            r.secondSim = r.bestSim;
-            r.bestIdx = i;
-            r.bestSim = s;
-        } else if (s > r.secondSim) {
-            r.secondIdx = i;
-            r.secondSim = s;
-        }
-    }
-
-    if (mismatch > 0) {
-        qWarning() << "[bestMatchTop2] dim mismatch=" << mismatch << " input_dim=" << dim;
-    }
-    return r;
+MatchTop2 FaceRecognitionService::bestMatchTop2(const std::vector<float>& emb) const
+{
+	return FaceMatcher::bestMatchTop2(emb, gallery_, true);
 }
-struct FaceDet {
-	cv::Rect box;
-	std::array<cv::Point2f, 5> lmk;				// leftEye, right Eye, nose, mouthL, mouthR
-	float score;
-};
+std::vector<FaceDet> FaceRecognitionService::detectAllYuNet(const cv::Mat& bgr) const
+{
+	return detector_.detectAll(bgr);
+}
+
+std::optional<FaceDet> FaceRecognitionService::detectBestYuNet(const cv::Mat& bgr) const
+{
+	return detector_.detectBest(bgr);
+}
 
 
 // === 중볻된 얼굴인지 체크 ===
@@ -982,24 +573,19 @@ bool FaceRecognitionService::isDuplicateFaceDNN(const cv::Mat& alignedFace, int*
 	if (!dnnEmbedder_->extract(alignedFace, emb) || emb.empty()) return false;
 
 	// L2 정규화 강제
-	l2normInPlace(emb);
+	//l2normInPlace(emb);
 
 	// Top-2 매칭
 	MatchTop2 m = bestMatchTop2(emb);
 
-	const double COS_THRESH = 0.94;   // 등록자 유사도 임계값
-	const double MIN_MARGIN = 0.15;   // 최소 마진
-
-	//bool marginOk = (m.secondIdx < 0) ? true : ((m.bestSim - m.secondSim) >= MIN_MARGIN);
-	//bool isKnown  = (m.bestSim >= COS_THRESH) && marginOk;
-	bool isKnown = (m.bestSim >= COS_THRESH);
-
-	if (isKnown) {
-		if (dupId) *dupId = gallery_[m.bestIdx].id;
-		if (simOut) *simOut = static_cast<float>(m.bestSim);
-		qDebug() << "[DuplicateCheck] matched id=" << gallery_[m.bestIdx].id
-			<< "sim=" << m.bestSim << " second=" << m.secondSim;
-			//<< " marginOk=" << marginOk;
+	Decision d = decision_.decide(m);
+	if (d == Decision::Accept || d == Decision::StrongAccept) {
+		if (dupId && m.bestIdx >= 0 && m.bestIdx < (int)gallery_.size()) 
+			*dupId = gallery_[m.bestIdx].id;
+		if (simOut) *simOut = m.bestSim;
+		qDebug() << "[isDuplicateFaceDNN] matched id=" << (m.bestIdx >= 0 ? gallery_[m.bestIdx].id : -1)
+			<< "sim=" << m.bestSim << "second=" << m.secondSim
+			<< "decision=" << (int)d;
 		return true;
 	}
 	return false;
@@ -1054,6 +640,7 @@ void FaceRecognitionService::handleRegistration(Mat& frame, const Rect& face, co
 		int dupId = -1;
 		float sim = 0.f;
 		if (isDuplicateFaceDNN(alignedFace, &dupId, &sim)) {
+			qDebug() << "[dep] dep?";
 			// 이미 등록된 사용자로 판단 -> 중복 처리
 			isRegisteringAtomic.storeRelaxed(0);
 			setDuplicate(true);
@@ -1110,8 +697,6 @@ void FaceRecognitionService::saveCapturedFace(const Rect& face, const Mat& align
 	// 이미지 버퍼에 저장 후 finalizeRegistration에서 최종 메모리에 저장
 	regImageBuffers_.push_back(frame);
 
-	storedFaces[registeringUserId_].push_back(alignedFace);
-
 	// ---- DNN 임시 임베딩 버퍼 추가 ----
 	if (dnnEmbedder_) {
 		std::vector<float> e;
@@ -1162,29 +747,38 @@ void FaceRecognitionService::finalizeRegistration()
 	}
 
 	for (auto& v : meanEmb) v /= static_cast<float>(used);
-
 	l2normInPlace(meanEmb);
-	
+
 
 	// 3) gallery_ 업데이트 (registeringUserId_는 UI/흐름에서 미리 지정)
 	if (registeringUserId_ < 0) {
 		registeringUserId_ = nextSequentialId();
 	}
 
-	auto it = std::find_if(gallery_.begin(), gallery_.end(),
-			[&] (const UserEmbedding& u) {
-			return u.id == registeringUserId_;
-	});
 
-	if (it == gallery_.end()) {
-		UserEmbedding ue;
-		ue.id = registeringUserId_;
-		ue.name = registeringUserName_;
-		ue.embedding = std::move(meanEmb);
-		ue.proto = cv::Mat(1, int(ue.embedding.size()), CV_32F, ue.embedding.data()).clone();
-		gallery_.push_back(std::move(ue));
+	// 갤러리 업데이트 락
+	{
+		QMutexLocker lk(&embMutex_);
+		auto it = std::find_if(gallery_.begin(), gallery_.end(),
+				[&] (const UserEmbedding& u) {
+				return u.id == registeringUserId_;
+				});
+
+
+		if (it == gallery_.end()) {
+			UserEmbedding ue;
+			ue.id = registeringUserId_;
+			ue.name = registeringUserName_;
+			ue.embedding = std::move(meanEmb);
+			ue.proto = cv::Mat(1, int(ue.embedding.size()), CV_32F, ue.embedding.data()).clone();
+			gallery_.push_back(std::move(ue));
+		}
+		else {
+			it->embedding = std::move(meanEmb);
+			it->proto = cv::Mat(1, int(it->embedding.size()), CV_32F,
+					it->embedding.data()).clone();
+		}
 	}
-	else it->embedding = std::move(meanEmb);
 
 	// 4) 파일 저장
 	if (!saveEmbeddingsToFile()) {
@@ -1202,14 +796,17 @@ void FaceRecognitionService::finalizeRegistration()
 	// 최종적으로 이미지 저장
 	int i = 0;
 	for (auto& entry : regImageBuffers_) {
-		string filename = string(USER_FACES_DIR) + "face_" + to_string(registeringUserId_) + "_" +
-			registeringUserName_.toStdString() + "_" + to_string(i + 1) + ".png";
+		std::string filename = std::string(USER_FACES_DIR) + "face_" +
+			std::to_string(registeringUserId_) + "_" +
+			registeringUserName_.toStdString() + "_" +
+			std::to_string(i + 1) + ".png";
 		if (!imwrite(filename, entry)) {
-			qDebug() << "이미지 저장 실패: " << QString::fromStdString(filename);
+			qDebug() << "이미지 저장 실패:" << QString::fromStdString(filename);
 		}
-		i++;
+		++i;
 	}
 
+	// 상태 초기화
 	setRegisterRequested(false);						// FSM 등록 요청 스냅샵 비활성화
 	isRegisteringAtomic.storeRelaxed(0);		// 등록 플래그 비활성화로 전환
 	captureCount = 0;												// 등록된 이미지수 초기화
@@ -1239,7 +836,7 @@ void FaceRecognitionService::fetchReset()
 	QDir dir(USER_FACES_DIR);
 	dir.removeRecursively();
 
-	QFile::remove(QString::fromStdString(embeddingsPath_));
+	QFile::remove(embeddingsPath_);
 
 	gallery_.clear();
 	registeringUserId_ = -1;
@@ -1295,10 +892,6 @@ recogResult_t FaceRecognitionService::handleRecognition(cv::Mat& frame,
 		QString& labelText,
 		cv::Scalar& boxColor)
 {
-#ifdef DEBUG
-	qDebug() << "[handleRecognition] embed input size=" << alignedFace.cols << "x" << alignedFace.rows
-			 << " channels=" << alignedFace.channels();
-#endif
 	recogResult_t rv{};
 	QString name  = "Unknown";
 	int id = -1;
@@ -1313,91 +906,50 @@ recogResult_t FaceRecognitionService::handleRecognition(cv::Mat& frame,
 	}
 	if (gallery_.empty()) {
 		// 등록 데이터가 없으면 무조건 Unknown
-		rv.name="Unknown"; rv.sim=-1.f; rv.result=AUTH_FAILED;
-		labelText="Unknown"; boxColor=cv::Scalar(0,0,255);
+		rv.name="Unknown"; 
+		rv.sim=-1.f; 
+		rv.result=AUTH_FAILED;
+		labelText="Unknown"; 
+		boxColor=cv::Scalar(0,0,255);
+
+		drawTransparentBox(frame, face, boxColor, 0.3);
+		drawCornerBox(frame, face, boxColor, 2, 25);
+		putText(frame, labelText.toStdString(), cv::Point(face.x, face.y - 10),
+				cv::FONT_HERSHEY_DUPLEX, 0.9, boxColor, 2);
 		return rv;
 	}
 
-	// 1) 임베딩 추출 (원본만; 좌우 플립 생략해 속도/안정성↑)
+	// 1) 임베딩 추출 (좌우 플립 생략해 속도/안정성↑)
 	std::vector<float> emb;
 	if (!dnnEmbedder_->extract(alignedFace, emb) || emb.empty()) {
 		rv.name="Unknown"; rv.sim=-1.f; rv.result=AUTH_FAILED;
-	labelText="Unknown"; boxColor=cv::Scalar(0,0,255); return rv;
+		labelText="Unknown"; boxColor=cv::Scalar(0,0,255); return rv;
 	}
 
-	// 간단 임계/마진 (고정값)
-	//   - 현장 튜닝 포인트
-	//const double COS_THRESH = 0.94;
-	//const double MIN_MARGIN = 0.15;
-	const float T_HARD	= 0.85f;
-	const float T_IN	= 0.80f;
-	const float MARGIN	= 0.020f;
-
-#if 1 
-	//Top-1만으로 판정
-	const auto r = bestMatch(emb);
-	cosBest = float(r.sim);
-	const double COS_THRESH = 0.97;
-	const double MIN_MARGIN = 0.15;
-
-	id = r.id;
-	const bool isKnown  = (r.sim >= COS_THRESH);
-	name = isKnown ? r.name : "Unknown";
-#else
-	// Top-2 마진 판정
 	auto t2 = bestMatchTop2(emb);
-	cosBest = float(t2.bestSim);
-	//bool marginOk = (t2.secondIdx < 0) ? true : ((t2.bestSim - t2.secondSim) >= MIN_MARGIN);
-	//bool isKnown = (t2.bestSim >= COS_THRESH) && marginOk;
-	const float margin = (t2.secondIdx < 0) ? 1.f : (t2.bestSim - t2.secondSim);
+	cosBest = t2.bestSim;
 
-#ifdef DEBUG
-	qDebug() << "[MATCH] best=" << t2.bestSim
-         << " second=" << t2.secondSim
-         << " margin=" << margin
-         << " idx=" << t2.bestIdx;
-#endif
-	bool isKnown =
-      	(t2.bestSim >= T_HARD)
-   		|| ((t2.bestSim >= T_IN) && (margin >= MARGIN));
+	Decision d = decision_.decide(t2);
+	bool isKnown = (d == Decision::Accept || d == Decision::StrongAccept);
 
-	// 갤러리가 1명일 때는 더 보수적으로 (옵션)
-	if ((int)gallery_.size() == 1) {
-    	if (t2.bestSim < 0.85f) isKnown = false;
-	}
+	qDebug() << "[handleRecognition] best id: " << t2.bestIdx
+		<< "isKnown: " << isKnown
+		<< "gallery_ size: " << gallery_.size();
 
-	name = isKnown ? getName(gallery_[t2.bestIdx]) : "Unknown";
-#endif
 
-	if (isKnown) {
-#if  1
-		name = getName(gallery_[r.id]);
-		id = r.id;	
-#else
+	if (isKnown && t2.bestIdx >= 0 && t2.bestIdx >= static_cast<int>(gallery_.size()) - 1) {
 		name = getName(gallery_[t2.bestIdx]);
-		id = t2.bestIdx;	
-#endif
+		id   = gallery_[t2.bestIdx].id;
 		matched = true;
-	} else {
-		name = "Unknown";
-		id = -1;
+	}
+	else {
+		name = "Unkown";
+		id   = -1;
 		matched = false;
 		setAllowEntry(false);
 		hasAlreadyUnlocked = false;
 	}
 
-#if 0	// 기본 사각형
-	boxColor  = matched ? cv::Scalar(0,255,0) : cv::Scalar(0,0,255);
-	labelText = matched
-		? QString("%1  cos=%2").arg(name).arg(QString::number(cosBest,'f',3))
-		: QString("Unknown  cos=%1").arg(QString::number(cosBest,'f',3));
-
-	// 문제 소지가 없는 기본 도형/텍스트만 사용 (ROI 예외 없음)
-	cv::rectangle(frame, face, boxColor, 2);
-	cv::putText(frame, labelText.toStdString(),
-			cv::Point(face.x, std::max(0, face.y - 8)),
-			cv::FONT_HERSHEY_DUPLEX, 0.9, boxColor, 2);
-#else	// 음영 사각 테두리 사각형
 	boxColor  = matched ? cv::Scalar(0,255,0) : cv::Scalar(0,0,255);
 	labelText = matched
 		? QString("%1  cos=%2").arg(name).arg(QString::number(cosBest,'f',3))
@@ -1407,16 +959,12 @@ recogResult_t FaceRecognitionService::handleRecognition(cv::Mat& frame,
 	drawCornerBox(frame, face, boxColor, 2, 25);
 	putText(frame, labelText.toStdString(), cv::Point(face.x, face.y - 10),
 			cv::FONT_HERSHEY_DUPLEX, 0.9, boxColor, 2);
-#endif	
 
 	if (!alignedFace.empty()) {
 		cv::Mat thumb; 
 		cv::resize(alignedFace, thumb, {96,96});
 		cv::rotate(thumb, thumb, cv::ROTATE_180);
 		cv::rectangle(thumb, {0,0,thumb.cols-1,thumb.rows-1}, boxColor, 2);
-		//cv::Rect roi(10,10,thumb.cols,thumb.rows);
-		//if (roi.x>=0 && roi.y>=0 && roi.x+roi.width<=frame.cols && roi.y+roi.height<=frame.rows)
-		//thumb.copyTo(frame(roi));
 		overlayThumbnail(frame, thumb, Corner::TopLeft, 10);
 	}
 
@@ -1432,7 +980,7 @@ recogResult_t FaceRecognitionService::handleRecognition(cv::Mat& frame,
 
 // ArcFace 112x112 템플릿 (출력은 128로 warp)
 static const std::array<cv::Point2f, 5> kDst5_112 = {{
-		{38.2946f, 51.6963f}, {73.5318f, 51.5014f},
+	{38.2946f, 51.6963f}, {73.5318f, 51.5014f},
 		{56.0252f, 71.7366f}, {41.5493f, 92.3655f},
 		{70.7299f, 92.2041f}
 }};
@@ -1441,33 +989,33 @@ static const std::array<cv::Point2f, 5> kDst5_112 = {{
 // 유틸: YuNet 결과 → Rect 벡터
 static std::vector<FaceDet> parseYuNet(const cv::Mat& dets, float scoreThresh=0.6f)
 {
-    std::vector<FaceDet> out;
-    if (dets.empty() || dets.cols < 15) return out;
+	std::vector<FaceDet> out;
+	if (dets.empty() || dets.cols < 15) return out;
 
-    for (int i = 0; i < dets.rows; ++i) {
-        const float x  = dets.at<float>(i, 0);
-        const float y  = dets.at<float>(i, 1);
-        const float w  = dets.at<float>(i, 2);
-        const float h  = dets.at<float>(i, 3);
+	for (int i = 0; i < dets.rows; ++i) {
+		const float x  = dets.at<float>(i, 0);
+		const float y  = dets.at<float>(i, 1);
+		const float w  = dets.at<float>(i, 2);
+		const float h  = dets.at<float>(i, 3);
 
-        // ★ score는 맨 끝(14)
-        const float score = dets.at<float>(i, 14);
-        if (score < scoreThresh) continue;
+		// ★ score는 맨 끝(14)
+		const float score = dets.at<float>(i, 14);
+		if (score < scoreThresh) continue;
 
-        FaceDet f;
-        f.box   = cv::Rect(cv::Point2f(x, y), cv::Size2f(w, h));
-        f.score = score;
+		FaceDet f;
+		f.box   = cv::Rect(cv::Point2f(x, y), cv::Size2f(w, h));
+		f.score = score;
 
-        // ★ 랜드마크는 4~13 (픽셀 좌표, 정규화 아님)
-        f.lmk[0] = cv::Point2f(dets.at<float>(i, 4),  dets.at<float>(i, 5));   // left eye
-        f.lmk[1] = cv::Point2f(dets.at<float>(i, 6),  dets.at<float>(i, 7));   // right eye
-        f.lmk[2] = cv::Point2f(dets.at<float>(i, 8),  dets.at<float>(i, 9));   // nose
-        f.lmk[3] = cv::Point2f(dets.at<float>(i,10),  dets.at<float>(i,11));   // mouth left
-        f.lmk[4] = cv::Point2f(dets.at<float>(i,12),  dets.at<float>(i,13));   // mouth right
+		// ★ 랜드마크는 4~13 (픽셀 좌표, 정규화 아님)
+		f.lmk[0] = cv::Point2f(dets.at<float>(i, 4),  dets.at<float>(i, 5));   // left eye
+		f.lmk[1] = cv::Point2f(dets.at<float>(i, 6),  dets.at<float>(i, 7));   // right eye
+		f.lmk[2] = cv::Point2f(dets.at<float>(i, 8),  dets.at<float>(i, 9));   // nose
+		f.lmk[3] = cv::Point2f(dets.at<float>(i,10),  dets.at<float>(i,11));   // mouth left
+		f.lmk[4] = cv::Point2f(dets.at<float>(i,12),  dets.at<float>(i,13));   // mouth right
 
-        out.push_back(f);
-    }
-    return out;
+		out.push_back(f);
+	}
+	return out;
 }
 
 // === 폴백용 레터박스: 비율 유지 + 패딩 후 정사각 리사이즈 ===
@@ -1485,442 +1033,443 @@ static inline cv::Mat letterboxSquare(const cv::Mat& src, int out=128) {
 // 112x112 ArcFace 템플릿을 outSize에 맞게 스케일
 static inline std::array<cv::Point2f,5>
 scaleDst112(const cv::Size& outSize) {
-    const float sx = outSize.width  / 112.0f;
-    const float sy = outSize.height / 112.0f;
-    std::array<cv::Point2f,5> d = kDst5_112;
-    for (auto& p : d) { p.x *= sx; p.y *= sy; }
-    return d;
+	const float sx = outSize.width  / 112.0f;
+	const float sy = outSize.height / 112.0f;
+	std::array<cv::Point2f,5> d = kDst5_112;
+	for (auto& p : d) { p.x *= sx; p.y *= sy; }
+	return d;
 }
 
 // (중요) 입력 랜드마크를 좌/우 눈, 코, 입 좌/우 순서로 강제정렬
 static inline std::array<cv::Point2f,5>
 normalizeSrc5(const std::array<cv::Point2f,5>& in) {
-    // in이 어떤 순서로 오든, x좌표로 왼/오를 판단
-    // 대략적인 휴리스틱: y가 가장 위 2개 = 눈, 가장 아래 2개 = 입, 남은 1개 = 코
-    // (YuNet은 보통 [LE, RE, Nose, LM, RM] 이지만 안전하게 재정렬)
-    std::vector<cv::Point2f> v(in.begin(), in.end());
+	// in이 어떤 순서로 오든, x좌표로 왼/오를 판단
+	// 대략적인 휴리스틱: y가 가장 위 2개 = 눈, 가장 아래 2개 = 입, 남은 1개 = 코
+	// (YuNet은 보통 [LE, RE, Nose, LM, RM] 이지만 안전하게 재정렬)
+	std::vector<cv::Point2f> v(in.begin(), in.end());
 
-    // y(위->아래) 정렬
-    std::sort(v.begin(), v.end(), [](auto& a, auto& b){ return a.y < b.y; });
+	// y(위->아래) 정렬
+	std::sort(v.begin(), v.end(), [](auto& a, auto& b){ return a.y < b.y; });
 
-    // 후보군 분할
-    std::vector<cv::Point2f> eyes   = { v[0], v[1] };          // 위의 두 점
-    std::vector<cv::Point2f> mouth  = { v[3], v[4] };          // 아래의 두 점
-    cv::Point2f nose                =  v[2];                   // 가운데 점
+	// 후보군 분할
+	std::vector<cv::Point2f> eyes   = { v[0], v[1] };          // 위의 두 점
+	std::vector<cv::Point2f> mouth  = { v[3], v[4] };          // 아래의 두 점
+	cv::Point2f nose                =  v[2];                   // 가운데 점
 
-    // 왼/오 구분(x)
-    auto Leye  = (eyes[0].x < eyes[1].x) ? eyes[0] : eyes[1];
-    auto Reye  = (eyes[0].x < eyes[1].x) ? eyes[1] : eyes[0];
-    auto Lm    = (mouth[0].x < mouth[1].x)? mouth[0]: mouth[1];
-    auto Rm    = (mouth[0].x < mouth[1].x)? mouth[1]: mouth[0];
+	// 왼/오 구분(x)
+	auto Leye  = (eyes[0].x < eyes[1].x) ? eyes[0] : eyes[1];
+	auto Reye  = (eyes[0].x < eyes[1].x) ? eyes[1] : eyes[0];
+	auto Lm    = (mouth[0].x < mouth[1].x)? mouth[0]: mouth[1];
+	auto Rm    = (mouth[0].x < mouth[1].x)? mouth[1]: mouth[0];
 
-    return { Leye, Reye, nose, Lm, Rm };
+	return { Leye, Reye, nose, Lm, Rm };
 }
 
 // ArcFace 112x112 템플릿 (kDst5_112) 그대로 사용
 // YuNet landmark order: [LE, RE, Nose, LM, RM]
-static inline cv::Mat alignBy5pts(
-		const cv::Mat& srcBgr,
-		const std::array<cv::Point2f,5>& src5_in,
-		const cv::Size& outSize /* = {112,112} */)   // ★ 기본 112 권장
+cv::Mat FaceRecognitionService::alignBy5pts(const cv::Mat& srcBgr, const std::array<cv::Point2f,5>& src5_in, const cv::Size& outSize)
 {
-	if (srcBgr.empty()) return {};
+	return aligner_.alignBy5pts(srcBgr, src5_in, outSize);
+}
 
-	// 1) 좌/우 눈, 입 좌/우 순서 가드
-	std::array<cv::Point2f,5> s = src5_in; // [LE, RE, Nose, LM, RM]
-	if (s[0].x > s[1].x) std::swap(s[0], s[1]);   // LE.x < RE.x
-	if (s[3].x > s[4].x) std::swap(s[3], s[4]);   // LM.x < RM.x
+bool FaceRecognitionService::startDirectCapture(int cam)
+{
+	stopDirectCapture();
 
-	// (선택) 간단한 품질 가드: 눈간 비율/롤 각도
-	const double iod   = cv::norm(s[0] - s[1]);
-	const double ratio = iod / std::max(1.0f, std::max(1.0f, (float)std::abs(s[1].x - s[0].x)));
-	double rollDeg = std::atan2(s[1].y - s[0].y, s[1].x - s[0].x) * 180.0 / CV_PI;
-	if (std::abs(rollDeg) > 25.0) {
-		// 너무 기울면 정렬 실패 가능성 ↑ → 필요시 스킵/감점
-		// return {};  // 강하게 걸고 싶으면 활성화
+	if (!cap_.open(cam, cv::CAP_V4L2)) {
+		qWarning() << "[startDirectCapture] open failed cam=" << cam;
+		return false;
 	}
 
-	std::vector<cv::Point2f> src(s.begin(), s.end());
-	std::vector<cv::Point2f> dst(kDst5_112.begin(), kDst5_112.end());
+	// 저지연 튜닝
+	cap_.set(cv::CAP_PROP_BUFFERSIZE, 1);
+	cap_.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+	cap_.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
+	cap_.set(cv::CAP_PROP_FPS, 30);
+	cap_.set(cv::CAP_PROP_FOURCC, cv::VideoWriter::fourcc('M','J','P','G'));
 
-	// 2) 112x112로 바로 워프 (임베더 입력과 동일 크기)
-	const cv::Size warpSize(112,112);
-	cv::Mat M = cv::estimateAffinePartial2D(
-			src, dst, cv::noArray(), cv::RANSAC, 3.0, 2000, 0.99);
+	running_.storeRelease(1);
 
-	if (M.empty()) return {};
+	capThread_ = QThread::create([this] {
+			this->loopDirect();
+			});
+	capThread_->setObjectName(QStringLiteral("DirectCapture"));
+	QObject::connect(capThread_, &QThread::finished, capThread_, &QObject::deleteLater);
+	capThread_->start(QThread::TimeCriticalPriority);
 
-	cv::Mat aligned112;
-	cv::warpAffine(srcBgr, aligned112, M, warpSize,
-			cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(127,127,127));
+	qInfo() << "[startDirectCapture] started 640x480@30, buffersize=1";
+	return true;
+}
 
+void FaceRecognitionService::camRestart()
+{
+	QString msg;
+	qInfo() << "[camRestart] Restaring camera thread...";
 
-	// --- 워프 완료 직후 (aligned112가 만들어진 다음에) 붙이기 ---
-	auto applyAffine = [&](const cv::Point2f& p)->cv::Point2f {
-		// M은 estimateAffinePartial2D 결과 2x3, double/float 혼용 대비
-		const double m00 = M.at<double>(0,0), m01 = M.at<double>(0,1), m02 = M.at<double>(0,2);
-		const double m10 = M.at<double>(1,0), m11 = M.at<double>(1,1), m12 = M.at<double>(1,2);
-		return cv::Point2f(
-				static_cast<float>(m00*p.x + m01*p.y + m02),
-				static_cast<float>(m10*p.x + m11*p.y + m12)
-				);
-	};
-#if 1 
-	// 1) 원본 5점을 어파인으로 보낸 좌표 vs 템플릿 좌표의 평균오차/최대오차
-	double mae = 0.0, maxErr = 0.0;
-	cv::Mat vis = aligned112.clone();
-	for (int k=0; k<5; ++k) {
-		cv::Point2f warped = applyAffine(s[k]);          // 워프 후 좌표
-		const cv::Point2f tgt = kDst5_112[k];            // 템플릿 좌표
+	stopDirectCapture();
 
-		const double err = cv::norm(warped - tgt);
-		mae += err;  if (err > maxErr) maxErr = err;
+	QThread::msleep(200);
 
-		// 2) 시각화: 노랑=워프된 점, 빨강=템플릿 점, 파랑=오차 벡터
-		cv::circle(vis, warped, 2, {0,255,255}, -1);
-		cv::circle(vis, tgt,    2, {0,0,255},   -1);
-		cv::line  (vis, warped, tgt, {255,0,0}, 1);
+	if (!startDirectCapture(CAM_NUM)) {
+		msg = QStringLiteral("카메라 재시작 성공.");
+		presenter->presentCamRestart(msg);
+		return;
 	}
-	mae /= 5.0;
+	else {
+		SystemLogger::error("CAMERA", "Failed to camera restart.");	
+		msg = QStringLiteral("카메라 재시작 실패");
+		presenter->presentCamRestart(msg);
+		return;
+	}
+}
 
-	qDebug() << "[ALIGN] mae(px)=" << mae << " maxErr(px)=" << maxErr;
+void FaceRecognitionService::stopDirectCapture()
+{
+	if (running_.fetchAndStoreOrdered(0) == 1) {
+		// loopDirect가 정상적으로 탈출하도록 조금 기다렸다가
+	}
 
-	// 3) 눈 라인 기울기(정렬 후): 0°에 가까울수록 좋음
-	double rollDegAfter =
-		std::atan2(kDst5_112[1].y - kDst5_112[0].y, kDst5_112[1].x - kDst5_112[0].x) * 180.0 / CV_PI;
-	qDebug() << "[ALIGN] roll_after(deg)=" << rollDegAfter;
+	// 스레드 종료 대기/정리
+	if (capThread_) {
+		capThread_->wait();		// returning wait loopDirect()  
+		capThread_ = nullptr;	// finished 연결로 deleteLater 호출됨
+	}
 
-	// 4) 스냅샷
-	cv::imwrite("dbg_B_verify.jpg", vis);
-#endif
-	// 3) 최종 출력: 대부분 112로 그대로 반환
-	if (outSize == warpSize) return aligned112;
-
-	cv::Mat out;
-	cv::resize(aligned112, out, outSize, 0, 0, cv::INTER_LINEAR);
-	return out;
+	// 카메라 해제
+	if (cap_.isOpened()) {
+		cap_.release();
+	}
+	currentState = RecognitionState::IDLE;
 }
 
 
-
-
-void FaceRecognitionService::procFrame()
+void FaceRecognitionService::loopDirect()
 {
-	recogResult_t recogResult;
-	const bool wantReg = (isRegisteringAtomic.loadRelaxed() != 0);
-
-	const bool isClosedDoor = g_reed.isClosed();
-	qDebug() << "[procFrame] door is Closed?" << isClosedDoor;
+	cv::Mat frame;
+	while (running_.loadAcquire() == 1) {
+		const bool wantReg = (isRegisteringAtomic.loadRelaxed() != 0);
 
 
-	if (isClosedDoor) {
-		// 카메라 체크
-		if (!cap.isOpened()) {
-			qDebug() << "[FRS] The camera has shutdown. it will restart";
-			camRestart();
-			if (!cap.isOpened()) {
-				emit frameReady(QImage());
-				return;
-			}
+
+		if(!cap_.read(frame) || frame.empty()) {
+			QThread::msleep(2);
+			continue;
 		}
 
-		// 프레임 취득
-		cv::Mat frame;
-		{
-			QMutexLocker locker(&frameMutex);
-			if (!cap.read(frame) || frame.empty()) {
-				qDebug() << "[procFrame] Empty frame";
-				emit frameReady(QImage());
-				return;
+		// 문이 열려있으면 → 열림 이미지 표시 후 리턴
+		if (!g_reed.isClosed()) {
+			const QString openImgPath = QStringLiteral(IMAGES_PATH) + QStringLiteral(OPEN_IMAGE);
+			//qDebug() << "[loopDirect] open image path: " << openImgPath << ", exists=" << QFile::exists(openImgPath);
+			QImage openImg;
+			if (!openImg.load(openImgPath) || openImg.isNull()) {
+				QImage fallback(640, 480, QImage::Format_RGB888);
+				fallback.fill(Qt::black);
+				emit frameReady(fallback.copy());
+			} else {
+				emit frameReady(openImg.convertToFormat(QImage::Format_RGB888).copy());
 			}
+			continue;
 		}
 
-		if (dnnEmbedder_->isTrivialFrame(frame, 1.0, 1.0)) {
-			qWarning() << "[procFrame] Trivial frame (mean/std too small). skip";
+		double dist = g_uls.latestDist();
+		if (dist > 50.0) {
+			const QString standbyImgPath = QStringLiteral(IMAGES_PATH) + QStringLiteral(STANDBY_IMAGE);
+			//qDebug() << "[loopDirect] standby image path: " << standbyImgPath << ", exists=" << QFile::exists(standbyImgPath);
+			QImage standbyImg;
+			if (!standbyImg.load(standbyImgPath) || standbyImg.isNull()) {
+				QImage fallback(640, 480, QImage::Format_RGB888);
+				fallback.fill(Qt::black);
+				emit frameReady(fallback.copy());
+			} else {
+				emit frameReady(standbyImg.convertToFormat(QImage::Format_RGB888).copy());
+			}
+			continue;
+		}
+		qDebug() << "[loopDirect] dist: " << dist;
+
+		if (frame.empty()) {
+			qWarning() << "[loopDirect] frame is empty after consume()";
+			continue;
+		}
+
+		// ── 2) trivial 체크 ──
+		if (dnnEmbedder_ && dnnEmbedder_->isTrivialFrame(frame, 1.0, 1.0)) {
+			qWarning() << "[loopDirect] Trivial frame. skip";
 			emit frameReady(QImage());
-			return;
+			continue;
 		}
 
-		
-		cv::Mat frameCopy = frame.clone();
+		// ── 3) 채널 보정 ──
+		if (frame.channels() == 4) cv::cvtColor(frame, frame, cv::COLOR_BGRA2BGR);
+		else if (frame.channels() == 1) cv::cvtColor(frame, frame, cv::COLOR_GRAY2BGR);
 
-		// 채널 보정(BGR 기준으로 통일)
-		if (frameCopy.channels() == 4) cv::cvtColor(frameCopy, frameCopy, cv::COLOR_BGRA2BGR);
-		else if (frameCopy.channels() == 1) cv::cvtColor(frameCopy, frameCopy, cv::COLOR_GRAY2BGR);
-
-		// YuNet 입력 크기 갱신 (프레임 크기 변경 시 필수)
-		if (yunet_) {
-			const cv::Size cur = frameCopy.size();
-			if (cur != yunet_InputSize_) {
-				yunet_->setInputSize(cur);
-				yunet_InputSize_ = cur;
-			}
-		}
-
-		// --- YuNet detect ---
+		// ── 4) 얼굴 검출 ──
 		std::vector<FaceDet> faces;
-		if (yunet_) {
-			cv::Mat dets;
-			yunet_->detect(frameCopy, dets); // BGR 그대로 입력 가능
-#ifdef DEBUG
-			qDebug() << "[Debug] dets type=" << dets.type() << " depth=" << dets.depth() << " channels=" << dets.channels();
-
-			qDebug() << "[A] frameCopy size=" << frameCopy.cols << "x" << frame.rows
-				<< " yunet_InputSize=" << yunet_InputSize_.width << "x" << yunet_InputSize_.height;
-			for (int i = 0; i < dets.rows; i++) {
-				qDebug() << "raw row" << i << ":"
-					<< dets.at<float>(i,0) << dets.at<float>(i,1)
-					<< dets.at<float>(i,2) << dets.at<float>(i,3)
-					<< "score=" << dets.at<float>(i,4);
-			}
-#endif
-
-
-			faces = parseYuNet(dets /*scoreThresh=*/);
-#ifdef DEBUG
-			qDebug() << "[procFrame] raw dets=" << dets.rows
-				<< " cols=" << dets.cols
-				<< " ch="   << dets.channels()
-				<< " total=" << (int)dets.total()
-				<< " -> parsed faces=" << faces.size();
-#endif
-
-			for (size_t i = 0; i < faces.size(); ++i) {
-				const auto& f = faces[i];
-				auto inRange = [&] (const cv::Point2f& p) {
-					return (p.x >= 0 && p.y >= 0 && p.x < frameCopy.cols && p.y < frameCopy.rows);
-				};
-				bool boxOk = (f.box.x + f.box.width  <= frameCopy.cols &&
-						f.box.y + f.box.height <= frameCopy.rows); 
-				bool lmOk = true;
-				for (int k = 0; k < 5; k++) lmOk = lmOk && inRange(f.lmk[k]);
-
-#ifdef DEBUG
-				qDebug() << "[A] face" << i
-					<< "box=" << f.box.x << f.box.y << f.box.width << f.box.height
-					<< "score=" << f.score
-					<< "boxOk=" << boxOk << "lmOk=" << lmOk;
-#endif
-			}
-
-			//A3. 시각화 스냅삿
-			cv::Mat visA = frameCopy.clone();
-			for (const auto& f : faces) {
-				cv::rectangle(visA, f.box, {0,255,0}, 2);
-				for (int k =0; k < 5; k++) cv::circle(visA, f.lmk[k], 3, {0,255,255}, -1);
-			}
-			//cv::imwrite("dbg_A_detect_landmarks.jpg", visA);
+		if (auto best = detectBestYuNet(frame)) {
+			faces.push_back(*best);
 		}
-		//qDebug() << "[Debug] Detector Ready!";
 
-		// 여러 얼굴 중 하나만 유지(가장 중앙+큰 얼굴 선호)
-		if (faces.size() > 1) {
-			auto rank = [&](const FaceDet& d) {
-				double area = static_cast<double>(d.box.area());
-				cv::Point2f c(d.box.x + d.box.width*0.5f,
-						d.box.y + d.box.height*0.5f);
-				cv::Point2f fc(frameCopy.cols*0.5f,
-						frameCopy.rows*0.5f);
-				double dist = cv::norm(c - fc) /
-					std::hypot(static_cast<double>(frameCopy.cols),
-							static_cast<double>(frameCopy.rows));
-				return area * (1.0 - 0.35*dist); // 중심에서 멀수록 감점
-			};
-			auto it = std::max_element(
-					faces.begin(), faces.end(),
-					[&](const FaceDet& a, const FaceDet& b){ return rank(a) < rank(b); });
-			FaceDet keep = *it;
-			faces.clear();
-			faces = { keep };
-		}
-		//qDebug() << "[Debug] face selecting is done"; 
-
-
-		// === FSM 스냅샷 ===
-		const bool faceFound = !faces.empty();
-		setDetectScore(faceFound ? 0.8 : 0.0);
-		setRegisterRequested(isRegisteringAtomic.loadRelaxed() != 0);
+		// FSM 상태 초기화
+		setDetectScore(!faces.empty() ? 0.8 : 0.0);
+		setRegisterRequested(wantReg);
 		setLivenessOk(true);
 		setDuplicate(false);
 
-		// -------------------------------
-		// 2) 얼굴별 처리: 정렬(우선) -> 폴백(레터박스) -> 임베딩/매칭
-		// -------------------------------
-		for (const auto& fd : faces)
-		{
-#ifdef DEBUG
-			qDebug() << "[B] align lnput lmk="
-				<< fd.lmk[0].x << fd.lmk[0].y << ","
-				<< fd.lmk[1].x << fd.lmk[1].y << ","
-				<< fd.lmk[2].x << fd.lmk[2].y << ","
-				<< fd.lmk[3].x << fd.lmk[3].y << ","
-				<< fd.lmk[4].x << fd.lmk[4].y;
-			double iod = cv::norm(fd.lmk[0]-fd.lmk[1]);
-			qDebug() << "[B] inter-ocular=" << iod << " boxW=" << fd.box.width << " ratio=" << (iod / std::max(1, fd.box.width));
-#endif
-			// 1) 랜드마크 정렬 우선
-			cv::Mat alignedFace = alignBy5pts(frameCopy, fd.lmk, cv::Size(128, 128));
-#ifdef DEBUG
-			qDebug() << "[B] alignedFace size=" << alignedFace.cols << "x" << alignedFace.rows;
-
-			if (!alignedFace.empty()) {
-				cv::imwrite("dbg_B_aligned.jpg", alignedFace);
-			}
-#endif
-
-			// 2) 실패 시 폴백: 박스 확장 크롭 -> 레터박스 정사각
-			if (alignedFace.empty()) {
-				cv::Rect roi = expandRect(fd.box, 1.3f, frameCopy.size());
-				qDebug() << "[C] fallback roi=" << roi.x  << roi.y << roi.width << roi.height;
-				cv::Mat crop = frameCopy(roi).clone();
-				if (crop.empty()) continue;
-				if (!crop.empty()) {
-					//cv::imwrite("dbg_c_crop.jpg", crop);
-					alignedFace = letterboxSquare(crop, 128);
-					//cv::imwrite("dbg_c_letterbox.jpg", alignedFace);
+		// ── 5) 얼굴별 처리 ──
+		for (const auto& fd : faces) {
+			cv::Mat aligned = alignBy5pts(frame, fd.lmk, cv::Size(128,128));
+			if (aligned.empty()) {
+				cv::Rect roi = expandRect(fd.box, 1.3f, frame.size());
+				if (roi.area() > 0) {
+					cv::Mat crop = frame(roi).clone();
+					if (!crop.empty()) aligned = letterboxSquare(crop, 128);
 				}
 			}
+			if (aligned.empty()) continue;
 
-			if (alignedFace.empty()) continue;
-
-#ifdef DEBUG 
-			imwrite("debug_reg_x.jpg", alignedFace);
-#endif 
-
-			QString labelText;
-			cv::Scalar boxColor;
+			QString label;
+			cv::Scalar color;
 
 			if (!wantReg) {
-				//qDebug() << "[procFrame] RECOGNITION MODE branch";
-				// 인식 품질 게이트 통과 여부
-				if (!passQualityForRecog(fd.box, alignedFace)) {
-					qDebug() << "[proc] quality fail"; 
-					continue;
-				}
+				// 품질 체크
+				if (!passQualityForRecog(fd.box, frame)) continue; 
 
-				const qint64 t_rec0 = QDateTime::currentMSecsSinceEpoch();
-				recogResult = handleRecognition(frameCopy, fd.box, alignedFace, labelText, boxColor);
+				// 인식 처리
+				auto recogResult = handleRecognition(frame, fd.box, aligned, label, color);
 
-				static Voter  voter({5,3});   // 3/5 합의
-				static Thresh th;             // T_out=0.80
+				static Voter voter({5,3});
+				static Thresh th;
 
 				if (recogResult.result == AUTH_SUCCESSED) {
-					// user index 얻기: 이미 있으면 그걸 쓰고, 없으면 이름→인덱스 맵을 사용
-					int userIdx = recogResult.idx;  // 없으면 적절히 치환
+					int userIdx = recogResult.idx;
+					authManager.handleAuthSuccess();
 					if (!voter.feed(userIdx, recogResult.sim, th.T_out)) {
-#ifdef DEBUG
-						qDebug() << "[Decision] Pending by N-of-M: idx=" << userIdx
-							<< " s=" << recogResult.sim;
-#endif
 						setRecogConfidence(recogResult.sim);
-						// 합의 전이므로 성공/실패 카운트, 문열림 등 기존 성공 처리로 내려가지 않게
-						continue; // 다음 얼굴/프레임으로
+						continue;
 					}
-				}
-
-				// === FSM 스냅샷: 인식 결과 반영 ===
-				if (recogResult.result == AUTH_SUCCESSED) {
+					// 합의 완료 → 문 열기
 					setAllowEntry(true);
 					setRecogConfidence(recogResult.sim);
 					incAuthStreak();
-
-					//qDebug() << "[procFrame] AuthStreak(" << authStreak_ << ")";
-					if (!hasAlreadyUnlocked) {
+					if (!hasAlreadyUnlocked && authManager.shouldAllowEntry()) {
 						authManager.handleAuthSuccess();
-						if (authManager.shouldAllowEntry()) {
-							qDebug() << "[FaceRecognitionService] Authenticate 5 time success -> Door open!";
-							setDoorOpened(true);
+						setDoorOpened(true);
 
-							// ===== 감지 전까지 열림 유지 시작 =====
-							if (!g_unlockMgr.running()) {
-								g_unlockMgr.start();
-								qInfo() << "[Door] Unlock started (wait open, then wait close)";
-							}
 
-							// DB 로그 저장(JPEG 압축 후 BLOB)
-							std::vector<uchar> buf;
-							cv::imencode(".jpg", frame, buf);
-							QByteArray blob(reinterpret_cast<const char*>(buf.data()),
-									static_cast<int>(buf.size()));
-
-							//QSqliteService svc;
-							db->insertAuthLog(recogResult.name,
-									"Authenticate 5 times success -> Door open",
-									QDateTime::currentDateTime(), blob);
-
-							hasAlreadyUnlocked = true;
+						// ===== 감지 전까지 열림 유지 시작 =====
+						if (!g_unlockMgr.running()) {
+							g_unlockMgr.start();
+							qInfo() << "[Door] Unlock started (wait open, then wait close)";
 						}
+
+						// DB 로그 저장(JPEG 압축 후 BLOB)
+						std::vector<uchar> buf;
+						cv::imencode(".jpg", frame, buf);
+						QByteArray blob(reinterpret_cast<const char*>(buf.data()),
+								static_cast<int>(buf.size()));
+
+						//QSqliteService svc;
+						db->insertAuthLog(recogResult.name,
+								"Authenticate 5 times success -> Door open",
+								QDateTime::currentDateTime(), blob);
+						hasAlreadyUnlocked = true;
 					}
 					resetFailCount();
 				} else {
 					setRecogConfidence(recogResult.sim);
 					incFailCount();
 					setDoorOpened(false);
-					//authManager.resetAuth(); // (FSM 정책에 맞게 유지/해제)
 				}
 			} else {
-				//qDebug() << "[procFrame] REGISTER MODE branch";
 				// 등록 모드
-				qDebug() << "[FRS] registration branch entered";
-				if (!passQualityForRecog(fd.box, alignedFace)) continue;
-
-				{
-#ifdef DEBUG
-					const std::string ts = QDateTime::currentDateTime()
-						.toString("yyyyMMdd_HHmmss_zzz").toStdString();
-					cv::imwrite("dbg_reg_align_" + ts + ".jpg", alignedFace);
-#endif
-
-					cv::Rect roi = expandRect(fd.box, 1.0f, frameCopy.size());
-					cv::Mat crop = frameCopy(roi).clone();
-
-#ifdef DEBUG
-					if (!crop.empty()) cv::imwrite("dbg_reg_crop_" + ts + ".jpg", crop);
-#endif
-				}
-				handleRegistration(frameCopy, fd.box, alignedFace, labelText, boxColor);
+				handleRegistration(frame, fd.box, aligned, label, color);
 			}
 		}
 
-		// 얼굴이 하나도 없을 때 신뢰도 낮게 유지(플리커 방지)
-		if (!faceFound) setRecogConfidence(0.0);
+		if (faces.empty()) setRecogConfidence(0.0);
 
-		// 스트릭 5회 처리
+		// streak 처리
 		if (authStreak_ >= 5) {
 			resetAuthStreak();
 			authManager.resetAuth();
 			resetUnlockFlag();
 		}
 
-		// (센서 붙기 전 테스트용) 문 상태 유지
-		setDoorOpened(true);
 
-		cv::resize(frameCopy, frameCopy, cv::Size(640, 480), 0, 0, cv::INTER_AREA);
-		QImage qimg(frameCopy.data, frameCopy.cols, frameCopy.rows, frameCopy.step, QImage::Format_BGR888);
-		emit frameReady(qimg.copy());
-	}
-	else {
-		const QString openImgPath = QStringLiteral(IMAGES_PATH) + QStringLiteral(OPEN_IMAGE);
-		QImage openImg;
+		{
+			auto now = QDateTime::currentDateTime().toString("HH:mm:ss.zzz").toStdString();
+			cv::putText(frame, now, {10, 25}, cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 255), 2);
 
-		bool ok = openImg.load(openImgPath);
+			if (frame.cols != 640 || frame.rows != 480)
+				cv::resize(frame, frame, cv::Size(640, 480), 0, 0, cv::INTER_AREA);		
 
-		if (!ok || openImg.isNull()) {
-			QImage fallback(640, 480, QImage::Format_RGB888);
-			fallback.fill(Qt::black);
-			emit frameReady(fallback.copy());
+			cv::Mat rgb;
+			cv::cvtColor(frame, rgb, cv::COLOR_BGR2RGB);
+			QImage qimg(rgb.data, rgb.cols, rgb.rows, rgb.step, QImage::Format_RGB888);
+			emit frameReady(qimg.copy());
 		}
-		else {
-			QImage scaled = openImg.scaled(640, 480, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-			QImage rgb = scaled.convertToFormat(QImage::Format_RGB888);
-        	emit frameReady(rgb.copy());
-		}
-		emit frameReady(openImg.copy());
-	}
 
-	QThread::msleep(1); // UI에 양보
+
+		/*
+		// ★ 여기에서 필요한 얼굴검출/인식 등 최소 처리 수행
+		// 예) 디버그 텍스트 오버레이
+		cv::putText(frame, "DirectCapture", {12,28}, cv::FONT_HERSHEY_SIMPLEX, 0.7, {0,255,255}, 2);
+
+		// UI로 보낼 때만 QImage 생성
+		// OpenCV BGR -> QImage BGR888로 래핑 후 copy 한 번
+		QImage qi(frame.data, frame.cols, frame.rows, frame.step, QImage::Format_BGR888);
+		emit frameReady(qi.copy()); // 다른 스레드에서 emit → 자동 QueuedConnection
+		 */
+
+		// CPU 과점유 방지 (필요 시 0~2ms)
+		QThread::msleep(1);
+	}
+	g_uls.stop();
+}
+/*
+   void FaceRecognitionService::procFrame()
+   {
+// 등록 모드 여부
+const bool wantReg = (isRegisteringAtomic.loadRelaxed() != 0);
+
+// 문이 열려있으면 → 열림 이미지 표시 후 리턴
+if (!g_reed.isClosed()) {
+const QString openImgPath = QStringLiteral(IMAGES_PATH) + QStringLiteral(OPEN_IMAGE);
+qDebug() << "[procFrame] open image path: " << openImgPath << ", exists=" << QFile::exists(openImgPath);
+QImage openImg;
+if (!openImg.load(openImgPath) || openImg.isNull()) {
+QImage fallback(640, 480, QImage::Format_RGB888);
+fallback.fill(Qt::black);
+emit frameReady(fallback.copy());
+} else {
+QImage scaled = openImg.scaled(640, 480, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+emit frameReady(scaled.convertToFormat(QImage::Format_RGB888).copy());
+}
+return;
 }
 
+
+// ── 1) 메일박스에서 최신 프레임 가져오기 ──
+cv::Mat src;
+if (!mailbox_ || !mailbox_->tryConsume(src, lastSeq_)) {
+static int miss = 0;
+if ((++miss % 50) == 0) qDebug() << "[procFrame] tryConsume: no new frame";
+return; // 새 프레임 없음
+}
+
+static int got = 0;
+if ((++got%30)==0) qDebug() << "[procFrame] tyrConsume: GET frame seq=" << (qulonglong)lastSeq_;
+
+cv::Mat frame = src.clone();
+if (frame.empty()) {
+qWarning() << "[procFrame] frame is empty after consume()";
+return;
+}
+
+// ── 2) trivial 체크 ──
+if (dnnEmbedder_ && dnnEmbedder_->isTrivialFrame(frame, 1.0, 1.0)) {
+qWarning() << "[procFrame] Trivial frame. skip";
+emit frameReady(QImage());
+return;
+}
+
+// ── 3) 채널 보정 ──
+if (frame.channels() == 4) cv::cvtColor(frame, frame, cv::COLOR_BGRA2BGR);
+else if (frame.channels() == 1) cv::cvtColor(frame, frame, cv::COLOR_GRAY2BGR);
+
+// ── 4) 얼굴 검출 ──
+std::vector<FaceDet> faces;
+if (auto best = detectBestYuNet(frame)) {
+faces.push_back(*best);
+}
+
+// FSM 상태 초기화
+setDetectScore(!faces.empty() ? 0.8 : 0.0);
+setRegisterRequested(wantReg);
+setLivenessOk(true);
+setDuplicate(false);
+
+// ── 5) 얼굴별 처리 ──
+for (const auto& fd : faces) {
+cv::Mat aligned = alignBy5pts(frame, fd.lmk, cv::Size(128,128));
+if (aligned.empty()) {
+cv::Rect roi = expandRect(fd.box, 1.3f, frame.size());
+if (roi.area() > 0) {
+cv::Mat crop = frame(roi).clone();
+if (!crop.empty()) aligned = letterboxSquare(crop, 128);
+}
+}
+if (aligned.empty()) continue;
+
+QString label;
+cv::Scalar color;
+
+if (!wantReg) {
+	// 품질 체크
+	//if (!passQualityForRecog(fd.box, aligned)) { qDebug() << "[procFrame] quality fail"; continue; }
+
+	// 인식 처리
+	auto recogResult = handleRecognition(frame, fd.box, aligned, label, color);
+
+	static Voter voter({5,3});
+	static Thresh th;
+
+	if (recogResult.result == AUTH_SUCCESSED) {
+		int userIdx = recogResult.idx;
+		if (!voter.feed(userIdx, recogResult.sim, th.T_out)) {
+			setRecogConfidence(recogResult.sim);
+			continue;
+		}
+		// 합의 완료 → 문 열기
+		setAllowEntry(true);
+		setRecogConfidence(recogResult.sim);
+		incAuthStreak();
+		if (!hasAlreadyUnlocked && authManager.shouldAllowEntry()) {
+			authManager.handleAuthSuccess();
+			setDoorOpened(true);
+			hasAlreadyUnlocked = true;
+		}
+		resetFailCount();
+	} else {
+		setRecogConfidence(recogResult.sim);
+		incFailCount();
+		setDoorOpened(false);
+	}
+} else {
+	// 등록 모드
+	handleRegistration(frame, fd.box, aligned, label, color);
+}
+}
+
+if (faces.empty()) setRecogConfidence(0.0);
+
+// streak 처리
+if (authStreak_ >= 5) {
+	resetAuthStreak();
+	authManager.resetAuth();
+	resetUnlockFlag();
+}
+
+{
+	auto now = QDateTime::currentDateTime().toString("HH:mm:ss.zzz").toStdString();
+	cv::putText(frame, now, {10, 25}, cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 255), 2);
+
+	if (frame.cols != 640 || frame.rows != 480)
+		cv::resize(frame, frame, cv::Size(640, 480), 0, 0, cv::INTER_AREA);		
+
+	cv::Mat rgb;
+	cv::cvtColor(frame, rgb, cv::COLOR_BGR2RGB);
+	QImage qimg(rgb.data, rgb.cols, rgb.rows, rgb.step, QImage::Format_RGB888);
+	emit frameReady(qimg.copy());
+}
+
+
+// UI로 송출
+//cv::resize(frame, frame, cv::Size(640,480));
+//QImage qimg(frame.data, frame.cols, frame.rows, frame.step, QImage::Format_BGR888);
+//emit frameReady(qimg.copy());
+}
+*/
 
 
 // === 스냅샷 API ===
@@ -1996,6 +1545,7 @@ bool FaceRecognitionService::computeTimeout(const FsmContext& c)
 
 	return false;
 }
+
 void FaceRecognitionService::requestedDoorOpen()
 {
 	QString msg;
@@ -2005,15 +1555,15 @@ void FaceRecognitionService::requestedDoorOpen()
 		presenter->presentDoorOpen(msg);
 		return;
 	}
-	
-	
+
+
 	if (!g_door.isReady()) {
 		qDebug() << "[requestedDoorOpen] g_door is nullptr";
 		msg = QStringLiteral("문 열기에 실패 했습니다."); 
 		presenter->presentDoorOpen(msg);
 		return;
 	}		
-	
+
 	g_door.setUnlocked(true);
 	qDebug() << "[requestedDoorOpen] door was opend!";	
 	msg = QStringLiteral("문이 열렸습니다."); presenter->presentDoorOpen(msg); QThread::msleep(1000);
@@ -2026,13 +1576,13 @@ void FaceRecognitionService::requestedDoorClose()
 	QString msg;
 	// 테스트로 항상 true이기 때문에 리드 스위치 결합하면 주석풀기   
 	/*
-	if (g_reed.isClosed()) {
-		qDebug() << "[requestedDoorClose] already door was close!";
-		msg = QStringLiteral("이미 문이 닫혀 있습니다.");
-		presenter->presentDoorClose(msg);
-		return;
-	}
-	*/
+	   if (g_reed.isClosed()) {
+	   qDebug() << "[requestedDoorClose] already door was close!";
+	   msg = QStringLiteral("이미 문이 닫혀 있습니다.");
+	   presenter->presentDoorClose(msg);
+	   return;
+	   }
+	 */
 
 	if (!g_door.isReady()) {
 		qDebug() << "[requestedDoorClose] g_door si nullptr";
@@ -2044,22 +1594,28 @@ void FaceRecognitionService::requestedDoorClose()
 	/*
 	// =====  리드 스위치 감지 전까지 열림 유지 시작 =====
 	if (!g_unlockMgr.running()) {
-		g_unlockMgr.start();
-		qInfo() << "[Door] Unlock started (wait open, then wait close)";
+	g_unlockMgr.start();
+	qInfo() << "[Door] Unlock started (wait open, then wait close)";
 	}
-	*/
+	 */
 	qDebug() << "[requestedDoorClose] door was closed!";	
 	msg = QStringLiteral("문이 닫혔습니다.");
 	g_door.setUnlocked(false);
 	presenter->presentDoorClose(msg);
 	//QThread::msleep(2000);
 	//g_door.setUnlocked(true);
-	
 }
+
+int FaceRecognitionService::staticDoorStateChange(bool state)
+{
+	g_door.setUnlocked(state);
+	return 0;
+}
+
 void FaceRecognitionService::requestedRetrainRecog()
 {
 	QString msg;
-	if (embeddingsPath_.empty()) {
+	if (embeddingsPath_.isEmpty()) {
 		msg = QStringLiteral("인식기 모델 경로를 알 수 없습니다.");
 		presenter->presentRetrainRecog(msg);
 		return;

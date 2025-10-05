@@ -11,32 +11,31 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 {
 	faceRegisterPresenter = new FaceRegisterPresenter(service, view);
 
-	//throttleTimer_ = new QTimer(this);
-	//throttleTimer_->setInterval(40);
-	//throttleTimer_->setSingleShot(true);
+	if (service->startDirectCapture(0)) {
+		qWarning() << "[FaceRecognitionPresenter] DirectCapture start failed";
+	}
+	else {
+		qInfo() << "[FaceRecognitionPresenter] DirectCapture started";
+	}
 
 	static bool first = true;
-	auto ok = connect(service, &FaceRecognitionService::frameReady, this, [=](const QImage& image) {
-			// 카메라 라벨이 화면에 "보이지" 않으면 드롭 (대기화면일 때)
-			if (!view->ui->cameraLabel->isVisible()) {
-				qDebug() << "[FRP] cameraLabel not visible -> drop";
-				return;
-			}
+	connect(service, &FaceRecognitionService::frameReady, this, [=](const QImage& image) {
+		// 카메라 라벨이 화면에 "보이지" 않으면 드롭 (대기화면일 때)
+		if (image.isNull()) return;
 
-			if (!image.isNull()) {
-					if (first && view->ui->stackedWidget && view->ui->cameraLabel) {
-						view->ui->stackedWidget->setCurrentWidget(view->ui->cameraLabel);
-						first = false;
-					}
-					view->ui->cameraLabel->setPixmap(QPixmap::fromImage(image));
-				} else {
-					qDebug() << "Image is null!";
-				}
-			}, Qt::QueuedConnection);
+		auto* label = view->ui->cameraLabel;
+		if (!label->isVisible()) label->show();
 
-	if (!ok) {
-		qCritical() << "[FRP] connect to frameReady failed!";
-	}
+		if (image.size() == label->size()) {
+			label->setPixmap(QPixmap::fromImage(image));
+		}
+		else {
+			const QImage fit = image.scaled(
+									label->size(), Qt::KeepAspectRatio, Qt::FastTransformation);
+			label->setPixmap(QPixmap::fromImage(fit));
+		}
+
+	}, Qt::QueuedConnection);
 
 
 	connect(service, &FaceRecognitionService::stateChanged, this, [=] (RecognitionState s) {
@@ -189,5 +188,4 @@ void FaceRecognitionPresenter::presentReset()
 FaceRecognitionPresenter::~FaceRecognitionPresenter()
 {
 	std::cout << "FaceRecognition Presenter exit!!" << std::endl;
-	service->stop();
 }
