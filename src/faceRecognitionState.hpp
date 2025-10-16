@@ -5,14 +5,15 @@
 
 enum class RecognitionState {
     IDLE = 0,
-		DOOR_OPEN,				// 1
-		DETECTING,				// 2
-    RECOGNIZING,			// 3
-    REGISTERING,			// 4
-    DUPLICATE_FACE,		// 5
-    AUTH_SUCCESS,			// 6
-    AUTH_FAIL,				// 7
-    LOCKED_OUT				// 8
+	DOOR_OPEN,				// 1
+	WAIT_CLOSE,				// 2
+	DETECTING,				// 3
+    RECOGNIZING,			// 4
+    REGISTERING,			// 5
+    DUPLICATE_FACE,		    // 6
+    AUTH_SUCCESS,			// 7
+    AUTH_FAIL,				// 8
+    LOCKED_OUT				// 9
 };
 
 Q_DECLARE_METATYPE(RecognitionState)

@@ -12,7 +12,7 @@ public:
 		void handleAuthFailure(); 
 		bool isAuthValid() const;
 		void resetAuth();
-		bool shouldAllowEntry() const;
+		bool shouldAllowEntry(const QString& label);
 
 		int getAuthCount() const;
 		AuthState getState() const;

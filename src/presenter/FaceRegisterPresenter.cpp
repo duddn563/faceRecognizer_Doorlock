@@ -1,12 +1,15 @@
 #include "FaceRegisterPresenter.hpp"
 #include <QInputDialog>
+#include <QFont>
+#include <QMessageBox>
 #include <QDebug>
 
 FaceRegisterPresenter::FaceRegisterPresenter(FaceRecognitionService* service, MainWindow* view, QObject* parent)
     : QObject(parent), service(service), view(view)
 {
-		qDebug() << "[FaceRegisterPresenter] constructor start!"; 
-		//connectService();
+	qDebug() << "[FaceRegisterPresenter] constructor start!"; 
+	//connectService();
+	registeredUserCnt = 1;
 
     // 워치독 타이머 기본 설정
     m_registerTimer.setSingleShot(true);
@@ -68,27 +71,29 @@ void FaceRegisterPresenter::onRegisterFace() {
 
 	// 1) UI 입력
 	emit registrationStarted();
-	
-	QString name = QInputDialog::getText(			// TODO: 입력하지 않고 OK해도 Skip됨
-			view, 
-			"사용자 등록", 
-			"이름을 입력하시겠습니까?\n\n"
-			"입력하지 않으면 '등록된 사용자'로 저장됩니다."
-	);
 
-	// 사용자가 취소를 눌렀을 경우
-	if (name.isEmpty()) {
-		qWarning() << "[Presenter] name is empty -> skip";
-		emit registrationResult(false, "이름이 입력되지 않았습니다.");
+	QInputDialog dlg(view);
+	dlg.setWindowTitle(tr("사용자 등록"));
+	dlg.setLabelText(tr("이름을 입력하시겠습니까?\n\n"
+						"입력하지 않으면 'Registered user'로 저장 됩니다."));
+	dlg.setInputMode(QInputDialog::TextInput);
+	dlg.setStyleSheet(INPUT_DIALOG_STYLE);
+	dlg.resize(500, 300);
+
+	if (dlg.exec() != QDialog::Accepted) {
+		qDebug() << "[onRegisterFace] cancelled -> skip";
+		emit registrationResult(false, "등록이 취소되었습니다.");
 		return;
 	}
 
-	if (name.trimmed().isEmpty()) {
-		name = QStringLiteral("등록된 사용자");
+	QString name = dlg.textValue().trimmed();
+
+	if (name.isEmpty()){
+		name = QStringLiteral("Registered user_%1").arg(registeredUserCnt++);
 	}
 
-	qInfo() << "[FaceRegisterPresenter] registering name: " << name;	
 
+	qInfo() << "[FaceRegisterPresenter] registering name: " << name;	
 
 
 	// 2) Service 존재/수명 체크

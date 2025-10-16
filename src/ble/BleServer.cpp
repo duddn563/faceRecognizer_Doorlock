@@ -1,4 +1,5 @@
 #include "BleServer.hpp"
+#include <QCoreApplication>
 
 BleServer::BleServer(QObject* parent, FaceRecognitionService* recogServ)
   : QObject(parent), service(recogServ) {}
@@ -158,6 +159,29 @@ void BleServer::reset_ble_stack(const std::string& hci)
     }, 1000);
 }
 
+void BleServer::softRestartBle() 
+{
+	if (g_peripheral_) {
+		g_peripheral_->stopAdvertising();
+	}
+
+	if (g_service_) {
+		QObject::disconnect(g_service_, nullptr, nullptr, nullptr);
+		g_service_->deleteLater();
+		g_service_ = nullptr;
+	}
+	if (g_peripheral_) {
+		QObject::disconnect(g_peripheral_.data(), nullptr, nullptr, nullptr);
+		g_peripheral_.reset();
+	}
+
+	reset_ble_stack("hci0");
+
+	setupGatt_();
+	startAdvertising_();
+	qInfo() << "[softRestartBle] sotf-restart done";
+}
+
 QJsonObject BleServer::getInfoJson() {
     QString prettyOs;
     const auto osRelease = readAll("/etc/os-release");
@@ -230,20 +254,73 @@ QJsonObject BleServer::getBtJson() {
 }
 
 // Send JSON line via BLE (chunked using writeCharacteristic for broad compatibility)
+/*
 void BleServer::sendJsonLine(const QJsonObject& obj) {
-    const auto ch = g_service_ ? g_service_->characteristic(CHAR_NOTIFY_UUID) : QLowEnergyCharacteristic();
-    if (!ch.isValid()) return;
+	if (!g_service_) {
+		qWarning() << "[sendJsonLine] service null";
+		return;
+	}
+
+	const auto ch = g_service_->characteristic(CHAR_NOTIFY_UUID);
+	if (!ch.isValid()) {
+		qWarning() << "[sendJsonLine] notify char invalid";
+		return;
+	}
+
     const QByteArray line = QJsonDocument(obj).toJson(QJsonDocument::Compact) + '\n';
-    int mtu = 23;
-    if (g_peripheral_) mtu = g_peripheral_->mtu();
-    int kMax = qMax(20, mtu - 3);
+
+	int attMtu = 23;
+	if (g_peripheral_) attMtu = qMax(attMtu, g_peripheral_->mtu());
+	const int kMax = qMax(20, attMtu - 3);
+
     for (int off = 0; off < line.size(); off += kMax) {
         const QByteArray chunk = line.mid(off, qMin(kMax, line.size() - off));
         // Use writeCharacteristic: works as Notify if CCCD is set on client side
         if (g_service_) g_service_->writeCharacteristic(ch, chunk, QLowEnergyService::WriteWithoutResponse);
+		QCoreApplication::processEvents(QEventLoop::AllEvents, 1);
         QThread::msleep(5);
     }
 }
+*/
+
+// Send JSON line via BLE (chunked using writeCharacteristic for broad compatibility)
+void BleServer::sendJsonLine(const QJsonObject& obj) {
+    if (!g_service_) { qWarning() << "[sendJsonLine] service null"; return; }
+
+    const auto ch = g_service_->characteristic(CHAR_NOTIFY_UUID);
+    if (!ch.isValid()) { qWarning() << "[sendJsonLine] notify char invalid"; return; }
+
+    const QByteArray line = QJsonDocument(obj).toJson(QJsonDocument::Compact) + '\n';
+
+    // 1) 로컬 MTU (서버 관점)
+    int mtu = 23;
+    if (g_peripheral_) {
+        const int m = g_peripheral_->mtu();
+        if (m > 0) mtu = m;
+    }
+
+    // 2) ATT payload = mtu-3
+    const int attPayload = qMax(20, mtu - 3);
+
+    // 3) 폰 쪽(중앙)의 notify 최대는 "중앙 MTU-3". 중앙 MTU를 API로 못 읽으니 보수적 상한 180B 사용.
+    //    또한 BlueZ 특성값 상한(512B)도 함께 고려.
+    const int kMax = qMin( qMin(512, attPayload), 180 );
+
+    qInfo() << "[sendJsonLine] mtu=" << mtu << " att=" << attPayload
+            << " chunk=" << kMax << " len=" << line.size();
+
+    for (int off = 0; off < line.size(); off += kMax) {
+        const int len = qMin(kMax, line.size() - off);
+        const QByteArray chunk = line.mid(off, len);
+
+		g_service_->writeCharacteristic(ch, chunk, QLowEnergyService::WriteWithoutResponse);
+
+
+        // 페이스 조절: 대용량일수록 약간 더 여유
+        QThread::msleep(line.size() > 1024 ? 5 : 2);
+    }
+}
+
 
 void BleServer::run() {
     if (started_) return;
@@ -269,24 +346,48 @@ void BleServer::run() {
 
 void BleServer::addConnect_()
 {
+	QObject::connect(g_service_, &QLowEnergyService::descriptorWritten,
+		this, [this](const QLowEnergyDescriptor &d, const QByteArray &val) {
+            if (d.type() == QBluetoothUuid::DescriptorType::ClientCharacteristicConfiguration) {
 
-  QObject::connect(g_service_, &QLowEnergyService::stateChanged,
-      this, [this](QLowEnergyService::ServiceState s) {
-      qDebug() << "[main] service state:" << s;
-      const auto cmd   = g_service_->characteristic(CHAR_CMD_UUID);
-      const auto state = g_service_->characteristic(CHAR_STATE_UUID);
-      qDebug() << "[main] CMD valid?"   << cmd.isValid() << cmd.uuid();
-      qDebug() << "[main] STATE valid?" << state.isValid() << state.uuid();
+				qDebug() << "[main] CCCD written:" << val.toHex();
+				// 0100(Notify) 또는 0200(Indicate)이면 테스트로 한 줄 보내기
+				if (val == QByteArray::fromHex("0100") || val == QByteArray::fromHex("0200")) {
+					const auto ch = g_service_->characteristic(CHAR_NOTIFY_UUID);
+					if (ch.isValid()) {
+						const QByteArray probe = "{\"type\":\"probe\",\"ok\":true}\n";
+						// Qt5: notifyCharacteristicChanged 없음 → writeCharacteristic 사용
+						g_service_->writeCharacteristic(ch, probe, QLowEnergyService::WriteWithResponse);
+						qDebug() << "[main] PROBE notify sent";
+					}
+				}
+            }
+        });
+
+	QObject::connect(g_service_, &QLowEnergyService::characteristicWritten,
+			this, [this] (const QLowEnergyCharacteristic& c, const QByteArray& v) {
+				qDebug() << "[BleServer] written" << c.uuid() << v.size();
+			}
+		);
+	
+
+	QObject::connect(g_service_, &QLowEnergyService::stateChanged,
+		this, [this](QLowEnergyService::ServiceState s) {
+			qDebug() << "[main] service state:" << s;
+			const auto cmd   = g_service_->characteristic(CHAR_CMD_UUID);
+			const auto state = g_service_->characteristic(CHAR_STATE_UUID);
+			qDebug() << "[main] CMD valid?"   << cmd.isValid() << cmd.uuid();
+			qDebug() << "[main] STATE valid?" << state.isValid() << state.uuid();
 		}
 	);
-  QObject::connect(g_service_, &QLowEnergyService::characteristicChanged,
-      this, [this](const QLowEnergyCharacteristic& c, const QByteArray &value) {
-      qDebug() << "[main] char CHANGE:" << c.uuid() << "val=" << value;
+	QObject::connect(g_service_, &QLowEnergyService::characteristicChanged,
+		this, [this](const QLowEnergyCharacteristic& c, const QByteArray &value) {
+			qDebug() << "[main] char CHANGE:" << c.uuid() << "val=" << value;
 			const QString str = QString::fromUtf8(value);
-      if (c.uuid() == CHAR_CMD_UUID) {
+			if (c.uuid() == CHAR_CMD_UUID) {
 				handleCommand_(str);
-      }
-    }
+			}
+		}
 	);
 }
 
@@ -320,6 +421,9 @@ void BleServer::setupGatt_() {
 	state.setProperties(QLowEnergyCharacteristic::Read
 									| QLowEnergyCharacteristic::Notify);
 	state.setValue("LOCKED");
+	QLowEnergyDescriptorData cccd_state(QBluetoothUuid::DescriptorType::ClientCharacteristicConfiguration,
+								QByteArray::fromHex("0000"));
+	state.addDescriptor(cccd_state);
 
 	QLowEnergyCharacteristicData notify;
 	notify.setUuid(CHAR_NOTIFY_UUID);
@@ -327,13 +431,10 @@ void BleServer::setupGatt_() {
 										 | QLowEnergyCharacteristic::Notify);
 	notify.setValue(QByteArray());
 
-	QLowEnergyDescriptorData cccd(QBluetoothUuid::DescriptorType::ClientCharacteristicConfiguration,
-																QByteArray(2, char(0x00))
+	QLowEnergyDescriptorData cccd_notify(QBluetoothUuid::DescriptorType::ClientCharacteristicConfiguration,
+								  QByteArray::fromHex("0000"));
 
-													 );
-
-	state.addDescriptor(cccd);
-	notify.addDescriptor(cccd);
+	notify.addDescriptor(cccd_notify);
 
 	QLowEnergyServiceData svc;
 	svc.setType(QLowEnergyServiceData::ServiceTypePrimary);
@@ -351,7 +452,9 @@ void BleServer::setupGatt_() {
 
 void BleServer::startAdvertising_()
 {
-    if (!g_peripheral_) { qWarning() << "[adv] peripheral null"; return; }
+    if (!g_peripheral_) { 
+		g_peripheral_.reset(QLowEnergyController::createPeripheral());
+	}
 
     // 1) 파라미터: AdvInd (connectable, legacy)
     QLowEnergyAdvertisingParameters params;
@@ -380,10 +483,10 @@ void BleServer::startAdvertising_()
 // --- CMD 처리 본문---
 void BleServer::handleCommand_(const QString& s)
 {
+
     if (s == "INFO\n") { sendJsonLine(getInfoJson()); return; }
     if (s == "NET\n")  { sendJsonLine(getNetJson());  return; }
     if (s == "BT\n")   { sendJsonLine(getBtJson());   return; }
-
     if (s == "AUTH\n") {
         const int limit = 50;
         if (g_auth_ && g_auth_->open()) {
@@ -395,14 +498,27 @@ void BleServer::handleCommand_(const QString& s)
         return;
     }
 
-    if (s.startsWith("AUTH_IMAGE\n")) {
+    if (s.startsWith("AUTH_IMAGE")) {
         QStringList toks = s.split(' ', Qt::SkipEmptyParts);
-        if (toks.size() < 2) { sendJsonLine(QJsonObject{{"type","auth_img"},{"error","missing id"}}); return; }
-        bool ok=false; int id=toks[1].toInt(&ok);
-        if (!ok) { sendJsonLine(QJsonObject{{"type","auth_img"},{"error","invalid id"}}); return; }
-        if (!g_auth_ || !g_auth_->open()) { sendJsonLine(QJsonObject{{"type","auth_img"},{"id",id},{"error","db not open"}}); return; }
+        if (toks.size() < 2) { 
+			sendJsonLine(QJsonObject{{"type","auth_img"},{"error","missing id"}}); 
+			return; 
+		}
+        bool ok=false; 
+		int id=toks[1].toInt(&ok);
+        if (!ok) { 
+			sendJsonLine(QJsonObject{{"type","auth_img"},{"error","invalid id"}}); 
+			return; 
+		}
+        if (!g_auth_ || !g_auth_->open()) { 
+			sendJsonLine(QJsonObject{{"type","auth_img"},{"id",id},{"error","db not open"}}); 
+			return; 
+		}
         QByteArray blob = g_auth_->fetchImageBlob(id);
-        if (blob.isEmpty()) { sendJsonLine(QJsonObject{{"type","auth_img"},{"id",id},{"error","no image"}}); return; }
+        if (blob.isEmpty()) { 
+			sendJsonLine(QJsonObject{{"type","auth_img"},{"id",id},{"error","no image"}}); 
+			return; 
+		}
         sendJsonLine(QJsonObject{
             {"type","auth_img"}, {"id",id},
             {"mime","application/octet-stream"},
@@ -411,27 +527,141 @@ void BleServer::handleCommand_(const QString& s)
         return;
     }
 
+	/*
+	if (s == "USERS\n") {
+		QJsonArray arr;
+		arr.append(QJsonObject{{"id",1},{"name","관리자"},{"role","admin"},{"hasImage",true},{"ts","2025-10-05T12:30:00Z"}});
+		arr.append(QJsonObject{{"id",2},{"name","홍길동"},{"role","user"},{"hasImage",false},{"ts","2025-10-05T11:02:10Z"}});
+
+		sendJsonLine(QJsonObject{{"type", "users"},{"entries", arr}});
+		return;
+	}
+	*/
+	if (s == "USERS\n") {
+		// 1) 파일 경로 조합
+		const QString filePath =
+			QDir(QCoreApplication::applicationDirPath())
+			.filePath(EMBEDDING_JSON_PATH) + EMBEDDING_JSON;
+
+		QFile f(filePath);
+		if (!f.exists()) {
+			sendJsonLine(QJsonObject{
+					{"type","users"}, {"entries", QJsonArray()},
+					{"error", QString("embedding not found: %1").arg(filePath)}
+					});
+			return;
+		}
+		if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+			sendJsonLine(QJsonObject{
+					{"type","users"}, {"entries", QJsonArray()},
+					{"error", QString("open failed: %1").arg(f.errorString())}
+					});
+			return;
+		}
+
+		const QByteArray raw = f.readAll();
+		f.close();
+
+		QJsonParseError perr;
+		const QJsonDocument doc = QJsonDocument::fromJson(raw, &perr);
+		if (perr.error != QJsonParseError::NoError || !doc.isObject()) {
+			sendJsonLine(QJsonObject{
+					{"type","users"}, {"entries", QJsonArray()},
+					{"error", QString("json parse error: %1").arg(perr.errorString())}
+					});
+			return;
+		}
+
+		const QJsonObject root = doc.object();
+		const QJsonArray items = root.value("items").toArray();
+
+		QJsonArray entries;
+
+		// (선택) 이미지 유무 판단 규칙이 있으면 여기서 체크
+		// 예: /var/lib/doorlock/faces/<id>.jpg 같은 규칙이 있다면 hasImage 계산 가능
+		auto hasImageFor = [](int /*id*/, const QString& /*name*/) -> bool {
+			// TODO: 규칙이 정해지면 파일 존재 검사로 바꾸세요.
+			return false;
+		};
+
+		for (const QJsonValue& v : items) {
+			const QJsonObject o = v.toObject();
+			const int id = o.value("id").toInt(-1);
+			const QString name = o.value("name").toString(QStringLiteral("Unknown"));
+
+			// role은 일단 기본 "user"로, 필요 시 매핑
+			const bool hasImg = hasImageFor(id, name);
+
+			entries.append(QJsonObject{
+					{"id", id},
+					{"name", name},
+					{"role", "user"},
+					{"hasImage", hasImg},
+					// 클라이언트 포맷 호환 유지용(없으면 생략해도 OK)
+					{"ts", QDateTime::currentDateTimeUtc().toString(Qt::ISODate)}
+					});
+		}
+
+		sendJsonLine(QJsonObject{
+				{"type", "users"},
+				{"entries", entries},
+				{"count", entries.size()}
+				});
+		return;
+	}
     if (s == "SNAP\n") {
-        const int W=640, H=480, Q=75;
-        QByteArray jpg = captureJpeg(W,H,Q);
-        if (jpg.isEmpty()) { sendJsonLine(QJsonObject{{"type","cmd"},{"cmd","SNAP"},{"ok",false},{"msg","capture failed"}}); return; }
         const QString tmp = "/tmp/snap.jpg";
         QFile f(tmp);
-        if (!f.open(QIODevice::WriteOnly) || f.write(jpg)!=jpg.size()) {
-            sendJsonLine(QJsonObject{{"type","cmd"},{"cmd","SNAP"},{"ok",false},{"msg","write temp failed"}});
-            return;
-        }
-        f.close();
-        sendJsonLine(QJsonObject{{"type","cmd"},{"cmd","SNAP"},{"ok",true},{"msg","ok"}});
-        sendFileOverBle(tmp, "image/jpeg", "snap.jpg");
-        return;
-    }
+
+		if (!f.exists()) {
+			sendJsonLine(QJsonObject{
+					{"type", "cmd"},
+					{"cmd",  "SNAP"},
+					{"ok",   false},
+					{"msg",  "no snap file"  },
+			});
+			return;
+		}
+
+		if (!f.open(QIODevice::ReadOnly)) {
+			sendJsonLine(QJsonObject{
+					{"type", "cmd"},
+					{"cmd", "SNAP"},
+					{"ok",  false },
+					{"msg", "file open failed"}
+			});
+			return;
+		}
+
+		QByteArray jpg = f.readAll();
+		f.close();
+
+		if (jpg.isEmpty()) {
+			sendJsonLine(QJsonObject{
+					{"type", "cmd" },
+					{"cmd",  "SNAP"},
+					{"ok",   false },
+					{"msg",  "file empty"}
+			});
+			return;
+		}
+
+		sendJsonLine(QJsonObject{
+				{"type", "cmd"},
+				{"cmd",  "SNAP"},
+				{"ok",   true},
+				{"msg",  "ok"},
+		});
+
+		sendFileOverBle(tmp, "image/jpeg", "snap.jpg");
+		return;
+	}
 
     // 장치 제어 커맨드
     if (s == "REFRESH\n")      { sendCmdResult("REFRESH", true, "새로고침 완료"); return; }
     if (s == "CAM_RESTART\n")  { int rc=0; sendCmdResult("CAM_RESTART", rc==0, rc==0?"카메라 재시작 성공":"카메라 재시작 실패"); return; }
     if (s == "OPEN\n")         { bool ok= service->staticDoorStateChange(true); sendCmdResult("OPEN", ok,  ok?"도어 열기 성공":"도어 열기 실패"); return; }
-    if (s == "CLOSE\n")         { bool ok= service->staticDoorStateChange(false); sendCmdResult("LOCK", ok,  ok?"도어 잠금 성공":"도어 잠금 실패"); return; }
+    if (s == "LOCK\n")         { bool ok= service->staticDoorStateChange(false); sendCmdResult("LOCK", ok,  ok?"도어 잠금 성공":"도어 잠금 실패"); return; }
     if (s == "RET_RECOG\n")    { int rc=0; sendCmdResult("RET_RECOG", rc==0, rc==0?"재학습 완료":"재학습 실패"); return; }
 
     if (s == "LOG_EXPORT\n") {
@@ -460,7 +690,13 @@ void BleServer::handleCommand_(const QString& s)
         sendFileOverBle(outPath, "text/csv", "auth_logs.csv");
         return;
     }
+	if (s == "BT_RESTART\n") {
+		softRestartBle();
+		return;
+	}
 
+
+	qDebug() << "[loopDirect] s=" << s;
     // 알 수 없는 커맨드
     sendCmdResult(s, false, "unknown command");
 }

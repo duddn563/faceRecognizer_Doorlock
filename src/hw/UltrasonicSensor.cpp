@@ -12,13 +12,29 @@ UltrasonicSensor::~UltrasonicSensor() {
 
 void UltrasonicSensor::start()
 {
-	if (isRunning.exchange(true)) return;
-	qDebug() << "[init] Ultrasonic sensor init OK";
+	bool expected = false;
+	if (!isRunning.compare_exchange_strong(expected, true, std::memory_order_acq_rel)) {
+		qDebug() << "[ultra] start() ignored: already running";
+		return;
+	}
 
 	th_ = std::thread([this]() { 
-			this->main_loop();
+			qDebug() << "[ultra] thread enter";
+			isRunning.store(true, std::memory_order_release);
+			try {
+				this->main_loop();
+			}
+			catch (const std::exception& e) {
+				qWarning() << "[ultra] excaption:" << e.what();
+			}
+			catch (...) {
+				qWarning() << "[ultra] unknown exception";
+
+			}
+
 			isRunning.store(false, std::memory_order_release);
-		});
+			qDebug() << "[ultra] thread exit";
+	});
 }
 
 void UltrasonicSensor::stop()
@@ -51,8 +67,9 @@ void UltrasonicSensor::main_loop()
         return true;
     };
 
+	qDebug() << "[init] Ultrasonic sensor init OK (Running? " << isRunning.load() << ")";
 	while (isRunning.load(std::memory_order_acquire)) {
-		  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
         // 1) 트리거 전, ECHO가 LOW로 안정될 때까지 (timeout)
         if (!waitState(ECHO_PIN, LOW, 200000)) {
@@ -85,6 +102,7 @@ void UltrasonicSensor::main_loop()
             latestDist_.store(-1.0f, std::memory_order_release);
             continue;
         }
+		qDebug() << "[ultrasonicSensor] dist:" << dist;	
         latestDist_.store(dist, std::memory_order_release);
     }
 }

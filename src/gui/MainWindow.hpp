@@ -22,6 +22,7 @@
 #include "services/UserImageService.hpp"
 #include "services/LogDtos.hpp"
 #include "ControlTabView.hpp"
+#include "StyledMsgBox.hpp"
 
 class QStandardItemModel;          
 class QSortFilterProxyModel;      
@@ -76,9 +77,6 @@ public:
 		void PresentDoorOpen(const QString& msg);
 		void PresentDoorClose(const QString& msg);
 		void PresentRetrainRecog(const QString& msg);
-
-public slots:
-	void onPreviewReady(const QImage& img);
 
 signals:
 		// === Outgoing events to Presenter === 

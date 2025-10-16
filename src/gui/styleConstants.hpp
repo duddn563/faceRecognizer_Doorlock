@@ -1,71 +1,6 @@
 #pragma once
 #include <QString>
-
-// 버튼 공통 스타일 (라운드, 마우스 반응 포함)
-/*
-const QString BTN_STYLE = R"(
-    QPushButton {
-        background-color: #007AFF;
-        color: white;
-        border-radius: 12px;
-        padding: 8px 16px;
-        font-size: 15px;
-        font-weight: 500;
-        border: none;
-    }
-    QPushButton:hover {
-        background-color: #339CFF;
-    }
-    QPushButton:pressed {
-        background-color: #005FCC;
-    }
-)";
-const QString BTN_STYLE = R"(
-QPushButton {
-    background-color: #2B2B2B;
-    color: #EAEAEA;
-    border: 1px solid #3A3A3A;
-    border-radius: 14px;
-    padding: 10px 20px;
-    font-size: 30px;
-    font-family: 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
-    font-weight: 500;
-}
-
-QPushButton:hover {
-    background-color: #3A3A3A;
-}
-
-QPushButton:pressed {
-    background-color: #1E1E1E;
-}
-
-QPushButton:disabled {
-    background-color: #555555;
-    color: #999999;
-    border: 1px solid #444444;
-}
-)";
-
-// 카메라 라벨 스타일 (라운드 + 연한 테두리)
-const QString CAM_LABEL_STYLE = R"(
-    QLabel {
-        border: 2px solid #E0E0E0;
-        border-radius: 10px;
-        background-color: #FAFAFA;
-    }
-)";
-
-// 상태바 스타일 (얇고 차분한 회색 + 중간 투명 느낌)
-const QString STATUS_BAR_STYLE = R"(
-    QStatusBar {
-        background-color: #F2F2F2;
-        color: #555555;
-        font-size: 13px;
-        padding-left: 10px;
-    }
-)";
-*/
+#include <QDialog>
 
 
 // 버튼 스타일 — 모양은 유지, 크기/패딩/폰트 업
@@ -88,6 +23,27 @@ QPushButton:disabled {
     border: 1px solid #444444;
 }
 )";
+// 버튼 스타일 — 모양은 유지, 크기/패딩/폰트 업
+const QString BTN_STYLE_2 = R"(
+QPushButton {
+    background-color: #2B2B2B;
+    color: #EAEAEA;
+    border: 1px solid #3A3A3A;
+    border-radius: 16px;
+    padding: 14px 28px;         /* ← 더 넉넉한 패딩 */
+    font-size: 23px;            /* ← 글씨 크게 */
+    font-family: 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans CJK KR', sans-serif;
+    font-weight: 600;           /* 살짝 굵게 */
+}
+QPushButton:hover { background-color: #3A3A3A; }
+QPushButton:pressed { background-color: #1E1E1E; }
+QPushButton:disabled {
+    background-color: #555555;
+    color: #999999;
+    border: 1px solid #444444;
+}
+)";
+
 // 카메라 라벨 — 틀은 유지, 테두리 살짝 굵게, 배경을 더 중립 톤
 const QString CAM_LABEL_STYLE = R"(
 QLabel#cameraLabel {
@@ -140,4 +96,152 @@ QGroupBox::title {
     padding: 2px 4px;
 }
 )";
+
+
+// ===== 질의 박스(= QMessageBox) =====
+const QString MESSAGEBOX_STYLE = R"(
+QMessageBox {
+    background: #FFFFFF;
+    min-width: 360px;         /* 모바일에서 꽉 차 보이게 */
+    border-radius: 12px;
+}
+QMessageBox QLabel {
+    font-size: 26px;          /* 본문 크게 */
+    color: #222222;
+    line-height: 140%;
+}
+QMessageBox QPushButton {
+    font-size: 26px;          /* 버튼 글자 크게 */
+    padding: 12px 20px;       /* 터치 영역 확대 */
+    min-height: 48px;
+    min-width: 96px;
+    border-radius: 12px;
+    background: #F2F4F7;      /* 연한 회색 버튼 */
+    color: #222222;
+    border: 1px solid #CFD3D8;
+}
+QMessageBox QPushButton:hover {
+    background: #E9EDF2;
+}
+QMessageBox QPushButton:pressed {
+    background: #E1E6EC;
+}
+QMessageBox QPushButton:default {
+    background: #2E6EF7;      /* 기본 버튼 강조 */
+    color: #FFFFFF;
+    border: 1px solid #2E6EF7;
+}
+)";
+
+// ===== 인풋 박스(= QInputDialog 전용) =====
+static const char* INPUT_DIALOG_STYLE = R"(
+QInputDialog {
+    background: #FFFFFF;
+    min-width: 480px;
+    min-height: 280px;
+    border-radius: 16px;
+    padding: 24px;
+}
+
+/* 입력창(QLineEdit) */
+QLineEdit {
+    background: #FAFAFA;
+    color: #111111;
+    border: 2px solid #C5C9CF;
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 28px;            /* 터치 환경용 */
+    selection-background-color: #D0D4D9;
+}
+
+/* 안내 텍스트 (QLabel) */
+QInputDialog QLabel {
+    font-size: 26px;
+    color: #222222;
+    line-height: 150%;
+}
+
+/* 버튼 */
+QPushButton {
+    font-size: 26px;
+    padding: 16px 28px;
+    min-height: 64px;
+    min-width: 140px;
+    border-radius: 14px;
+    background: #F2F4F7;
+    color: #222222;
+    border: 1px solid #CFD3D8;
+}
+QPushButton:hover   { background: #E9EDF2; }
+QPushButton:pressed { background: #E1E6EC; }
+QPushButton:default {
+    background: #2E6EF7;
+    color: #FFFFFF;
+    border: 1px solid #2E6EF7;
+}
+)";
+
+
+// 갤러리 전용 스타일시트
+static const char* GALLERY_DIALOG_STYLE = R"(
+QDialog#GalleryDialog {
+    background: #0f141a;      /* 다크 배경 */
+    color: #eef2f6;           /* 본문 텍스트 */
+    border-radius: 16px;
+}
+
+/* 스크롤/컨테이너 테두리 제거 */
+QScrollArea { border: none; }
+QWidget#GalleryContainer { background: transparent; }
+
+/* 썸네일(ClickableLabel) */
+QLabel[role="thumb"] {
+    background: #111827;
+    border: 2px solid #1f2937;
+    border-radius: 12px;
+}
+
+/* 이름 라벨 */
+QLabel[role="name"] {
+    font-size: 18px;
+    color: #cbd5e1;
+    padding-top: 6px;
+}
+
+/* 삭제/닫기 버튼 */
+QPushButton[role="delete"] {
+    font-size: 16px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: #ef4444;
+    color: #ffffff;
+    border: none;
+}
+QPushButton[role="delete"]:hover  { background: #f87171; }
+QPushButton[role="delete"]:pressed{ background: #dc2626; }
+
+QPushButton[role="close"] {
+    font-size: 18px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    background: #374151;
+    color: #ffffff;
+    border: none;
+}
+QPushButton[role="close"]:hover   { background: #4b5563; }
+QPushButton[role="close"]:pressed { background: #1f2937; }
+
+/* 그리드 안 셀 위젯(카드 느낌) */
+QWidget[role="cell"] {
+    background: transparent;
+}
+)";
+
+/* 적용 헬퍼 */
+inline void applyGalleryDialogStyle(QDialog* dlg) {
+    if (!dlg) return;
+    dlg->setObjectName("GalleryDialog");
+    dlg->setStyleSheet(GALLERY_DIALOG_STYLE);
+}
+
 

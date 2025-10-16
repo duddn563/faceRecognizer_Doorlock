@@ -47,16 +47,27 @@ bool AuthManager::isAuthValid() const
 		return rc;
 }
 
-bool AuthManager::shouldAllowEntry() const
+bool AuthManager::shouldAllowEntry(const QString& label) 
 {
-		int rc = 0;
-		rc = isAuthValid() && authCount >= requiredSuccessCount;
-		if (rc == 0) {
-				qDebug() << "[AuthManager] shouldAllowEntry# The number of authentication attempts is insufficient";
-		}
+	const QString norm = label.trimmed().toLower();
+	if (norm.isEmpty() || norm.startsWith("unknown")) {
+		qInfo() << "[shouldAllowEntry] Unknown user->deny";
+		return false;
+	}
 
+	if (!isAuthValid()) {
+		qDebug() << "[shouldAllowEntry] Auth window invalid";
+		return false;
+	}
 
-		return rc; 
+	if (authCount < requiredSuccessCount) {
+		qDebug() << "[shouldAllowEntry] Not enough success"
+				 << authCount << "/" << requiredSuccessCount;
+		return false;
+				 
+	}
+
+	return true; 
 }
 
 void AuthManager::resetAuth()

@@ -174,10 +174,16 @@ bool Embedder::extract(const Mat& face, std::vector<float>& out) const
 		emb = emb.reshape(1, 1).clone();  // 1xD, 연속 메모리 보장
 		if (emb.type() != CV_32F) emb.convertTo(emb, CV_32F);
 
-		//double l2_before = cv::norm(emb, cv::NORM_L2);
+		double l2_before = cv::norm(emb, cv::NORM_L2);
+		cv::Scalar mu, sigma;
+		cv::meanStdDev(emb, mu, sigma);
+		qInfo() << "[extract][check] L2_before=" << l2_before
+				<< " mean=" << mu[0] << "std=" << sigma[0];
+
 		l2normalize(emb);
-		//double l2_after = cv::norm(emb, cv::NORM_L2);
-		//qDebug() << "[extract] L2_before=" << l2_before << "L2 after=" << l2_after;
+
+		double l2_after = cv::norm(emb, cv::NORM_L2);
+		qDebug() << "[extract][check] L2_after=" << l2_after;
 
 		// (옵션) 값 범위 간단 체크
 		double minv, maxv;

@@ -62,9 +62,6 @@
 #include "fsm/recognition_fsm.hpp"
 #include "fsm/recognition_fsm_setup.hpp"
 
-// Utile
-//#include "util.hpp"
-
 // Camera number
 #define CAM_NUM							-1	
 
@@ -90,6 +87,7 @@ struct recogResult_t {
 	QString name;
 	int		idx = -1;
 	float   sim = -1.0f;			// 임베딩 결과 
+	float	secondSim = -1.0f;
 	bool	result = AUTH_FAILED;		// 인식 결과
 };
 
@@ -140,16 +138,20 @@ signals:
 		// UI 로 이미지 전달 
 		void frameReady(const QImage& frame);
 
-		public slots:
-			// UI(QML/Qt)에서 접근하는 setter — moc에서 호출되므로 무조건 정의 필요
-			// 링커 에러 방지 위해 헤더에서 인라인 구현
-			void setDetectScore(double v);
+public slots:
+		// UI(QML/Qt)에서 접근하는 setter — moc에서 호출되므로 무조건 정의 필요
+		// 링커 에러 방지 위해 헤더에서 인라인 구현
+		void setDetectScore(double v);
+		void setFacePresent(bool v);
 		void setRecogConfidence(double v); 
 		void setDuplicate(bool v);            
 		void setRegisterRequested(bool v);   
 		void setLivenessOk(bool v);         
 		void setDoorOpened(bool v);       
 		void setAllowEntry(bool v);       
+
+		void setDoorCommandOpen(bool v);		// 하드웨어 트리거용(리드센서와는 무관)
+		void setDoorSensorOpen(bool v);			// 리드센서 해석 결과만
 
 		void incAuthStreak();               
 		void resetAuthStreak();          
@@ -171,6 +173,8 @@ signals:
 		// 파일 IO
 		bool loadEmbeddingsFromFile();
 		bool saveEmbeddingsToFile() const;
+		void showOpenImage();
+		void showFarImage();
 
 		// 유틸
 		bool ensureDir(const QString& dirPath);
@@ -207,6 +211,7 @@ signals:
 		MatchTop2 bestMatchTop2(const std::vector<float>& emb) const;
 
 		MatchResult bestMatch(const std::vector<float>& emb) const;
+		void printFrame(cv::Mat &frame, const bool hasBase);
 
 		// 드로잉
 		static void drawTransparentBox(cv::Mat& img, cv::Rect rect, cv::Scalar color, double alpha);
@@ -221,6 +226,10 @@ signals:
 
 		bool detectAndAlign(const cv::Mat& bgr, FaceDet& outDet, cv::Mat& outAligned);
 		static QImage toQImage(const cv::Mat& bgr);
+
+		void beginOpenOverlay(int ms = -1);
+		void syncDoorOpenedFromReed();
+
 	private:
 		// ===== 멤버 =====
 		FaceRecognitionPresenter* presenter = nullptr;
@@ -240,44 +249,46 @@ signals:
 		std::unique_ptr<Embedder>   dnnEmbedder_;
 		// 컨텍스트 스냅샷 -> FSM
 		// 갤러리 및 임베딩 파일 경로
-		QString embeddingsPath_;
-		std::vector<UserEmbedding> gallery_;
-		mutable QMutex						 embMutex_;
-		std::atomic<int>           nextIdCounter_{1};
+		QString							embeddingsPath_;
+		std::vector<UserEmbedding>		gallery_;
+		mutable QMutex				    embMutex_;
+		std::atomic<int>				nextIdCounter_{1};
 
 		// 등록 버퍼
-		QString													registeringUserName_;
-		int															registeringUserId_ = -1;
-		int															captureCount = 0;
+		QString							registeringUserName_;
+		int								registeringUserId_ = -1;
+		int								captureCount = 0;
+
 		std::vector<std::vector<float>> regEmbedsBuffers_;
 		std::vector<cv::Mat>            regImageBuffers_;
 
 		// 원자 플래그
-		RelaxedAtomicInt            isRegisteringAtomic;
-		RelaxedAtomicInt						isOpenDoorAtomic;
-		std::atomic<bool>           m_cancelReg{false};
+		RelaxedAtomicInt        isRegisteringAtomic;
+		RelaxedAtomicInt		isOpenDoorAtomic;
+		std::atomic<bool>       m_cancelReg{false};
 
 		// 동기화
-		QMutex                      frameMutex;
+		QMutex                  frameMutex;
+		QMutex					snapMu_;
 
 		// FSM 
 		RecognitionFsm			fsm_{this};
-		FsmParams 					params_;
-		QTimer              tick_;
-		QElapsedTimer				monotonic_;
-		QElapsedTimer				stateTimer_;
+		FsmParams 				params_;
+		QTimer					tick_;
+		QElapsedTimer			monotonic_;
+		QElapsedTimer			stateTimer_;
 
 		// 상태 값 (QML에서 바인딩할 수 있게 유지)
-		double detectScore_ = 0.0;
+		double detectScore_		= 0.0;
 		double recogConf_		= 0.0;
-		bool	 isDup_				= false;
-		bool	 regReq_			= false;
-		bool	 livenessOk_	= false;
-		bool	 doorOpened_  = false;
-		int		 failCount_   = 0;
-		int    authStreak_	= 0;
-		bool	 facePresent_ = false;
-		bool	 allowEntry_  = false;
+		bool   isDup_			= false;
+		bool   regReq_			= false;
+		bool   livenessOk_		= false;
+		bool   doorOpened_		= false;
+		int	   failCount_		= 0;
+		int    authStreak_		= 0;
+		bool   facePresent_		= false;
+		bool   allowEntry_		= false;
 		// UI/상태
 		RecognitionState 			currentState = RecognitionState::IDLE;
 		RecognitionState 			prevState_ = RecognitionState::IDLE;
@@ -290,9 +301,17 @@ signals:
 		bool hasAlreadyUnlocked = false;
 
 		LivenessGate		liveness_;
-		LandmarkAligner aligner_;
-		FaceDetector detector_;
-		SimilarityDecision decision_;
+		LandmarkAligner		aligner_;
+		FaceDetector		detector_;
+		SimilarityDecision  decision_;
+
+		bool   openOverlayActive_   = false;
+		qint64 openOverlayUntilMs_  = 0;
+		int    openOverlayMs_       = 1500;   // 오버레이 노출 시간(ms) — 원하면 2000으로
+
+		qint64 lastReedEdgeMs_ = 0;
+
+		uint32_t seq_ = 0;
 
 };
 

@@ -48,14 +48,14 @@ bool ReedSensor::init()
 
 	pinMode(REED_PIN, INPUT); // 입력모드로 설정
 	pinMode(REED_PIN, PUD_UP);
-	qDebug() << "[HW] Reed init OK";
+	//qDebug() << "[HW] Reed init OK";
 	return 1;
 }
 
 bool ReedSensor::isClosed() const 
 {
 	int st = digitalRead(REED_PIN);
-	//qDebug() << "[isClosed] statu=" << st;
+	//qDebug() << "[isClosed] status=" << st;
 	if (st == LOW) 
 		return true; 
 	else 

@@ -39,6 +39,7 @@ pkg_check_modules(LIBGPIOD REQUIRED IMPORTED_TARGET libgpiod)
 			src/gui/NetworkInfoWidget.cpp
 			src/gui/CpuInfoWidget.cpp
 			src/gui/MemInfoWidget.cpp
+			src/gui/StyledMsgBox.cpp
 			src/ble/BleServer.cpp
 			src/ble/BleUuid.cpp
 			

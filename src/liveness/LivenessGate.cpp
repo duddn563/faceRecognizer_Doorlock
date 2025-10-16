@@ -2,6 +2,8 @@
 #include <QtCore/QDebug>
 #include <algorithm>
 
+#define DEBUG
+
 bool LivenessGate::passQualityForRecog(const cv::Rect& box, const cv::Mat& bgr)
 {
     // 튜닝 파라미터
@@ -107,11 +109,11 @@ bool LivenessGate::passQualityForRecog(const cv::Rect& box, const cv::Mat& bgr)
 	}
 
 	// Pass all gate
-	/*
+#ifdef DEBUG
 	qDebug() << "[Qual::PASS]"
 					 << "box=" << box.width << "x" << box.height
 					 << "mean=" << m << "std=" << s << "blurVar=" << lapVar;
-	*/
+#endif
 	
 	return true;
 }

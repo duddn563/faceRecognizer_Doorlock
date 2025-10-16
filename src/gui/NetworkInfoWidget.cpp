@@ -129,33 +129,58 @@ QString NetworkInfoWidget::readIfValue(const QString& ifname, const QString& lea
 NetworkInfoWidget::NetworkInfoWidget(QWidget* parent)
     : QWidget(parent)
 {
-    // 상단 요약
+    // ===== 폰트/색 공통 =====
+    QFont titleFont;      titleFont.setPointSize(14); titleFont.setBold(true);
+    QFont valueFont;      valueFont.setPointSize(12); valueFont.setBold(false);
+    const char* titleColor = "#000000";   // 흰 배경용
+    const char* valueColor = "#222222";   // 가독 좋은 진회색
+
+    // ===== 상단 요약 (제목 라벨 + 값 라벨) =====
     auto* form = new QFormLayout();
+
+    auto* tIf   = new QLabel(tr("기본 인터페이스"));
+    auto* tGw   = new QLabel(tr("게이트웨이"));
+    auto* tDns  = new QLabel(tr("DNS"));
+    for (QLabel* t : {tIf, tGw, tDns}) {
+        t->setFont(titleFont);
+        t->setStyleSheet(QString("color:%1;").arg(titleColor));
+    }
+
     lblDefaultIf_ = new QLabel(this);
     lblGateway_   = new QLabel(this);
     lblDns_       = new QLabel(this);
-
     for (QLabel* l : {lblDefaultIf_, lblGateway_, lblDns_}) {
         l->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
         l->setWordWrap(true);
+        l->setFont(valueFont);
+        l->setStyleSheet(QString("color:%1;").arg(valueColor));
     }
 
-    form->addRow(tr("기본 인터페이스"), lblDefaultIf_);
-    form->addRow(tr("게이트웨이"),       lblGateway_);
-    form->addRow(tr("DNS"),            lblDns_);
+    form->setHorizontalSpacing(20);
+    form->setVerticalSpacing(14);
+    form->addRow(tIf,  lblDefaultIf_);
+    form->addRow(tGw,  lblGateway_);
+    form->addRow(tDns, lblDns_);
 
-    // 인터페이스 트리
+    // ===== 인터페이스 트리 =====
     tree_ = new QTreeWidget(this);
     tree_->setColumnCount(2);
     tree_->setHeaderLabels({tr("항목"), tr("값")});
     tree_->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     tree_->header()->setSectionResizeMode(1, QHeaderView::Stretch);
     tree_->setIndentation(16);
+    tree_->setStyleSheet(
+        "QTreeWidget { font-size: 12pt; color: #333333; } "
+        "QHeaderView::section { font-size: 12pt; font-weight: 600; padding: 6px 8px; }"
+    );
 
-    // 새로고침 버튼
+    // ===== 새로고침 버튼 =====
     auto* btn = new QPushButton(tr("새로고침"), this);
+    btn->setFont(valueFont);
+
     connect(btn, &QPushButton::clicked, this, &NetworkInfoWidget::refresh);
 
+    // ===== 레이아웃 =====
     auto* v = new QVBoxLayout(this);
     v->addLayout(form);
     v->addWidget(tree_);

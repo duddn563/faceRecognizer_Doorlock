@@ -11,7 +11,7 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 {
 	faceRegisterPresenter = new FaceRegisterPresenter(service, view);
 
-	if (service->startDirectCapture(0)) {
+	if (!service->startDirectCapture(-1)) {
 		qWarning() << "[FaceRecognitionPresenter] DirectCapture start failed";
 	}
 	else {
@@ -26,14 +26,13 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 		auto* label = view->ui->cameraLabel;
 		if (!label->isVisible()) label->show();
 
+		lastFrame_ = image;
+
 		if (image.size() == label->size()) {
 			label->setPixmap(QPixmap::fromImage(image));
 		}
-		else {
-			const QImage fit = image.scaled(
-									label->size(), Qt::KeepAspectRatio, Qt::FastTransformation);
-			label->setPixmap(QPixmap::fromImage(fit));
-		}
+
+		repaintCameraLabel(label, lastFrame_);
 
 	}, Qt::QueuedConnection);
 
@@ -46,6 +45,8 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 				case RecognitionState::DOOR_OPEN:
 					view->showStatusMessage("문이 열렸습니다!");
 					break;
+				case RecognitionState::WAIT_CLOSE:
+					view->showStatusMessage("문을 닫아주세요.");
 				case RecognitionState::DETECTING:
 					view->showStatusMessage("얼굴이 감지 되었습니다!");
 					break;
@@ -61,7 +62,6 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 					break;
 				case RecognitionState::AUTH_SUCCESS:
 					view->showStatusMessage("인증 대기 중...");
-					//view->showUnlockOverlayLabel();
 					break;
 				case RecognitionState::AUTH_FAIL:		
 					view->showStatusMessage("인증 실패!");
@@ -102,6 +102,29 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 	connect(view, &MainWindow::retrainRecog, this, &FaceRecognitionPresenter::onRetrainRecog);
 }
 
+void FaceRecognitionPresenter::repaintCameraLabel(QLabel* label, const QImage& img)
+{
+	if (!label) return;
+	if (img.isNull()) { label->clear(); return; }
+
+	const QSize area = label->contentsRect().size();
+	if (area.isEmpty()) return;
+
+	const qreal dpr = label->devicePixelRatioF();
+
+	const int tw = qMax(1, qRound(area.width() * dpr));
+	const int th = qMax(1, qRound(area.height() * dpr));
+	const QSize targetPx(tw, th);
+
+	QImage scaled = img.scaled(
+			targetPx,
+			Qt::KeepAspectRatio,
+			Qt::SmoothTransformation
+	);
+
+	label->setAlignment(Qt::AlignCenter);
+	label->setPixmap(QPixmap::fromImage(scaled));
+}
 
 void FaceRecognitionPresenter::onCamRestart()
 {

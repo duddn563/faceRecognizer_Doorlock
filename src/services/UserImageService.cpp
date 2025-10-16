@@ -32,7 +32,6 @@ QList<UserImage> UserImageService::getUserImages()
 		return list;
 }
 
-
 void UserImageService::fetchUserList()
 {
 		if (!presenter) {
@@ -62,14 +61,30 @@ void UserImageService::fetchUserList()
 
 		QJsonParseError perr;
 		const QJsonDocument doc = QJsonDocument::fromJson(raw, &perr);
-		if (perr.error != QJsonParseError::NoError || !doc.isArray()) {
+		if (perr.error != QJsonParseError::NoError) {
 				qWarning() << "[UserImageService] JSON parse error:" << perr.errorString();
 				presenter->presentUserList(users);
 				return;
 		}
-		
-		const QJsonArray arr = doc.array();
-		for (const QJsonValue& v : arr) {
+
+		auto appendUser = [&](int id, const QString& name) {
+			users.append(QStringLiteral("%1: %2").arg(id).arg(name));
+			qDebug() << "[fetchUserList] user:" << id << name;
+		};
+
+		if (doc.isObject()) {
+			const QJsonObject root = doc.object();
+			const QJsonArray items = root.value(QStringLiteral("items")).toArray();
+			for (const QJsonValue& v : items) {
+				const QJsonObject o = v.toObject();
+				const int id = o.value(QStringLiteral("id")).toInt(-1);
+				const QString name = o.value(QStringLiteral("name")).toString(QStringLiteral("Unknown"));
+				if (id >= 0) appendUser(id, name);
+			}
+		}
+		else if (doc.isArray()) {
+			const QJsonArray arr = doc.array();
+			for (const QJsonValue& v : arr) {
 				const QJsonObject o = v.toObject();
 				const int id = o.value("id").toInt(-1);
 				const QString name = o.value("name").toString(QStringLiteral("Unknown"));
@@ -77,6 +92,10 @@ void UserImageService::fetchUserList()
 
 				users.append(QString("%1: %2 (%3D)").arg(id).arg(name).arg(dim));
 				qDebug() << "[UserImageService] user: " << id << name << "dim=" << dim;
+			}
+		}
+		else {
+			qWarning() << "[fetchUser] unsupported JSON root";
 		}
 			
 		presenter->presentUserList(users);		

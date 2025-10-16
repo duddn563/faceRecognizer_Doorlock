@@ -45,16 +45,6 @@ void MainWindow::closeEvent(QCloseEvent* e)
 	e->accept();
 }
 
-void MainWindow::onPreviewReady(const QImage& img)
-{
-    //qDebug() << "[onPreviewReady] cnt=" << cnt << "imgNull=" << img.isNull() << "size=" << img.size();
-		if (img.isNull()) return;
-		ui->cameraLabel->setScaledContents(true);
-		ui->cameraLabel->setPixmap(QPixmap::fromImage(img));
-		ui->cameraLabel->raise();
-		ui->cameraLabel->show();
-}
-
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow) 
 {
     qRegisterMetaType<RecognitionState>("RecognitionState");
@@ -72,10 +62,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	// MainWindow 생성자 등 UI 초기화 시
 	ui->cameraLabel->setScaledContents(false); // 왜곡 방지
 	ui->cameraLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-	ui->cameraLabel->setMinimumSize(1280, 720); // 원하는 최소 크기로 늘리기
+
+	ui->cameraLabel->setMinimumSize(0, 0); // 원하는 최소 크기로 늘리기
+
 	if (auto *lay = ui->centralwidget->layout())
 		lay->setContentsMargins(0,0,0,0);
-
 
 
 #ifdef DEBUG
@@ -185,7 +176,7 @@ void MainWindow::setupControlTab()
 
     if (ui->btnRestartCamera) {
         connect(ui->btnRestartCamera, &QPushButton::clicked, this, [this](){
-            const auto ret = QMessageBox::question(
+            const auto ret = StyledMsgBox::question(
                 this, tr("카메라 재시작"),
                 tr("카메라 스트림을 재시작할까요? 진행 중인 인식이 잠시 중단됩니다."),
                 QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
@@ -198,8 +189,7 @@ void MainWindow::setupControlTab()
 
     if (ui->btnUnlockDoor) {
         connect(ui->btnUnlockDoor, &QPushButton::clicked, this, [this](){
-			/*
-            const auto ret = QMessageBox::warning(
+            const auto ret = StyledMsgBox::warning(
                 this, tr("도어 열기"),
                 tr("도어를 수동으로 엽니다. 정말 진행할까요?"),
                 QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
@@ -208,10 +198,6 @@ void MainWindow::setupControlTab()
                 // TODO: doorService_->requestUnlock();
 				emit doorOpen();
             }
-			*/
-            setActionMsg(ui, "도어 열기 요청");
-			emit doorOpen();
-
         });
     }
 
@@ -225,7 +211,7 @@ void MainWindow::setupControlTab()
 
     if (ui->btnRetrain) {
         connect(ui->btnRetrain, &QPushButton::clicked, this, [this](){
-            const auto ret = QMessageBox::question(
+            const auto ret = StyledMsgBox::question(
                 this, tr("재학습"),
                 tr("인식기를 재학습할까요? (시간이 소요될 수 있습니다)"),
                 QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
@@ -250,6 +236,11 @@ void MainWindow::setupControlTab()
             setActionMsg(ui, tr("로그를 내보냈습니다: %1").arg(path));
         });
     }
+
+	ui->rightTabWidget->setStyleSheet(
+			    "QTabBar::tab { height: 48px; padding: 10px 18px; font-size:16pt; }"
+				"QTabBar::tab:selected { font-weight:600; }"
+	);
 
     // 탭 가시성 이벤트(컨트롤 탭 보일 때만 갱신/폴링 시작하려면 여기서 훅)
     connect(ui->rightTabWidget, &QTabWidget::currentChanged, this, [this](int idx){
@@ -314,7 +305,7 @@ void MainWindow::applyStyles() {
 						btn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
 						btn->setStyleSheet("");
-            btn->setStyleSheet(BTN_STYLE);
+						btn->setStyleSheet(BTN_STYLE);
 
 						 auto *shadow = new QGraphicsDropShadowEffect();
 						shadow->setBlurRadius(10);
@@ -348,7 +339,7 @@ void MainWindow::connectSignals() {
 	safeConnect(ui->showUsersList, [this]() { emit requestedShowUserList(); }, "User list");
 	safeConnect(ui->showUserImages, [this]() { emit showUserImagesRequested(); }, "User Image"); 
 	safeConnect(ui->resetButton, [this]() { 
-		if (QMessageBox::question(this, "사용자 초기화", "사용자를 초기화할까요?") == QMessageBox::Yes) { 
+		if (StyledMsgBox::question(this, "사용자 초기화", "사용자를 초기화할까요?") == QMessageBox::Yes) { 
 			emit resetRequested(); 
 		} 
 		else { 
@@ -356,7 +347,7 @@ void MainWindow::connectSignals() {
 		} 
 	}, "Reset");
 	safeConnect(ui->ExitButton, [this]() { 
-		if (QMessageBox::question(this, "종료", "프로그램을 종료할까요?") == QMessageBox::Yes) 
+		if (StyledMsgBox::question(this, "종료", "프로그램을 종료할까요?") == QMessageBox::Yes) 
 			QApplication::quit(); 
 	}, "Exit");
 } 
@@ -368,7 +359,14 @@ QList<QPushButton*> MainWindow::buttonList() const
 				ui->resetButton,
 				ui->showUsersList,
 				ui->showUserImages,
-				ui->ExitButton
+				ui->ExitButton,
+
+				ui->btnRefresh,
+				ui->btnRestartCamera,
+				ui->btnUnlockDoor,
+				ui->btnLockDoor,
+				ui->btnRetrain,
+				ui->btnExportLogs
 				
 		};
 }
@@ -397,58 +395,65 @@ void MainWindow::reset() {
 
 void MainWindow::showImagePreview(const QString& imagePath) 
 {
-		if (currentUiState != UiState::IDLE) return;
-		currentUiState = UiState::PREVIEWING;
+	if (currentUiState != UiState::IDLE) return;
+	currentUiState = UiState::PREVIEWING;
 
     QDialog* previewDialog = new QDialog(this);
-		if (!previewDialog) {
-				QMessageBox::information(this, "미리보기", "미리보기에 실패했습니다.");
-				qDebug() << "[MW] Failed to allocate memory to previewDialog";
-				return;
-		}
-		previewDialog->setAttribute(Qt::WA_DeleteOnClose); // auto memory delete
+	if (!previewDialog) {
+			StyledMsgBox::information(this, "미리보기", "미리보기에 실패했습니다.");
+			qDebug() << "[MW] Failed to allocate memory to previewDialog";
+			return;
+	}
+	previewDialog->setAttribute(Qt::WA_DeleteOnClose); // auto memory delete
     previewDialog->setWindowTitle("미리보기");
     previewDialog->resize(500, 500);
-		previewDialog->setStyleSheet("background-color: #1e1e1e; color: white;");
+	previewDialog->setStyleSheet("background-color: #1e1e1e; color: white;");
 
     QVBoxLayout* layout = new QVBoxLayout(previewDialog);
-		if (!layout) {
-				QMessageBox::information(this, "미리보기", "미리보기에 실패했습니다.");
-				qDebug() << "[MW] Failed to allocate memory to Preview Layout";
-				return;
-		}
+	if (!layout) {
+		StyledMsgBox::information(this, "미리보기", "미리보기에 실패했습니다.");
+		qDebug() << "[MW] Failed to allocate memory to Preview Layout";
+		return;
+	}
 
     QLabel* imageLabel = new QLabel();
-		if (!imageLabel) {
-				QMessageBox::information(this, "미리보기", "미리보기에 실패했습니다.");
-				qDebug() << "[MW] Failed to allocate memory to  Preview imageLabel";
-				return;
-		}
+	if (!imageLabel) {
+			StyledMsgBox::information(this, "미리보기", "미리보기에 실패했습니다.");
+			qDebug() << "[MW] Failed to allocate memory to  Preview imageLabel";
+			return;
+	}
     QPixmap pixmap(imagePath);
     imageLabel->setPixmap(pixmap.scaled(previewDialog->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
     imageLabel->setAlignment(Qt::AlignCenter);
     layout->addWidget(imageLabel);
 
-		QHBoxLayout* buttonLayout = new QHBoxLayout();
-		QPushButton* deleteButton = new QPushButton("삭제");
-		QPushButton* closeButton = new QPushButton("닫기");
+	QHBoxLayout* buttonLayout = new QHBoxLayout();
+	QPushButton* deleteButton = new QPushButton("삭제");
+	QPushButton* closeButton = new QPushButton("닫기");
 
-		if (!buttonLayout || !deleteButton || !closeButton) {
-				QMessageBox::information(this, "미리보기", "미리보기에 실패했습니다.");
-				qDebug() << "[MW] Failed to allocate memory to  Preview delete, close or button layout";
-				return;
-		}
+	if (!buttonLayout || !deleteButton || !closeButton) {
+		StyledMsgBox::information(this, "미리보기", "미리보기에 실패했습니다.");
+		qDebug() << "[MW] Failed to allocate memory to  Preview delete, close or button layout";
+		return;
+	}
 
-		deleteButton->setStyleSheet("background-color: #ff4c4c; color: white; padding: 6px;");
-		closeButton->setStyleSheet("padding: 6px;");
+	deleteButton->setStyleSheet("background-color: #ff4c4c; color: white; padding: 6px;");
+	closeButton->setStyleSheet("padding: 6px;");
 
-		connect(deleteButton, &QPushButton::clicked, this, [=]() {
-					if (QMessageBox::question(this, "삭제", imagePath + "파일을 삭제할까요?")) {
+	connect(deleteButton, &QPushButton::clicked, this, [=]() {
+					if (StyledMsgBox::question(this, "삭제", imagePath + "파일을 삭제할까요?")) {
 							emit deleteImageRequested(imagePath);
 							qDebug() << "[MainWindow] Preview delete button called";
 							previewDialog->accept();
 							galleryDialog->accept();
 					}
+		});
+
+	connect(closeButton, &QPushButton::clicked, this, [=]() {
+			if (previewDialog) {
+				previewDialog->accept();
+				qDebug() << "[MainWindow] Preview dialog closed";
+			}
 		});
 
 		buttonLayout->addWidget(deleteButton);
@@ -467,122 +472,138 @@ QDialog* MainWindow::getGalleryDialog() const { return galleryDialog; }
 // NOTE: galleryDialog는 QPointer로 단일 인스턴스 보장.
 //				재호출 시 재사용/포커스만 주며, null/destroyed 안전 가드.
 void MainWindow::showUserImageGallery(const QList<UserImage>& images) {
-		qDebug()  << "[MainWindow] showUserImageGallery called with" << images.size() << "images";	
+    qDebug() << "[MainWindow] showUserImageGallery called with" << images.size() << "images";
 
-		if (galleryDialog) {
-				if (galleryDialog->isVisible()) {
-						galleryDialog->close();
-				}
-				galleryDialog->deleteLater();
-				galleryDialog = nullptr;
-		}
+    if (galleryDialog) {
+        if (galleryDialog->isVisible()) galleryDialog->close();
+        galleryDialog->deleteLater();
+        galleryDialog = nullptr;
+    }
 
-		galleryDialog = new QDialog(this);
-		if (!galleryDialog) {
-				qWarning() << "[MainWindow] Failed to create galleryDialog!";
-				return;
-		}
+    galleryDialog = new QDialog(this);
+    if (!galleryDialog) {
+        qWarning() << "[MainWindow] Failed to create galleryDialog!";
+        return;
+    }
 
-	galleryDialog->setWindowTitle("📸 사용자 이미지 갤러리");
-    galleryDialog->resize(800, 600);
-    galleryDialog->setStyleSheet("background-color: #1e1e1e; color: white;");
+    // 스타일 적용(다이얼로그 전역)
+    applyGalleryDialogStyle(galleryDialog);
+    galleryDialog->setWindowTitle(QStringLiteral("사용자 이미지 갤러리"));
+    galleryDialog->resize(920, 680);
 
-
+    // 컨테이너 + 그리드
     QWidget* container = new QWidget();
-		QGridLayout* gridLayout = new QGridLayout(container);
-    gridLayout->setSpacing(10);
+    container->setObjectName("GalleryContainer");
+
+    QGridLayout* gridLayout = new QGridLayout(container);
+    gridLayout->setContentsMargins(16, 16, 16, 16);
+    gridLayout->setHorizontalSpacing(16);
+    gridLayout->setVerticalSpacing(16);
 
     int row = 0, col = 0;
-    const int maxCols = 4;
+    const int maxCols = 4;         // 필요 시 반응형으로 계산해도 됨
+    const int thumb = 160;         // 썸네일 한 변(픽셀)
 
     for (const auto& img : images) {
         QPixmap pixmap(img.filePath);
         if (pixmap.isNull()) continue;
-				
-        QVBoxLayout* cellLayout = new QVBoxLayout();
-        QWidget* cellWidget = new QWidget();
 
-				ClickableLabel* imgLabel = new ClickableLabel(img.filePath);
-        imgLabel->setPixmap(pixmap.scaled(120, 120, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        imgLabel->setFixedSize(130, 130);
+        // 셀(카드)
+        auto* cellWidget = new QWidget();
+        cellWidget->setProperty("role", "cell");
+
+        auto* cellLayout = new QVBoxLayout(cellWidget);
+        cellLayout->setContentsMargins(6, 6, 6, 6);
+        cellLayout->setSpacing(6);
+
+        // 썸네일
+        auto* imgLabel = new ClickableLabel(img.filePath);
+        imgLabel->setProperty("role", "thumb");
+        imgLabel->setPixmap(pixmap.scaled(thumb, thumb, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        imgLabel->setFixedSize(thumb + 8, thumb + 8); // 테두리 포함 여유
         imgLabel->setAlignment(Qt::AlignCenter);
-        imgLabel->setStyleSheet("border: 2px solid #444; border-radius: 6px;");
         imgLabel->setCursor(Qt::PointingHandCursor);
+        connect(imgLabel, &ClickableLabel::clicked, this, &MainWindow::imageClicked);
 
-				connect(imgLabel, &ClickableLabel::clicked, this, &MainWindow::imageClicked);
-
-        QLabel* nameLabel = new QLabel(img.userName);
+        // 이름
+        auto* nameLabel = new QLabel(img.userName);
+        nameLabel->setProperty("role", "name");
         nameLabel->setAlignment(Qt::AlignCenter);
-        nameLabel->setStyleSheet("font-size: 12px;");
+		nameLabel->setStyleSheet("font-size: 14px; color: black; font-weight: 600;");
 
-        QPushButton* delBtn = new QPushButton("🗑️ 삭제");
-        delBtn->setStyleSheet("background-color: #ff4c4c; color: white; border: none; padding: 4px;");
+        // 삭제 버튼
+        auto* delBtn = new QPushButton(QStringLiteral("삭제"));
+        delBtn->setProperty("role", "delete");
         connect(delBtn, &QPushButton::clicked, this, [=]() {
-            if (QMessageBox::question(this, "삭제", img.filePath + " 파일을 삭제할까요?") == QMessageBox::Yes) {
+            if (StyledMsgBox::question(this, QStringLiteral("삭제"),
+                                       img.filePath + QStringLiteral(" 파일을 삭제할까요?"))
+                == QMessageBox::Yes) {
                 emit deleteImageRequested(img.filePath);
-								galleryDialog->accept();
+                galleryDialog->accept();
             }
         });
 
-        cellLayout->addWidget(imgLabel);
+        // 조립
+        cellLayout->addWidget(imgLabel, 0, Qt::AlignCenter);
         cellLayout->addWidget(nameLabel);
         cellLayout->addWidget(delBtn);
         cellWidget->setLayout(cellLayout);
 
         gridLayout->addWidget(cellWidget, row, col++);
-        if (col >= maxCols) {
-            col = 0;
-            row++;
-        }
+        if (col >= maxCols) { col = 0; ++row; }
     }
 
-    QScrollArea* scrollArea = new QScrollArea(galleryDialog);
+    // 스크롤 영역
+    auto* scrollArea = new QScrollArea(galleryDialog);
     scrollArea->setWidgetResizable(true);
     scrollArea->setWidget(container);
 
-    QVBoxLayout* mainLayout = new QVBoxLayout(galleryDialog);
+    // 닫기 버튼
+    auto* closeBtn = new QPushButton(QStringLiteral("닫기"), galleryDialog);
+    closeBtn->setProperty("role", "close");
+    connect(closeBtn, &QPushButton::clicked, galleryDialog, &QDialog::accept);
+
+    // 메인 레이아웃
+    auto* mainLayout = new QVBoxLayout(galleryDialog);
+    mainLayout->setContentsMargins(12, 12, 12, 12);
+    mainLayout->setSpacing(10);
     mainLayout->addWidget(scrollArea);
+    mainLayout->addWidget(closeBtn, 0, Qt::AlignCenter);
 
-    QPushButton* closeBtn = new QPushButton("닫기", galleryDialog);
-		if (!closeBtn) {
-				qWarning() << "[MainWindow] close Button creation failed!";
-		} else {
-				closeBtn->setStyleSheet("padding: 6px 12px;");
-				connect(closeBtn, &QPushButton::clicked, galleryDialog, &QDialog::accept);
-				mainLayout->addWidget(closeBtn, 0, Qt::AlignCenter);
-		}
-
-		connect(galleryDialog, &QDialog::destroyed, this, [=]() {
-					qDebug() << "[MainWindow] GalleryDialog destroyed";
-					galleryDialog = nullptr;
-		});
+    connect(galleryDialog, &QDialog::destroyed, this, [=]() {
+        qDebug() << "[MainWindow] GalleryDialog destroyed";
+        galleryDialog = nullptr;
+    });
 
     galleryDialog->setLayout(mainLayout);
     galleryDialog->show();
 }
+
+
 void MainWindow::showUserList(const QStringList& users) 
 {
 		qDebug() << "[MainWindow] ShowUserList is called";
 
 		if (users.isEmpty()) {
-				QMessageBox::information(this, "사용자 목록", "등록된 사용자가 없습니다.");
+				StyledMsgBox::information(this, "사용자 목록", "등록된 사용자가 없습니다.");
 		} else {
-				 QMessageBox::information(this, "사용자 목록", users.join("\n"));
+				 StyledMsgBox::information(this, "사용자 목록", users.join("\n"));
 		}
 }
 
+
 void MainWindow::showErrorMessage(const QString& title, const QString& message)
 {
-    QMessageBox::critical(this, title, message);
-
+	QMessageBox::critical(this, title, message);
 }
 
-void MainWindow::showInfo(const QString& title, const QString& message) {
-    QMessageBox::information(this, title, message);
+void MainWindow::showInfo(const QString& title, const QString& message)
+{
+	StyledMsgBox::information(this, title, message);
 }
 
 void MainWindow::showError(const QString& title, const QString& message) {
-    QMessageBox::critical(this, title, message);
+    StyledMsgBox::warning(this, title, message);
 }
 
 

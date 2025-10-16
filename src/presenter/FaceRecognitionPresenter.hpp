@@ -6,12 +6,15 @@
 #include <QDir>
 #include <QDebug>
 #include <QImage>
+#include <QLabel>
 #include <QPixmap>
+#include <QtGlobal>
 //#include <opencv2/opencv.hpp>
 //#include <opencv2/face.hpp>
 #include <QPointer>
 #include <fstream>
 #include <unistd.h>
+#include <cmath>
 #include <map>
 #include "faceRecognitionState.hpp"
 
@@ -46,6 +49,7 @@ public:
 
 				void onRetrainRecog();
 				void presentRetrainRecog(const QString& msg);
+				void repaintCameraLabel(QLabel* label, const QImage& img);
 
 				QTimer* throttleTimer_;
 				QImage pendingFrame_;

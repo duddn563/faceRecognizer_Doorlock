@@ -92,23 +92,55 @@ double CpuInfoWidget::usagePercent(const CpuTimes& p, const CpuTimes& c){
 }
 
 // ----- UI -----
-CpuInfoWidget::CpuInfoWidget(QWidget* parent): QWidget(parent){
+CpuInfoWidget::CpuInfoWidget(QWidget* parent) : QWidget(parent) {
     auto* form = new QFormLayout();
+
+    // 값 라벨들
     lblModel_    = new QLabel(this);
     lblCores_    = new QLabel(this);
     lblLoadAvg_  = new QLabel(this);
     lblTemp_     = new QLabel(this);
     lblGovernor_ = new QLabel(this);
-    for(QLabel* l : {lblModel_,lblCores_,lblLoadAvg_,lblTemp_,lblGovernor_}){
+
+    // ===== 값(본문) 폰트/색 =====
+    QFont valueFont;
+    valueFont.setPointSize(12);      // 값 폰트 크기
+    valueFont.setBold(false);
+
+    for (QLabel* l : {lblModel_, lblCores_, lblLoadAvg_, lblTemp_, lblGovernor_}) {
         l->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
         l->setWordWrap(true);
+        l->setFont(valueFont);
+        l->setStyleSheet("color: #222222;");   // 라이트 테마 가독성 좋은 진회색
     }
-    form->addRow(tr("모델명"),    lblModel_);
-    form->addRow(tr("코어 수"),   lblCores_);
-    form->addRow(tr("Load Avg"), lblLoadAvg_);
-    form->addRow(tr("온도"),      lblTemp_);
-    form->addRow(tr("Governor"), lblGovernor_);
 
+    // ===== 제목 라벨들 (굵게/크게) =====
+    QFont titleFont;
+    titleFont.setPointSize(14);
+    titleFont.setBold(true);
+
+    auto* tModel    = new QLabel(tr("모델명"));
+    auto* tCores    = new QLabel(tr("코어 수"));
+    auto* tLoadAvg  = new QLabel(tr("Load Avg"));
+    auto* tTemp     = new QLabel(tr("온도"));
+    auto* tGovernor = new QLabel(tr("Governor"));
+
+    for (QLabel* t : {tModel, tCores, tLoadAvg, tTemp, tGovernor}) {
+        t->setFont(titleFont);
+        t->setStyleSheet("color: #000000;");  // 검정 (흰 배경용)
+    }
+
+    form->setHorizontalSpacing(20);
+    form->setVerticalSpacing(14);
+
+    // 제목 + 값 조합으로 추가
+    form->addRow(tModel,    lblModel_);
+    form->addRow(tCores,    lblCores_);
+    form->addRow(tLoadAvg,  lblLoadAvg_);
+    form->addRow(tTemp,     lblTemp_);
+    form->addRow(tGovernor, lblGovernor_);
+
+    // ===== 트리 위젯 =====
     tree_ = new QTreeWidget(this);
     tree_->setColumnCount(5);
     tree_->setHeaderLabels({tr("코어"), tr("상태"), tr("주파수(현재/최대)"), tr("Governor/Driver"), tr("사용률")});
@@ -118,20 +150,34 @@ CpuInfoWidget::CpuInfoWidget(QWidget* parent): QWidget(parent){
     tree_->header()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     tree_->header()->setSectionResizeMode(4, QHeaderView::Stretch);
 
+    // 트리 텍스트 크기/색
+    tree_->setStyleSheet(
+        "QTreeWidget { font-size: 12pt; color: #333333; } "
+        "QHeaderView::section { font-size: 12pt; font-weight: 600; padding: 6px 8px; }"
+    );
+
+    // ===== 버튼/체크박스 =====
     btnRefresh_ = new QPushButton(tr("새로고침"), this);
     chkAuto_    = new QCheckBox(tr("1초 자동 갱신"), this);
+
+    btnRefresh_->setFont(valueFont);
+    chkAuto_->setFont(valueFont);
+
     connect(btnRefresh_, &QPushButton::clicked, this, &CpuInfoWidget::refresh);
     connect(chkAuto_, &QCheckBox::toggled, this, &CpuInfoWidget::setAutoRefresh);
     connect(&timer_, &QTimer::timeout, this, &CpuInfoWidget::refresh);
     timer_.setInterval(1000);
 
+    // ===== 레이아웃 =====
     auto* v = new QVBoxLayout(this);
     v->addLayout(form);
     v->addWidget(tree_);
+
     auto* h = new QHBoxLayout();
     h->addWidget(chkAuto_);
     h->addStretch(1);
     h->addWidget(btnRefresh_);
+
     v->addLayout(h);
     v->addStretch(1);
     setLayout(v);

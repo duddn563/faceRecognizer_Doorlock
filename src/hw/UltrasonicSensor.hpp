@@ -11,8 +11,8 @@
 
 #include <QThread>
 
-#define TRIG_PIN 4
-#define ECHO_PIN 5
+#define TRIG_PIN 28
+#define ECHO_PIN 29
 
 class UltrasonicSensor {
 	public:

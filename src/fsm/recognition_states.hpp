@@ -18,7 +18,8 @@ struct DetectingState : public IFsmState {
 
 		void onEnter(const FsmContext&) override { 
 				//qDebug() << "[FSM] Enter DETECT";
-				gate.reset(false); }
+				gate.reset(false); 
+		}
 		void onUpdate(const FsmContext& c) override {
 				//qDebug() << "[FSM] Enter DETECT";
 				gate.feed(c.detectScore);
@@ -44,6 +45,7 @@ struct RecognizingState : public IFsmState {
 		void onExit(const FsmContext&) override {
 				//qDebug() << "[FSM] Exit RECOGNIZING";
 		}
+		bool recogPass() const override { return gate.state(); }
 };
 
 struct AuthSuccessState : public IFsmState {

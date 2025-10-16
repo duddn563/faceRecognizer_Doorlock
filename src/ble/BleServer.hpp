@@ -88,13 +88,6 @@ signals:
 		void handleCommand_(const QString& s);
 
 	private:
-		QScopedPointer<QLowEnergyController> controller_; // g_peripheral_ 대체
-		QLowEnergyService* service_ = nullptr;            // g_service_ 대체
-																											// 캐시: 특성/CCCD 핸들 (setupGatt_ 끝난 직후 채움, 이후 유지)
-		QLowEnergyCharacteristic chCmd_, chState_, chNotify_;
-		QLowEnergyDescriptor     cccdState_, cccdNotify_;
-		quint16 hCccdState_=0, hCccdNotify_=0;
-		bool stackResetDone_ = false;
 		FaceRecognitionService* service;
 		void sendJsonLine(const QJsonObject& obj);
 		void sendCmdResult(const QString& cmd, bool ok, const QString& msg = QString(), const QJsonObject& extra = {});
@@ -104,7 +97,7 @@ signals:
 		QByteArray captureJpeg(int w, int h, int quality);
 		QByteArray captureJpegOneShot(int w, int h, int quality); 
 
-
+		void softRestartBle();
 		void reset_ble_stack(const std::string& hci = "hci0");
 
 		QJsonObject getInfoJson();

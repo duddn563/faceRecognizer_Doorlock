@@ -15,23 +15,55 @@ MemInfoWidget::MemInfoWidget(QWidget* parent)
     lblSwapSummary_ = new QLabel(this);
     lblDiskSummary_ = new QLabel(this);
 
+	QFont valueFont;
+	valueFont.setPointSize(12);
+	valueFont.setBold(false);
+
     for (QLabel* l : {lblRamSummary_, lblSwapSummary_, lblDiskSummary_}) {
         l->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
         l->setWordWrap(true);
+		l->setFont(valueFont);
+		l->setStyleSheet("color: #222222;");
     }
 
-    form->addRow(tr("RAM"),   lblRamSummary_);
-    form->addRow(tr("스왑"),  lblSwapSummary_);
-    form->addRow(tr("루트 디스크"), lblDiskSummary_);
+
+	QFont titleFont;
+	titleFont.setPointSize(14);
+	titleFont.setBold(true);
+
+	QLabel* lblRamTitle  = new QLabel(tr("RAM"));
+	QLabel* lblSwapTitle = new QLabel(tr("스왑"));
+	QLabel* lblDiskTitle = new QLabel(tr("루드 디스크"));
+
+	lblRamTitle->setFont(titleFont);
+	lblSwapTitle->setFont(titleFont);
+	lblDiskTitle->setFont(titleFont);
+
+
+    lblRamTitle->setStyleSheet("color: #000000;");
+    lblSwapTitle->setStyleSheet("color: #000000;");
+    lblDiskTitle->setStyleSheet("color: #000000;");
+
+	form->setHorizontalSpacing(20);
+	form->setVerticalSpacing(14);
+
+    form->addRow(lblRamTitle,   lblRamSummary_);
+    form->addRow(lblSwapTitle,  lblSwapSummary_);
+    form->addRow(lblDiskTitle,  lblDiskSummary_);
 
     tree_ = new QTreeWidget(this);
     tree_->setColumnCount(2);
     tree_->setHeaderLabels({tr("항목"), tr("값")});
     tree_->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     tree_->header()->setSectionResizeMode(1, QHeaderView::Stretch);
+    tree_->setStyleSheet("font-size: 12pt; color: #333333;");
+
 
     btnRefresh_ = new QPushButton(tr("새로고침"), this);
     chkAuto_    = new QCheckBox(tr("1초 자동 갱신"), this);
+	btnRefresh_->setFont(valueFont);
+	chkAuto_->setFont(valueFont);
+
     connect(btnRefresh_, &QPushButton::clicked, this, &MemInfoWidget::refresh);
     connect(chkAuto_, &QCheckBox::toggled, this, &MemInfoWidget::setAutoRefresh);
     connect(&timer_, &QTimer::timeout, this, &MemInfoWidget::refresh);

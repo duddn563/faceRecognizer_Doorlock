@@ -24,6 +24,7 @@ private slots:
 
 private:
 		//void connectService();		
+		int registeredUserCnt;
 
 		QPointer<FaceRecognitionService> service;
 		MainWindow* view{nullptr};

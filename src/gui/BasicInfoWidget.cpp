@@ -22,43 +22,66 @@ static QString runCmd(const QString& cmd, const QStringList& args = {}) {
 BasicInfoWidget::BasicInfoWidget(QWidget* parent)
     : QWidget(parent)
 {
+    // ===== 폰트 및 색상 설정 =====
+    QFont titleFont; titleFont.setPointSize(14); titleFont.setBold(true);
+    QFont valueFont; valueFont.setPointSize(12); valueFont.setBold(false);
+    const char* titleColor = "#000000"; // 흰 배경용
+    const char* valueColor = "#222222";
+
+    // ===== 폼 구성 =====
     auto* form = new QFormLayout();
     form->setLabelAlignment(Qt::AlignRight);
+    form->setHorizontalSpacing(20);
+    form->setVerticalSpacing(14);
 
-    lblHostname_    = new QLabel(this);
-    lblOs_          = new QLabel(this);
-    lblKernel_      = new QLabel(this);
-    lblArch_        = new QLabel(this);
-    lblQt_          = new QLabel(this);
-    lblDeviceModel_ = new QLabel(this);
-    lblCpuCores_    = new QLabel(this);
-    lblUptime_      = new QLabel(this);
-    lblBootTime_    = new QLabel(this);
-    lblMem_         = new QLabel(this);
-    lblDiskRoot_    = new QLabel(this);
+    // 제목 라벨들
+    auto mkTitle = [&](const QString& text) {
+        auto* lbl = new QLabel(text);
+        lbl->setFont(titleFont);
+        lbl->setStyleSheet(QString("color:%1;").arg(titleColor));
+        return lbl;
+    };
 
-    // 값 라벨 줄바꿈/선택 편의
-    for (QLabel* l : {lblHostname_, lblOs_, lblKernel_, lblArch_, lblQt_, lblDeviceModel_,
-                      lblCpuCores_, lblUptime_, lblBootTime_, lblMem_, lblDiskRoot_}) {
-        l->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
-        l->setWordWrap(true);
-    }
+    // 값 라벨들
+    auto mkValue = [&]() {
+        auto* lbl = new QLabel(this);
+        lbl->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
+        lbl->setWordWrap(true);
+        lbl->setFont(valueFont);
+        lbl->setStyleSheet(QString("color:%1;").arg(valueColor));
+        return lbl;
+    };
 
-    form->addRow(tr("호스트명"),        lblHostname_);
-    form->addRow(tr("운영체제"),        lblOs_);
-    form->addRow(tr("커널"),            lblKernel_);
-    form->addRow(tr("아키텍처"),        lblArch_);
-    form->addRow(tr("Qt 버전"),         lblQt_);
-    form->addRow(tr("디바이스 모델"),   lblDeviceModel_);
-    form->addRow(tr("CPU 코어 수"),     lblCpuCores_);
-    form->addRow(tr("업타임"),          lblUptime_);
-    form->addRow(tr("부팅 시각"),       lblBootTime_);
-    form->addRow(tr("메모리"),          lblMem_);
-    form->addRow(tr("루트 디스크"),     lblDiskRoot_);
+    lblHostname_    = mkValue();
+    lblOs_          = mkValue();
+    lblKernel_      = mkValue();
+    lblArch_        = mkValue();
+    lblQt_          = mkValue();
+    lblDeviceModel_ = mkValue();
+    lblCpuCores_    = mkValue();
+    lblUptime_      = mkValue();
+    lblBootTime_    = mkValue();
+    lblMem_         = mkValue();
+    lblDiskRoot_    = mkValue();
 
+    form->addRow(mkTitle(tr("호스트명")),       lblHostname_);
+    form->addRow(mkTitle(tr("운영체제")),       lblOs_);
+    form->addRow(mkTitle(tr("커널")),           lblKernel_);
+    form->addRow(mkTitle(tr("아키텍처")),       lblArch_);
+    form->addRow(mkTitle(tr("Qt 버전")),        lblQt_);
+    form->addRow(mkTitle(tr("디바이스 모델")),  lblDeviceModel_);
+    form->addRow(mkTitle(tr("CPU 코어 수")),    lblCpuCores_);
+    form->addRow(mkTitle(tr("업타임")),         lblUptime_);
+    form->addRow(mkTitle(tr("부팅 시각")),      lblBootTime_);
+    form->addRow(mkTitle(tr("메모리")),         lblMem_);
+    form->addRow(mkTitle(tr("루트 디스크")),    lblDiskRoot_);
+
+    // ===== 새로고침 버튼 =====
     auto* btnRefresh = new QPushButton(tr("새로고침"), this);
+    btnRefresh->setFont(valueFont);
     connect(btnRefresh, &QPushButton::clicked, this, &BasicInfoWidget::refresh);
 
+    // ===== 전체 레이아웃 =====
     auto* vbox = new QVBoxLayout(this);
     vbox->addLayout(form);
     vbox->addSpacing(8);
@@ -66,7 +89,7 @@ BasicInfoWidget::BasicInfoWidget(QWidget* parent)
     vbox->addStretch(1);
     setLayout(vbox);
 
-    refresh(); // 초기 로드
+    refresh();
 }
 
 void BasicInfoWidget::refresh()

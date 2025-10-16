@@ -14,17 +14,19 @@
 struct FsmContext {
 		// FaceRecognitionService가 채워줄 읽기 전용 스냅샷들
 		double detectScore = 0.0;				// 얼굴 검출 강도/스코어
-		double recogConfidence = 0.0;		// 인식 신뢰도(확률)
+		double recogConfidence = 0.0;			// 인식 신뢰도(확률)
 		bool isDuplicate = false;				// 중복 사용자 탐지
-		bool registerRequested = false;	// 등록 요청(버튼/메뉴)
+		bool registerRequested = false;			// 등록 요청(버튼/메뉴)
 		bool livenessOk = true;					// 라이브니스 결과
 		bool doorOpened = false;				// 리드 수위치 등 문 열림
-		int  failCount = 0;							// 연속 실패 횟수
-		int	 authStreak = 0;					  // 인증 성공 횟수
+		int  failCount = 0;						// 연속 실패 횟수
+		int	 authStreak = 0;				    // 인증 성공 횟수
 		bool facePresent = false;				// 얼굴 존재 여부
-		bool allowEntry = false;				// 문 열림 여부
-		bool timeout = false;						// 상태 타임아웃 여부
-		qint64 nowMs = 0;								// 단조 시간(ms)
+		bool recogPass	= false;				// 히스테리시스 통과 (FSM에서만 세팅)
+		bool allowEntry = false;				// 문 열어도 되는 권한 (임계 규칙 통과 여부) 
+		bool timeout = false;					// 상태 타임아웃 여부
+		qint64 nowMs = 0;						// 단조 시간(ms)
+		qint32 seq = 0;
 };
 
 
@@ -34,6 +36,7 @@ public:
 		virtual void onEnter(const FsmContext&) {}
 		virtual void onUpdate(const FsmContext&) {}
 		virtual void onExit(const FsmContext&) {}
+		virtual bool recogPass() const { return false; }
 };
 
 // 히스테리시스 게이트: enter/exit 임계+ N-of-M 프레임 확증
@@ -41,6 +44,7 @@ class HysteresisGate {
 public:
 		HysteresisGate(double enterThresh, double exitThresh, int confirmFrames = 3, int window = 3)
 				: enter_(enterThresh), exit_(exitThresh), need_(confirmFrames), win_(window) {}
+		bool state() const { return state_; }
 
 		// 입력값 x에 대해 상태(true/false) 유지/전환 걸졍
 		bool feed(double x) {
@@ -55,7 +59,7 @@ public:
 					if (!state_) {
 							if (v >= enter_) ok++;
 					} else {
-							if (v <= exit_) ok++;
+							if (v < exit_) ok++;
 					}
 			}
 			

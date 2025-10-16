@@ -5,11 +5,13 @@
 #include <QScrollArea>
 #include <QSizePolicy>
 #include <QString>
+#include <QGraphicsDropShadowEffect>
 
 #include "BasicInfoWidget.hpp"
 #include "NetworkInfoWidget.hpp"
 #include "CpuInfoWidget.hpp"
 #include "MemInfoWidget.hpp"
+#include "styleConstants.hpp"
 
 // 사이드바 구분선 만드는 헬퍼
 static QFrame* makeSeparator(Qt::Orientation ori, QWidget* parent = nullptr) {
@@ -22,8 +24,17 @@ static QFrame* makeSeparator(Qt::Orientation ori, QWidget* parent = nullptr) {
 // 버튼 공통 스타일(선택사항)
 static void styleNavButton(QPushButton* b) {
     b->setCheckable(true);
-    b->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    b->setMinimumHeight(40);
+    b->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    b->setMinimumHeight(100);
+	b->setStyleSheet("");
+	b->setStyleSheet(BTN_STYLE_2);
+
+	auto *shadow = new QGraphicsDropShadowEffect();
+	shadow->setBlurRadius(10);
+	shadow->setXOffset(0);
+	shadow->setYOffset(3);
+	shadow->setColor(QColor(0, 0, 0, 60));
+	b->setGraphicsEffect(shadow);
 }
 
 DevInfoDialog::DevInfoDialog(QWidget* parent)
