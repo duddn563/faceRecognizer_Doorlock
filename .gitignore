@@ -23,4 +23,5 @@ assert/face_images/*
 assert/face_model.yml
 assert/label.txt
 assert/db/doorlock.db
+assert/embedding/embeddings.json
 

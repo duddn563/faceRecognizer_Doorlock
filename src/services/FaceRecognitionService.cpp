@@ -1780,6 +1780,12 @@ void FaceRecognitionService::requestedDoorClose()
 int FaceRecognitionService::staticDoorStateChange(bool state)
 {
 	g_door.setUnlocked(state);
+	if (state) {
+		emit doorStateChanged(States::DoorState::Open);	
+	}
+	else {
+		emit doorStateChanged(States::DoorState::Locked);	
+	}
 	return 0;
 }
 
