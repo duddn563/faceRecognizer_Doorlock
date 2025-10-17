@@ -25,3 +25,7 @@ assert/label.txt
 assert/db/doorlock.db
 assert/embedding/embeddings.json
 
+
+# runtime data
+assert/db/doorlock.db
+assert/embedding/embeddings.json
