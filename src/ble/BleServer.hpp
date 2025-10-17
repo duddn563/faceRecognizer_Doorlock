@@ -27,6 +27,7 @@
 
 #include "AuthLogRepo.h"
 #include "services/FaceRecognitionService.hpp"
+#include "include/states.hpp"
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -76,6 +77,8 @@ signals:
 		void ready();			// 광고까지 시작 완료
 		void errorHappened(QString msg);
 		void log(QString linie);
+
+		void bleStateChanged(States::BleState s);
 
 	private:
 		//내부 핼퍼

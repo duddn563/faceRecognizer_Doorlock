@@ -23,12 +23,16 @@
 #include "services/LogDtos.hpp"
 #include "ControlTabView.hpp"
 #include "StyledMsgBox.hpp"
+#include "include/states.hpp"
+
+
 
 class QStandardItemModel;          
 class QSortFilterProxyModel;      
 class LogTab;
 class DevInfoDialog;
 class DevInfoTab;
+class LedWidget;
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -78,6 +82,10 @@ public:
 		void PresentDoorClose(const QString& msg);
 		void PresentRetrainRecog(const QString& msg);
 
+		// BLE / Door 상태 enum
+		//enum class BleState { Idle, Scanning, Connected, Disconnected };
+		//enum class DoorState { Locked, Open };
+
 signals:
 		// === Outgoing events to Presenter === 
     void showUserImagesRequested();
@@ -93,6 +101,9 @@ signals:
 	void doorClose();
 	void retrainRecog();
 
+public slots:
+	void onBleStateChanged(States::BleState s);
+	void onDoorStateChanged(States::DoorState s);
 
 private:
 		// == Setup helpers ===
@@ -106,7 +117,6 @@ private:
 		LogTab* logTab = nullptr;
 		DevInfoDialog* devInfoDlg_ = nullptr;
 		DevInfoTab* devInfoTab = nullptr;
-
 private:
 		// === Internal state/refs === 
 		QTimer* timer = nullptr;
@@ -135,6 +145,7 @@ private:
         QSortFilterProxyModel* sysProxy = nullptr;
 
         void connectSignals();
+
 };
 
 // 클릭 가능한 라벨

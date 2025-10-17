@@ -16,6 +16,7 @@
 #include "gui/SingleLogDialog.hpp"
 #include "gui/DevInfoDialog.hpp"
 #include "gui/DevInfoTab.hpp"
+#include "gui/LedWidget.h"
 
 #include "presenter/MainPresenter.hpp"
 
@@ -137,6 +138,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     	dlg.exec();
 	}, "SysLogs");
 
+	onBleStateChanged(States::BleState::Idle);
+	onDoorStateChanged(States::DoorState::Locked);
 
 
     mainPresenter = new MainPresenter(this, this);
@@ -161,8 +164,51 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     Q_ASSERT(ui->recognitionLabel);
 
 	setupControlTab();
+}
 
-    
+static inline const char* toBleText(States::BleState s) 
+{
+    switch (s) {
+ 		case States::BleState::Idle:         return "Idle";
+    	case States::BleState::Scanning:     return "Advertising / Scanning";
+    	case States::BleState::Connected:    return "Connected";
+    	case States::BleState::Disconnected: return "Disconnected";
+    }
+    return "Unknown";
+}
+
+// ====== 상태 갱신 ======
+void MainWindow::onBleStateChanged(States::BleState s)
+{
+	qDebug().noquote() << "[onBleStateChanged] slot in:" << int(s);
+    using M = LedWidget::Mode;
+    if (!ui || !ui->bleLed) return;
+
+    switch (s) {
+		case States::BleState::Idle:         ui->bleLed->setMode(M::Off);   break;
+		case States::BleState::Scanning:     ui->bleLed->setMode(M::Blue);  break;
+		case States::BleState::Connected:    ui->bleLed->setMode(M::Green); break;
+		case States::BleState::Disconnected: ui->bleLed->setMode(M::Red);   break;
+    }
+
+	/*
+	const char *msg = toBleText(s);
+	ui->bleLed->setToolTip(QStringLiteral("BLE: %1").arg(QString::fromUtf8(msg)));
+
+	if (auto lbl = ui->bleStatusLabel) {
+		lbl->setText(QString::fromUtf8(msg));
+	}
+
+	qDebug().noquote() << "[onBleStateChanged] BLE = " << msg;
+	*/
+}
+
+void MainWindow::onDoorStateChanged(States::DoorState s)
+{
+    using M = LedWidget::Mode;
+    if (!ui || !ui->doorLed) return;
+
+    ui->doorLed->setMode(s == States::DoorState::Open ? M::Green : M::Red);
 }
 
 void MainWindow::setupControlTab()
@@ -351,6 +397,8 @@ void MainWindow::connectSignals() {
 			QApplication::quit(); 
 	}, "Exit");
 } 
+
+
 
 QList<QPushButton*> MainWindow::buttonList() const
 {

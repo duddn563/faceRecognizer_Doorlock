@@ -402,12 +402,25 @@ void BleServer::teardown_() {
     g_auth_.reset();
 }
 
-void BleServer::setupGatt_() {
+void BleServer::setupGatt_()
+{
 	if (!g_peripheral_) {
 		g_peripheral_.reset(QLowEnergyController::createPeripheral());
 		QObject::connect(g_peripheral_.data(), &QLowEnergyController::errorOccurred,
 		this, [this](QLowEnergyController::Error e){ qWarning() << "[gatt] ctrl error:" << int(e); });
 	}
+
+	// ✅ 중앙장치 연결/끊김 감지 → 상태 LED 갱신
+    QObject::connect(g_peripheral_.data(), &QLowEnergyController::connected, this, [this]{
+        emit log(QStringLiteral("[BLE] central connected"));
+		qDebug() << "[setupGatt_] centeral connected";
+        emit bleStateChanged(States::BleState::Connected);
+    });
+    QObject::connect(g_peripheral_.data(), &QLowEnergyController::disconnected, this, [this]{
+        emit log(QStringLiteral("[BLE] central disconnected"));
+		qDebug() << "[setupGatt_] centeral disconnected";
+        emit bleStateChanged(States::BleState::Disconnected);
+    });
 
 	QLowEnergyCharacteristicData cmd;
 	cmd.setUuid(CHAR_CMD_UUID);
@@ -476,7 +489,9 @@ void BleServer::startAdvertising_()
     //    (중요) 세번째 인자 없이 2-인자 오버로드 사용
     g_peripheral_->startAdvertising(params, adv);
 
+	emit bleStateChanged(States::BleState::Scanning);
     emit log(QStringLiteral("[BLE] advertising (legacy AdvInd)…"));
+	qDebug() << "[startAdvertising] emitted Scanning";
 }
 
 
@@ -691,6 +706,7 @@ void BleServer::handleCommand_(const QString& s)
         return;
     }
 	if (s == "BT_RESTART\n") {
+        emit bleStateChanged(States::BleState::Disconnected);
 		softRestartBle();
 		return;
 	}

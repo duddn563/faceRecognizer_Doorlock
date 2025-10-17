@@ -1,6 +1,7 @@
 #include "FaceRecognitionPresenter.hpp"
 #include "FaceRecognitionService.hpp"
 #include "FaceRegisterPresenter.hpp"
+#include "include/states.hpp"
 #include "MainWindow.hpp"
 
 #include <QInputDialog>
@@ -35,6 +36,10 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 		repaintCameraLabel(label, lastFrame_);
 
 	}, Qt::QueuedConnection);
+
+	connect(service, &FaceRecognitionService::doorStateChanged, this, [=] (States::DoorState s) {
+		view->onDoorStateChanged(s);
+	});
 
 
 	connect(service, &FaceRecognitionService::stateChanged, this, [=] (RecognitionState s) {

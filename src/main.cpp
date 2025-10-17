@@ -6,6 +6,7 @@
 #include "fsm/fsm_logging.hpp"
 #include "services/QSqliteService.hpp"
 #include "log/SystemLogger.hpp"
+#include "include/states.hpp"
 
 int main(int argc, char *argv[]) 
 {
@@ -31,10 +32,13 @@ int main(int argc, char *argv[])
                 SystemLogger::init();
                 SystemLogger::info("APP", "Logger initialized");
 
-				    QObject::connect(&app, &QCoreApplication::aboutToQuit, []{
-        				SystemLogger::info("APP", "aboutToQuit");
-        				SystemLogger::shutdown();
-    				});
+				QObject::connect(&app, &QCoreApplication::aboutToQuit, []{
+        			SystemLogger::info("APP", "aboutToQuit");
+        			SystemLogger::shutdown();
+    			});
+
+				qRegisterMetaType<States::BleState>("States::BleState");
+				qRegisterMetaType<States::DoorState>("States::DoorState");
 
 				MainWindow w;
 				w.show();

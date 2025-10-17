@@ -56,6 +56,7 @@
 #include "detect/LandmarkAligner.hpp"
 #include "detect/FaceDetector.hpp"
 #include "include/types.hpp"
+#include "include/states.hpp"
 #include "include/capture/LatestFrameMailbox.hpp"
 
 // FSM 
@@ -89,6 +90,13 @@ struct recogResult_t {
 	float   sim = -1.0f;			// 임베딩 결과 
 	float	secondSim = -1.0f;
 	bool	result = AUTH_FAILED;		// 인식 결과
+};
+
+enum class DetectedStatus {
+	FaceDetected,
+	FaceNotDetected,
+	QualityOut,
+	Registering
 };
 
 // 편의형 원자 래퍼 (cpp에서 loadRelaxed/storeRelaxed 사용)
@@ -137,6 +145,8 @@ signals:
 
 		// UI 로 이미지 전달 
 		void frameReady(const QImage& frame);
+
+		void doorStateChanged(States::DoorState s);
 
 public slots:
 		// UI(QML/Qt)에서 접근하는 setter — moc에서 호출되므로 무조건 정의 필요
@@ -211,7 +221,7 @@ public slots:
 		MatchTop2 bestMatchTop2(const std::vector<float>& emb) const;
 
 		MatchResult bestMatch(const std::vector<float>& emb) const;
-		void printFrame(cv::Mat &frame, const bool hasBase);
+		void printFrame(cv::Mat &frame, DetectedStatus hasBase);
 
 		// 드로잉
 		static void drawTransparentBox(cv::Mat& img, cv::Rect rect, cv::Scalar color, double alpha);

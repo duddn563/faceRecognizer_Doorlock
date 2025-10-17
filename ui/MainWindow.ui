@@ -28,6 +28,59 @@
         <widget class="QWidget" name="tabControl">
          <attribute name="title"><string>Control</string></attribute>
          <layout class="QVBoxLayout" name="rightPanelLayout">
+		  <item>
+			  <layout class="QHBoxLayout" name="ledBarLayout">
+			  	<property name="spacing"><number>8</number></property>
+				<!-- BLE -->
+				<item>
+					<widget class="QLabel" name="labelBle">
+						<property name="text"><string>BLE</string></property>
+						<property name="alignment"><set>Qt::AlignVCenter|Qt::AlignLeft</set></property>
+					</widget>
+				</item>
+				<item>
+					<!-- Promoted Widget:LedWidget -->
+					<widget class="LedWidget" name="bleLed">
+						<property name="minimumSize">
+							<size><width>18</width><height>18</height></size>
+						</property>
+						<property name="maximumSize">
+							<size><width>22</width><height>22</height></size>
+						</property>
+					</widget>
+				</item>
+
+				<!-- 중간 여백 -->
+				<item>
+					<spacer name="hSpacerBetween">
+						<property name="orientation"><enum>Qt::Horizontal</enum></property>
+						<property name="sizeHint"><size><width>16</width><height>20</height></size></property>
+					</spacer>
+				</item>
+				<!-- DOOR -->
+				<item>
+					<widget class="QLabel" name="labelDoor">
+						<property name="text"><string>DOOR</string></property>
+						<property name="alignment"><set>Qt::AlignVCenter|Qt::AlignLeft</set></property>
+					</widget>
+				</item>
+				<item>
+					<!-- Promoted Widget: LedWidget -->
+					<widget class="LedWidget" name="doorLed">
+						<property name="minimumSize">
+							<size><width>18</width><height>22</height></size>
+						</property>
+					</widget>
+				</item>
+				<!-- 오른쪽 여유 공간 -->
+				<item>
+					<spacer name="hSpacerStretch">
+						<property name="orientation"><enum>Qt::Horizontal</enum></property>
+						<property name="sizeHint"><size><width>40</width><height>20</height></size></property>
+					</spacer>
+				</item>
+			  </layout>
+		  </item>
           <item>
            <widget class="QPushButton" name="registerButton">
             <property name="text"><string>등록 시작</string></property>
@@ -155,6 +208,13 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+   <customwidgets>
+    <customwidget>
+      <class>LedWidget</class>          <!-- ✅ 클래스명 -->
+      <extends>QWidget</extends>
+      <header>LedWidget.h</header>      <!-- ✅ 정확한 헤더명(대소문자 일치) -->
+    </customwidget>
+  </customwidgets>
  <resources/>
  <connections/>
 </ui>

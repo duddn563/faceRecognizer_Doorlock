@@ -2,7 +2,7 @@
 #include <QtCore/QDebug>
 #include <algorithm>
 
-#define DEBUG
+// #define DEBUG
 
 bool LivenessGate::passQualityForRecog(const cv::Rect& box, const cv::Mat& bgr)
 {

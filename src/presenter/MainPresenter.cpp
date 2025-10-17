@@ -27,6 +27,10 @@ MainPresenter::MainPresenter(MainWindow* view, QObject* p)
 	// 로깅/상태
 	connect(bleServer, &BleServer::log, this, [](const QString& s){ qDebug().noquote() << s; });
 	connect(bleServer, &BleServer::ready, this, [](){ qDebug() << "[Ble] ready"; });
+	connect(bleServer, &BleServer::bleStateChanged, view, &MainWindow::onBleStateChanged, Qt::QueuedConnection);
+	connect(bleServer, &BleServer::bleStateChanged, this, 
+			[] (States::BleState s) { qDebug() << "[MainPresenter] signal out:" << int(s);
+	});
 
 	// 스레드 시작 시 run() 진입
 	connect(bleThread, &QThread::started, bleServer, &BleServer::run, Qt::QueuedConnection);
@@ -35,12 +39,6 @@ MainPresenter::MainPresenter(MainWindow* view, QObject* p)
 	userImageService = new UserImageService(nullptr);
 	userImagePresenter = new UserImagePresenter(userImageService, view);
 	userImageService->setPresenter(userImagePresenter);
-
-
-	qDebug() << "[MainPresenter] FRS addr:" << faceRecognitionService;
-	qDebug() << "[MainPresenter] UIS addr:" << userImageService;
-
-	qDebug() << "[MainPresenter] FST addr:" << faceRecognitionThread;
 
 	connectUIEvents();
 	startBle();
@@ -68,7 +66,7 @@ void MainPresenter::requestSystemPage(int page, int pageSize, int minLevel,
 
 void MainPresenter::startAllServices()
 {
-		faceRecognitionThread->start();
+	faceRecognitionThread->start();
 }
 
 void MainPresenter::connectUIEvents()
@@ -88,6 +86,7 @@ void MainPresenter::startBle()
 	if (!bleThread->isRunning()) {
 		bleThread->start();
 	}
+
 }
 
 void MainPresenter::stopBle()

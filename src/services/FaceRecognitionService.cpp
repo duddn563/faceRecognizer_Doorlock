@@ -715,6 +715,20 @@ void FaceRecognitionService::saveCapturedFace(const Rect& face, const Mat& align
 	qDebug() << "[FaceRecognitionService]" << registeringUserName_  << " image has been saved and loaded";
 }
 
+static void printVector(const std::vector<float>& v, const QString& tag = "embedding")
+{
+	if (v.empty()) {
+		qDebug() << "[" << tag << "] (empty)";
+		return;
+	}
+
+	qDebug().noquote() << QString("[%1] dim=%2").arg(tag).arg(v.size());
+	for (size_t i = 0; i < v.size(); ++i) {
+		qDebug().noquote() << QString("[%1] %2")
+							  .arg(i, 3)
+							  .arg(v[i], 0, 'f', 20);
+	}
+}
 
 void FaceRecognitionService::finalizeRegistration()
 {
@@ -751,8 +765,9 @@ void FaceRecognitionService::finalizeRegistration()
 	}
 
 	for (auto& v : meanEmb) v /= static_cast<float>(used);
-	l2normInPlace(meanEmb);
 
+	l2normInPlace(meanEmb);
+	printVector(meanEmb, "meanEmb(before norm)");
 
 	// 3) gallery_ 업데이트 (registeringUserId_는 UI/흐름에서 미리 지정)
 	if (registeringUserId_ < 0) {
@@ -1286,7 +1301,9 @@ void FaceRecognitionService::beginOpenOverlay(int ms)
     qint64 until = now + dur;
     if (!openOverlayActive_ || until > openOverlayUntilMs_) {
         openOverlayActive_  = true;
+		emit doorStateChanged(States::DoorState::Open);
         openOverlayUntilMs_ = until;
+
         qInfo() << "[UI] Open overlay ON for" << dur << "ms";
     }
 }
@@ -1339,18 +1356,28 @@ void FaceRecognitionService::loopDirect()
 		// "문 열림 화면을 보여줄지"는 두 조건의 OR
 		// 1) 언락 이벤트로 켜진 타이머 (openOverlayActive_)
 		// 2) 실제 리드센서가 열림 (!g_reed.isClosed())
-		if (openOverlayActive_ || !g_reed.isClosed()) {
+		int readDoorState = g_reed.isClosed();
+		//if (openOverlayActive_ || !g_reed.isClosed()) {
+		if (openOverlayActive_ || !readDoorState) {
 			showOpenImage(); // 내부에서 emit frameReady(...)
 
 			// 오버레이 타이머가 켜져 있을 때만 만료 처리
 			if (openOverlayActive_ && now >= openOverlayUntilMs_) {
 				openOverlayActive_ = false;
+				emit doorStateChanged(States::DoorState::Locked);
 				qInfo() << "[UI] Open overlay OFF";
 			}
 
 			QThread::msleep(1);
 			continue; // 오버레이 중엔 일반 파이프라인 잠시 멈춤
 		}
+		else if (!readDoorState) {
+			showOpenImage(); // 내부에서 emit frameReady(...)
+		}
+
+
+		if (!readDoorState) emit doorStateChanged(States::DoorState::Open);
+		else 				emit doorStateChanged(States::DoorState::Locked);
 
 
 		double dist = g_uls.latestDist();
@@ -1383,7 +1410,7 @@ void FaceRecognitionService::loopDirect()
 			faces.push_back(*best);
 		}
 		else {
-			printFrame(frame, false); 
+			printFrame(frame, DetectedStatus::FaceNotDetected); 
 		}
 
 		// FSM 상태 초기화
@@ -1400,7 +1427,7 @@ void FaceRecognitionService::loopDirect()
 		for (const auto& fd : faces) {
 			maxDetect = std::max(maxDetect, static_cast<double>(fd.score));
 			setDetectScore(maxDetect);
-			qDebug() << "[loopDirect] maxDetect:" << maxDetect;
+			//qDebug() << "[loopDirect] maxDetect:" << maxDetect;
 
 			cv::Mat aligned = alignBy5pts(frame, fd.lmk, cv::Size(128,128));
 			if (aligned.empty()) {
@@ -1417,11 +1444,15 @@ void FaceRecognitionService::loopDirect()
 
 			if (!wantReg) {
 				// 품질 체크 (원하면 활성화)
-				if (!passQualityForRecog(fd.box, frame)) continue;
+				if (!passQualityForRecog(fd.box, frame)) {
+					printFrame(frame, DetectedStatus::QualityOut);
+					continue;
+				}
+
 
 				// 인식 처리
 				auto recogResult = handleRecognition(frame, fd.box, aligned, label, color);
-				printFrame(frame, true);
+				printFrame(frame, DetectedStatus::FaceDetected);
 
 				// FSM / UI에 코사인 전달
 				setRecogConfidence(recogResult.sim);
@@ -1497,13 +1528,17 @@ void FaceRecognitionService::loopDirect()
 				} 
 				else {
 					qInfo() << "[loopDirect] Unknown detected -> skip success & failCount reset";
+					resetAuthStreak();
+					authManager.resetAuth();
+					resetUnlockFlag();
+
 					setAllowEntry(false);
 				}
 			}
 			else {
 				// 등록 모드
 				handleRegistration(frame, fd.box, aligned, label, color);
-				printFrame(frame, true);
+				printFrame(frame, DetectedStatus::Registering);
 			}
 
 			if (faces.empty()) setRecogConfidence(0.0);
@@ -1513,6 +1548,7 @@ void FaceRecognitionService::loopDirect()
 				resetAuthStreak();
 				authManager.resetAuth();
 				resetUnlockFlag();
+				setAllowEntry(false);
 			}
 
 			{
@@ -1532,8 +1568,7 @@ void FaceRecognitionService::loopDirect()
 	}
 	g_uls.stop();
 }
-
-void FaceRecognitionService::printFrame(Mat &frame, const bool hasBase) 
+void FaceRecognitionService::printFrame(Mat &frame, DetectedStatus hasBase) 
 {
 
 	//auto now = QDateTime::currentDateTime().toString("HH:mm:ss.zzz").toStdString();
@@ -1544,18 +1579,30 @@ void FaceRecognitionService::printFrame(Mat &frame, const bool hasBase)
 	cv::Size textSize;
 	int x, y =  35;
 
-	if (hasBase) {
+	if (hasBase == DetectedStatus::FaceDetected) {
 		std::string text = " Face is being recognized.";	
 		textSize = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.8, 2, &baseline);
 		x = frame.cols - textSize.width - 10;
 		cv::putText(frame, text, {x, y}, cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 255, 0), 2);
 	}
-	else {
+	else if (hasBase == DetectedStatus::FaceNotDetected) {
 		std::string text = "No face detected.";
 		textSize = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.8, 2, &baseline);
 		x = frame.cols - textSize.width - 10;
 		cv::putText(frame, text, {x, y}, cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 255), 2);
 	}
+	else if (hasBase == DetectedStatus::QualityOut) {
+		std::string text = "The face is too far away or the low quality.";
+		textSize = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.8, 2, &baseline);
+		x = frame.cols - textSize.width - 10;
+		cv::putText(frame, text, {x, y}, cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 200, 255), 2);
+	} else if (hasBase == DetectedStatus::Registering) {
+		std::string text = "Registering face... Please hold still...";
+		textSize = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.8, 2, &baseline);
+		x = frame.cols - textSize.width - 10;
+		cv::putText(frame, text, {x, y}, cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(255, 0, 0), 2);
+	}
+	
 
 	if (frame.cols != 640 || frame.rows != 480)
 		cv::resize(frame, frame, cv::Size(640, 480), 0, 0, cv::INTER_AREA);		
@@ -1620,6 +1667,7 @@ void FaceRecognitionService::onTick()
 	c.seq							= ++seq_;
 
 	//qCDebug(LC_FSM_CTX) << "[CTX]"
+	/*
 	qDebug() << "[CTX]"
 		<< "seq=" << c.seq
 		<< "face=" << c.facePresent
@@ -1630,6 +1678,7 @@ void FaceRecognitionService::onTick()
 		<< "streak=" << c.authStreak
 		<< "reedOpen=" << c.doorOpened
 		<< "timeout=" << c.timeout;
+	*/
 
 	fsm_.updateContext(c);
 }
@@ -1755,5 +1804,6 @@ void FaceRecognitionService::requestedRetrainRecog()
 		return;
 	}
 }
+
 
 

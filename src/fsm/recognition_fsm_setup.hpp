@@ -17,7 +17,7 @@ struct FsmParams {
 		bool   recogPass          = false;	// 
 
 		// 3) 성공/실패 연출 및 쿨다운
-		int successHoldMs		  = 500;	// 성공 오버레이 유지 
+		int successHoldMs		  = 800;	// 성공 오버레이 유지 
 		int failCooldownMs		  = 1000;	// 실패 후 짧은 쿨다운(연속 시도 급증 방지)
 
 		// 4) 문 열림 누적 정책
