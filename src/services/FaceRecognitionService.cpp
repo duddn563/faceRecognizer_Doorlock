@@ -1509,7 +1509,7 @@ void FaceRecognitionService::loopDirect()
 							qInfo() << "[loopDirect] Unlock started (wait open, then wait close)";
 						}
 
-						beginOpenOverlay(1500);
+						beginOpenOverlay(5000);
 
 						// DB 로그 저장(JPEG → BLOB)
 						std::vector<uchar> buf;
