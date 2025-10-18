@@ -102,7 +102,7 @@ void UltrasonicSensor::main_loop()
             latestDist_.store(-1.0f, std::memory_order_release);
             continue;
         }
-		qDebug() << "[ultrasonicSensor] dist:" << dist;	
+		//qDebug() << "[ultrasonicSensor] dist:" << dist;	
         latestDist_.store(dist, std::memory_order_release);
     }
 }

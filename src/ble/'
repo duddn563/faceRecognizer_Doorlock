@@ -502,7 +502,6 @@ void BleServer::startAdvertising_()
 void BleServer::handleCommand_(const QString& s)
 {
 
-	if (s == "HELLO\n"){ emit bleStateChanged(States::BleState::Connected); } 
     if (s == "INFO\n") { sendJsonLine(getInfoJson()); return; }
     if (s == "NET\n")  { sendJsonLine(getNetJson());  return; }
     if (s == "BT\n")   { sendJsonLine(getBtJson());   return; }

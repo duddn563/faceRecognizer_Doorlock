@@ -1357,9 +1357,11 @@ void FaceRecognitionService::loopDirect()
 		// 1) 언락 이벤트로 켜진 타이머 (openOverlayActive_)
 		// 2) 실제 리드센서가 열림 (!g_reed.isClosed())
 		int readDoorState = g_reed.isClosed();
+
 		//if (openOverlayActive_ || !g_reed.isClosed()) {
 		if (openOverlayActive_ || !readDoorState) {
 			showOpenImage(); // 내부에서 emit frameReady(...)
+			emit doorStateChanged(States::DoorState::Open);
 
 			// 오버레이 타이머가 켜져 있을 때만 만료 처리
 			if (openOverlayActive_ && now >= openOverlayUntilMs_) {
@@ -1371,14 +1373,9 @@ void FaceRecognitionService::loopDirect()
 			QThread::msleep(1);
 			continue; // 오버레이 중엔 일반 파이프라인 잠시 멈춤
 		}
-		else if (!readDoorState) {
-			showOpenImage(); // 내부에서 emit frameReady(...)
+		else {
+			emit doorStateChanged(States::DoorState::Locked);
 		}
-
-
-		if (!readDoorState) emit doorStateChanged(States::DoorState::Open);
-		else 				emit doorStateChanged(States::DoorState::Locked);
-
 
 		double dist = g_uls.latestDist();
 		if (dist > 50.0) {
