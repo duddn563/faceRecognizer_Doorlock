@@ -11,6 +11,10 @@ MainPresenter::MainPresenter(MainWindow* view, QObject* p)
 
 	faceRecognitionPresenter = new FaceRecognitionPresenter(faceRecognitionService, view, view);
 	faceRecognitionService->setPresenter(faceRecognitionPresenter);
+	connect(faceRecognitionThread, &QThread::started, faceRecognitionService, [=]() {
+		faceRecognitionService->startDirectCapture(-1);
+	}, Qt::QueuedConnection);
+
 
 	bleThread = new QThread(this);
 
@@ -98,17 +102,40 @@ void MainPresenter::stopBle()
 	}
 }
 
+void MainPresenter::stopFaceEngine() 
+{
+	faceRecognitionThread->quit();
+	faceRecognitionThread->wait();
+
+	faceRecognitionService->deleteLater();
+	faceRecognitionThread->deleteLater();
+	delete faceRecognitionPresenter;
+}
+
+void MainPresenter::stopImageService()
+{
+	delete userImagePresenter;
+}
+
+bool MainPresenter::onSelectAuthLogs(int offset, int limit, const QString& tagLike, 
+							  QVector<AuthLog>* outRows, int *outTotal)
+{
+	if (!db_) return false;
+	db_->selectAuthLogs(offset, limit, tagLike, outRows, outTotal);
+	return true;
+}
+
+bool MainPresenter::onSelectSystemLogs(int offset, int limit, int minLevel, const QString& tagLike, const QString& sinceIso,
+                                QVector<SystemLog>* outRows, int* outTotal)
+{
+	if (!db_) return false;
+	db_->selectSystemLogs(offset, limit, minLevel, tagLike, sinceIso, outRows, outTotal);
+	return true;
+}
 
 MainPresenter::~MainPresenter()
 {
-		faceRecognitionThread->quit();
-		faceRecognitionThread->wait();
-
-		faceRecognitionService->deleteLater();
-		faceRecognitionThread->deleteLater();
-		delete faceRecognitionPresenter;
-
-		stopBle();
-
-		delete userImagePresenter;
+	stopBle();
+	stopFaceEngine();
+	stopImageService();
 }

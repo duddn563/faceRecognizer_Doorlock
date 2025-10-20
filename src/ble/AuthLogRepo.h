@@ -38,7 +38,7 @@ public:
         db_.setDatabaseName(dbPath_);
 
         // 읽기 전용으로 열기 (Qt 5에서 지원)
-        db_.setConnectOptions("QSQLITE_OPEN_READONLY=1");
+        //db_.setConnectOptions("QSQLITE_OPEN_READONLY=1");
 
         if (!db_.open()) {
             qCritical() << "[AuthLogRepo] open fail:" << db_.lastError().text()

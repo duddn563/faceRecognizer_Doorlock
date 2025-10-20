@@ -1,7 +1,7 @@
 #pragma once
 #include <QDialog>
 #include <QVector>
-#include "services/LogDtos.hpp"
+#include "include/LogDtos.hpp"
 
 class QTableView;
 class QStandardItemModel;

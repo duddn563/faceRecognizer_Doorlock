@@ -11,6 +11,7 @@ class FaceRegisterPresenter : public QObject {
 
 public:
     FaceRegisterPresenter(FaceRecognitionService* service, MainWindow* view, QObject* parent = nullptr);
+	~FaceRegisterPresenter();
     Q_INVOKABLE void onRegisterFace();
 
 		void presentRegistration(bool success, const QString& message);

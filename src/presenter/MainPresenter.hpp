@@ -4,7 +4,7 @@
 
 #include "MainWindow.hpp"
 
-#include "services/LogDtos.hpp"
+//#include "services/LogDtos.hpp"
 
 #include "UserImagePresenter.hpp"
 #include "FaceRecognitionPresenter.hpp"
@@ -14,9 +14,8 @@
 #include "UserImageService.hpp"
 #include "QSqliteService.hpp"
 
-#include "capture/FrameCapture.hpp"
 #include "ble/BleServer.hpp"
-#include "include/capture/LatestFrameMailbox.hpp"
+//#include "include/LogDtos.hpp"
 
 class MainPresenter : public QObject {
 		Q_OBJECT
@@ -26,44 +25,43 @@ public:
 		~MainPresenter();
 
 		void startAllServices();
-    QSqliteService* db_;
 
 		void startBle();
 		void stopBle();
 
+		bool onSelectAuthLogs(int offset, int limit, const QString& tagLike, 
+							  QVector<AuthLog>* outRows, int *outTotal);
+		bool onSelectSystemLogs(int offset, int limit, int minLevel, const QString& tagLike, const QString& sinceIso,
+                                QVector<SystemLog>* outRows, int* outTotal);
 public slots:
-    // Auth
-    void requestAuthPage(int page, int pageSize, const QString& userLike);
-    // System
-    void requestSystemPage(int page, int pageSize, int minLevel,
+		// Auth
+		void requestAuthPage(int page, int pageSize, const QString& userLike);
+		// System
+		void requestSystemPage(int page, int pageSize, int minLevel,
                            const QString& tagLike, const QString& sinceIso);
 
-signals:
-    void deliverAuthLogs(const QVector<AuthLog>& rows, int page, int total, int pageSize);
-    void deliverSystemLogs(const QVector<SystemLog>& rows, int page, int total, int pageSize);
+		signals:
+		void deliverAuthLogs(const QVector<AuthLog>& rows, int page, int total, int pageSize);
+		void deliverSystemLogs(const QVector<SystemLog>& rows, int page, int total, int pageSize);
 
 private:
 		MainWindow* view;
 
 		QThread* faceRecognitionThread;
-		QThread* doorSensorThread;
 		QThread* bleThread;
+		FaceRecognitionPresenter* faceRecognitionPresenter;
+		UserImagePresenter* userImagePresenter;
+
 
 		FaceRecognitionService* faceRecognitionService;
 		UserImageService* userImageService;
+		QSqliteService* db_;
 		BleServer* bleServer;
-
-		FaceRecognitionPresenter* faceRecognitionPresenter;
-		FaceRegisterPresenter* faceRegisterPresenter;
-		UserImagePresenter* userImagePresenter;
-
-		std::unique_ptr<BleServer> ble_;
-		std::unique_ptr<FrameCapture> capture_;
-		LatestFrameMailbox mailbox_;	
-
 
 		void connectUIEvents();
 		void onViewStateChanged();
-    bool wired = false;     // 중복 연결 방지
+
+		void stopFaceEngine();
+		void stopImageService();
 };
 

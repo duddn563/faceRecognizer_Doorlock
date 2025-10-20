@@ -148,8 +148,8 @@ void BleServer::reset_ble_stack(const std::string& hci)
 
         "btmgmt -i " + hci + " connectable on || true",
 
-				"btmgmt -i " + hci + " ext-adv off || true",
-				"btmgmt -i " + hci + " advertising off || true",
+		"btmgmt -i " + hci + " ext-adv off || true",
+		"btmgmt -i " + hci + " advertising off || true",
 
 
         // ★ 여기서 'advertising on' 하지 말 것!
@@ -341,7 +341,7 @@ void BleServer::run() {
     g_auth_ = std::make_unique<AuthLogRepo>(dbPath_);
     if (!g_auth_->open()) emit log(QStringLiteral("[authdb] fallback to disabled AUTH"));
 
-		addConnect_();
+	addConnect_();
 
     started_ = true;
     emit ready();

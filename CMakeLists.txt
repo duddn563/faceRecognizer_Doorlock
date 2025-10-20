@@ -54,8 +54,6 @@ set(SOURCES
 	src/presenter/FaceRecognitionPresenter.cpp
 	src/presenter/FaceRegisterPresenter.cpp
 	src/services/UserImageService.cpp
-	src/services/DoorSensorService.cpp
-	src/services/FaceSensorService.cpp
 	src/services/FaceRecognitionService.cpp
 	src/services/QSqliteService.cpp
 	src/services/AuthManager.cpp
@@ -66,7 +64,6 @@ set(SOURCES
 	src/match/FaceMatcher.cpp
 	src/match/SimilarityDecision.cpp
 	src/detect/FaceDetector.cpp
-	src/capture/FrameCapture.cpp
 )
 
 qt6_wrap_ui(UISrcs ${UI_FILES})

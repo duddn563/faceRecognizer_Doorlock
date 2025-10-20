@@ -148,7 +148,7 @@ void Embedder::l2normalize(Mat& row)
 		if (n > 1e-12) row /= static_cast<float>(n);
 }
 
-
+/*
 bool Embedder::extract(const Mat& face, std::vector<float>& out) const
 {
 	if (!ready_) return false;
@@ -199,6 +199,74 @@ bool Embedder::extract(const Mat& face, std::vector<float>& out) const
 		return false;
 	}
 }
+*/
+bool Embedder::extract(const cv::Mat& face_bgr, std::vector<float>& out) const
+{
+    if (!ready_) return false;
+    std::lock_guard<std::mutex> lk(mtx_);
+
+    try {
+        // ── 1) 원본 전처리 (BGR → preprocess 내부에서 RGB, 112x112, (x-127.5)/128) ──
+        cv::Mat blob1 = preprocess(face_bgr);
+        if (blob1.empty()) {
+            qWarning() << "[extract] empty blob (orig).";
+            return false;
+        }
+
+        // ── 2) 추론 #1: 원본 ────────────────────────────────────────────────
+        net_.setInput(blob1);
+        cv::Mat emb1 = net_.forward();
+        if (emb1.empty() || emb1.total() == 0) {
+            qCritical() << "[extract] forward empty (orig).";
+            return false;
+        }
+
+        // ── 3) 좌우반전 이미지 전처리 & 추론 #2 ─────────────────────────────
+        cv::Mat flipped_bgr; cv::flip(face_bgr, flipped_bgr, 1);
+        cv::Mat blob2 = preprocess(flipped_bgr);
+        if (blob2.empty()) {
+            qWarning() << "[extract] empty blob (flip).";
+            return false;
+        }
+        net_.setInput(blob2);
+        cv::Mat emb2 = net_.forward();
+        if (emb2.empty() || emb2.total() == 0) {
+            qCritical() << "[extract] forward empty (flip).";
+            return false;
+        }
+
+        // ── 4) 1xD로 평탄화 & dtype 보정 ───────────────────────────────────
+        emb1 = emb1.reshape(1, 1).clone();
+        if (emb1.type() != CV_32F) emb1.convertTo(emb1, CV_32F);
+        emb2 = emb2.reshape(1, 1).clone();
+        if (emb2.type() != CV_32F) emb2.convertTo(emb2, CV_32F);
+
+        if (emb1.cols != emb2.cols) {
+            qCritical() << "[extract] dim mismatch:" << emb1.cols << "vs" << emb2.cols;
+            return false;
+        }
+
+        // ── 5) Flip-TTA 평균 후 L2 정규화 ───────────────────────────────────
+        cv::Mat emb = 0.5f * (emb1 + emb2);
+        l2normalize(emb);  // 이미 프로젝트에 있는 L2 정규화 유틸 사용
+
+#ifdef DEBUG
+        double l2 = cv::norm(emb, cv::NORM_L2);
+        double minv, maxv; cv::minMaxLoc(emb, &minv, &maxv);
+        qDebug() << "[extract] L2=" << l2 << " min/max=" << minv << maxv << " dim=" << emb.cols;
+#endif
+
+        // ── 6) std::vector<float> 로 복사 ──────────────────────────────────
+        out.resize(static_cast<size_t>(emb.cols));
+        std::memcpy(out.data(), emb.ptr<float>(0), static_cast<size_t>(emb.cols) * sizeof(float));
+        return true;
+    }
+    catch (const cv::Exception& e) {
+        std::cerr << "[extract][cv::Exception] " << e.what() << "\n";
+        return false;
+    }
+}
+
 
 float Embedder::cosine(const std::vector<float>& a, const std::vector<float>& b)
 {

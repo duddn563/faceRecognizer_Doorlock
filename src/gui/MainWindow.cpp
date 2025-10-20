@@ -111,8 +111,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	// "인증 로그 보기"
 	safeConnectSig(logTab, &LogTab::showAuthLogs, [this]{
     	QVector<AuthLog> rows; int total=0;
-    	if (!mainPresenter || !mainPresenter->db_) { showError("Logs","서비스 준비 안됨"); return; }
-    	if (!mainPresenter->db_->selectAuthLogs(0, 200, "", &rows, &total)) {
+
+    	//if (!mainPresenter || !mainPresenter->db_) { showError("Logs","서비스 준비 안됨"); return; }
+    	//if (!mainPresenter->db_->selectAuthLogs(0, 200, "", &rows, &total)) {
+		if (!mainPresenter->onSelectAuthLogs(0, 200, "", &rows, &total)) {
         	showError("Logs","인증 로그 조회 실패"); return;
     	}
 
@@ -126,8 +128,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	// "시스템 로그 보기"
 	safeConnectSig(logTab, &LogTab::showSysLogs, [this]{
     	QVector<SystemLog> rows; int total=0;
-    	if (!mainPresenter || !mainPresenter->db_) { showError("Logs","서비스 준비 안됨"); return; }
-    	if (!mainPresenter->db_->selectSystemLogs(0, 200, 0, "", "", &rows, &total)) {
+    	//if (!mainPresenter || !mainPresenter->db_) { showError("Logs","서비스 준비 안됨"); return; }
+    	//if (!mainPresenter->db_->selectSystemLogs(0, 200, 0, "", "", &rows, &total)) {
+    	if (!mainPresenter->onSelectSystemLogs(0, 200, 0, "", "", &rows, &total)) {
         	showError("Logs","시스템 로그 조회 실패"); return;
     	}
 

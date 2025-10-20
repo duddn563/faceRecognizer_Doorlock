@@ -6,7 +6,7 @@
 #include <QDebug>
 
 //#define GPIOD
-#define REED_PIN 	13
+#define REED_PIN 	14
 
 #ifdef GPIOD
 class ReedSensor {

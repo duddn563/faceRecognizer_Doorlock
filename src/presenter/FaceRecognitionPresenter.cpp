@@ -1,7 +1,6 @@
 #include "FaceRecognitionPresenter.hpp"
 #include "FaceRecognitionService.hpp"
 #include "FaceRegisterPresenter.hpp"
-#include "include/states.hpp"
 #include "MainWindow.hpp"
 
 #include <QInputDialog>
@@ -89,7 +88,8 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 
 	connect(view, &MainWindow::stateChangedFromView, this, &FaceRecognitionPresenter::onViewStateChanged);
 
-	connect(faceRegisterPresenter, &FaceRegisterPresenter::registrationStarted, [=]() { 
+	connect(faceRegisterPresenter, &FaceRegisterPresenter::registrationStarted, 
+			this, [=]() { 
 				view->setCurrentUiState(UiState::REGISTERING);
 			});
 	connect(faceRegisterPresenter, &FaceRegisterPresenter::registrationResult,

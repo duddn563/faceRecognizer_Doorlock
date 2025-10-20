@@ -38,7 +38,7 @@ static inline gpiod_chip* open_chip_name_or_path(const char* s) {
 
 #else
 ReedSensor::ReedSensor() {}
-
+ 
 bool ReedSensor::init() 
 {
 	if (wiringPiSetup() == -1) {
@@ -47,8 +47,8 @@ bool ReedSensor::init()
 	}
 
 	pinMode(REED_PIN, INPUT); // 입력모드로 설정
-	pinMode(REED_PIN, PUD_UP);
-	//qDebug() << "[HW] Reed init OK";
+	pullUpDnControl(REED_PIN, PUD_UP);
+	qDebug() << "[HW] Reed init OK";
 	return 1;
 }
 

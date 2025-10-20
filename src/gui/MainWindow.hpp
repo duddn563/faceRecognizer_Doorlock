@@ -16,11 +16,10 @@
 #include <QFileDialog>
 
 #include "ui_MainWindow.h"
-#include "faceRecognitionState.hpp"
 #include "styleConstants.hpp"
 #include "log/logger.hpp"
 #include "services/UserImageService.hpp"
-#include "services/LogDtos.hpp"
+#include "include/LogDtos.hpp"
 #include "ControlTabView.hpp"
 #include "StyledMsgBox.hpp"
 #include "include/states.hpp"

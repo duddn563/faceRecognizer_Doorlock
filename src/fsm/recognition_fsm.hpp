@@ -9,7 +9,7 @@
 #include <optional>
 #include <memory>
 #include <utility>
-#include "faceRecognitionState.hpp"
+#include "include/states.hpp"
 
 struct FsmContext {
 		// FaceRecognitionService가 채워줄 읽기 전용 스냅샷들

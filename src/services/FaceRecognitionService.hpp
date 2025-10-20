@@ -38,26 +38,24 @@
 // Embedding
 #include "ai/Embedder.hpp"
 
-// Recognition State
-#include "faceRecognitionState.hpp"
-
 // nlohmann json
 #include <nlohmann/json.hpp>
 
 // Common Path 
 #include "include/common_path.hpp"
+#include "include/types.hpp"
+#include "include/states.hpp"
 
 // Authtication Manager
 #include "services/AuthManager.hpp"
 
 #include "liveness/LivenessGate.hpp"
+
 #include "match/FaceMatcher.hpp"
 #include "match/SimilarityDecision.hpp"
+
 #include "detect/LandmarkAligner.hpp"
 #include "detect/FaceDetector.hpp"
-#include "include/types.hpp"
-#include "include/states.hpp"
-#include "include/capture/LatestFrameMailbox.hpp"
 
 // FSM 
 #include "fsm/recognition_fsm.hpp"
@@ -184,7 +182,7 @@ public slots:
 		bool loadEmbeddingsFromFile();
 		bool saveEmbeddingsToFile() const;
 		void showOpenImage();
-		void showFarImage();
+		void showFarImage(Mat& frame);
 
 		// 유틸
 		bool ensureDir(const QString& dirPath);

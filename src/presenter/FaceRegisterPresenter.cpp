@@ -14,25 +14,27 @@ FaceRegisterPresenter::FaceRegisterPresenter(FaceRecognitionService* service, Ma
     // 워치독 타이머 기본 설정
     m_registerTimer.setSingleShot(true);
     m_registerTimer.setTimerType(Qt::PreciseTimer);
-    m_registerTimer.moveToThread(this->thread());
+	m_registerTimer.setParent(this);
+    //m_registerTimer.moveToThread(this->thread());
 
     // 워치독 타임아웃: 강제 종료 + 디바운스 해제 + 버튼 복구
     connect(&m_registerTimer, &QTimer::timeout, this, [this]() {
-        if (m_registerTimer.isActive()) m_registerTimer.stop();
+		// sigleShot이면 이미 inactive라 stop()은 생략해도 됨
+        // if (m_registerTimer.isActive()) m_registerTimer.stop();
 
-        qDebug() << "[WD] timeout fired";
+        qDebug() << "[WD] timeout fired (presenter=" << this << " timer=" << &m_registerTimer << ")";
         if (this->service) {
             qDebug() << "[Presenter] Register mode Off (watchdog timeout)";
             this->service->setRegisterRequested(false);
-						this->service->cancelRegistering();
-						this->service->forceAbortRegistration();
+			this->service->cancelRegistering();
+			this->service->forceAbortRegistration();
         }
         m_registerInProgress = false;
 
-				if (this->view && this->view->ui && this->view->ui->registerButton)
-						this->view->ui->registerButton->setEnabled(true);
+		if (this->view && this->view->ui && this->view->ui->registerButton)
+			this->view->ui->registerButton->setEnabled(true);
         emit registrationResult(false, "등록 타임아웃");
-    }, Qt::UniqueConnection);
+    });
 
     // 등록 완료(성공/실패/취소 공통) 신호
     connect(this->service,
@@ -45,6 +47,11 @@ FaceRegisterPresenter::FaceRegisterPresenter(FaceRecognitionService* service, Ma
     connect(view->ui->registerButton, &QPushButton::clicked,
             this, &FaceRegisterPresenter::onRegisterFace,
             Qt::UniqueConnection);
+}
+
+FaceRegisterPresenter::~FaceRegisterPresenter() 
+{
+    qDebug() << "[Presenter] dtor presenter=" << this << "timer=" << &m_registerTimer;
 }
 
 /*
@@ -104,6 +111,8 @@ void FaceRegisterPresenter::onRegisterFace() {
 
 	// 3) 진행중 플래그 + 버튼 잠금 + 요청 On
 	m_registerInProgress = true;
+
+
 	if (view && view->ui && view->ui->registerButton) 
 		view->ui->registerButton->setEnabled(false);
 
@@ -122,12 +131,60 @@ void FaceRegisterPresenter::onRegisterFace() {
 		<< " thread(service)=" << (service ? service->thread() : nullptr);
 #endif
 
+	    // [GUARD] 앱 루트에 매단 30초 단발 가드
+    QPointer<FaceRegisterPresenter> self(this);
+    auto guardHolder = new QObject(qApp);         // 앱 수명
+    auto* guardTimer = new QTimer(guardHolder);
+    guardTimer->setSingleShot(true);
+    guardTimer->setTimerType(Qt::CoarseTimer);
+    QObject::connect(guardTimer, &QTimer::timeout, guardHolder, [self, guardHolder]{
+        qDebug() << "[WD-GUARD] fired";
+        if (!self) { qDebug() << "[WD-GUARD] presenter destroyed -> skip"; guardHolder->deleteLater(); return; }
+        if (!self->m_registerInProgress) { qDebug() << "[WD-GUARD] already resolved -> skip"; guardHolder->deleteLater(); return; }
+
+        qDebug() << "[WD-GUARD] forcing abort";
+        if (self->service) {
+            self->service->setRegisterRequested(false);
+            self->service->cancelRegistering();
+            self->service->forceAbortRegistration();
+        }
+        self->m_registerInProgress = false;
+        if (self->view && self->view->ui && self->view->ui->registerButton)
+            self->view->ui->registerButton->setEnabled(true);
+
+        emit self->registrationResult(false, "등록 타임아웃");
+        guardHolder->deleteLater();
+    }, Qt::QueuedConnection);
+    guardTimer->start(10000);
+    qDebug() << "[WD-GUARD] started";
+
+    // 정상 종료 시 가드 제거
+    auto clearGuard = [guardHolder](){
+        if (guardHolder) { qDebug() << "[WD-GUARD] cleared"; guardHolder->deleteLater(); }
+    };
+    connect(this, &FaceRegisterPresenter::registrationResult, this, [clearGuard](bool, const QString&){
+        clearGuard();
+    }, Qt::UniqueConnection);
+
+	QMetaObject::invokeMethod(&m_registerTimer, [this]() {
+			m_registerTimer.start(30000);
+			qDebug() << "[onRegisterFace] start(30000) on thread=" << QThread::currentThread();
+			qDebug() << "[WD] started"
+					 << " isActive=" << m_registerTimer.isActive()
+					 << " rem(ms)=" << m_registerTimer.remainingTime()
+					 << " presenter=" << this
+					 << " timer=" << &m_registerTimer
+					 << " thread=" << m_registerTimer.thread();
+	}, Qt::QueuedConnection);
+
+	qDebug() << "[onRegisterFace] watchdog set 30,000ms";
+
 	// 5) 실제 등록 작업 시작 (서비스 스레드로 안전하게 넘김)
 	QMetaObject::invokeMethod(service, [svc=service.data(), name]() {
  			qDebug() << "[Presenter->Service] invoke startRegistering name=" << name;
 			if (svc) svc->startRegistering(name);
 			}, Qt::QueuedConnection);
-	m_registerTimer.start(30000);		// 30,000ms
+
 }
 
 void FaceRegisterPresenter::onRegistrationCompleted(bool ok, const QString& msg)

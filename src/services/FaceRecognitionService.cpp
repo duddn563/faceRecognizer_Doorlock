@@ -259,7 +259,9 @@ bool FaceRecognitionService::loadRecognizer()
 		const int S = opt.inputSize;
 		cv::Mat dummy(S, S, CV_8UC3, cv::Scalar(0,0,0));
 		std::vector<float> emb;
-		if (!dnnEmbedder_->extract(dummy, emb) || emb.empty()) {
+		cv::Mat alignedBGR;
+		cv::cvtColor(dummy, alignedBGR, cv::COLOR_RGB2BGR);
+		if (!dnnEmbedder_->extract(alignedBGR, emb) || emb.empty()) {
 			qWarning() << "[loadRecognizer] warmup extract failed (empty embedding)";
 			dnnEmbedder_.reset();
 			return false;
@@ -577,7 +579,9 @@ bool FaceRecognitionService::isDuplicateFaceDNN(const cv::Mat& alignedFace, int*
 	if (!dnnEmbedder_) return false;
 
 	std::vector<float> emb;
-	if (!dnnEmbedder_->extract(alignedFace, emb) || emb.empty()) return false;
+	cv::Mat alignedBGR;
+	cv::cvtColor(alignedFace, alignedBGR, cv::COLOR_RGB2BGR);
+	if (!dnnEmbedder_->extract(alignedBGR, emb) || emb.empty()) return false;
 
 	// Top-2 매칭
 	MatchTop2 m = bestMatchTop2(emb);
@@ -704,7 +708,9 @@ void FaceRecognitionService::saveCapturedFace(const Rect& face, const Mat& align
 	// ---- DNN 임시 임베딩 버퍼 추가 ----
 	if (dnnEmbedder_) {
 		std::vector<float> e;
-		if (dnnEmbedder_->extract(alignedFace, e) && !e.empty()) {
+		cv::Mat alignedBGR;
+		cv::cvtColor(alignedFace, alignedBGR, cv::COLOR_RGB2BGR);
+		if (dnnEmbedder_->extract(alignedBGR, e) && !e.empty()) {
 			regEmbedsBuffers_.push_back(std::move(e));
 		}
 	}
@@ -936,7 +942,9 @@ recogResult_t FaceRecognitionService::handleRecognition(cv::Mat& frame,
 
     // ===== 1) 임베딩 =====
     std::vector<float> emb;
-    if (!dnnEmbedder_->extract(alignedFace, emb) || emb.empty()) {
+	cv::Mat alignedBGR;
+	cv::cvtColor(alignedFace, alignedBGR, cv::COLOR_RGB2BGR);
+    if (!dnnEmbedder_->extract(alignedBGR, emb) || emb.empty()) {
         labelText = "Unknown";
         boxColor  = cv::Scalar(0,0,255);
         return rv;
@@ -1214,8 +1222,9 @@ void FaceRecognitionService::showOpenImage()
 	}
 }
 
-void FaceRecognitionService::showFarImage()
+void FaceRecognitionService::showFarImage(Mat& frame)
 {
+	/*
 	const QString standbyImgPath = QStringLiteral(IMAGES_PATH) + QStringLiteral(STANDBY_IMAGE);
 	//qDebug() << "[showFarImage] standby image path: " << standbyImgPath << ", exists=" << QFile::exists(standbyImgPath);
 	QImage standbyImg;
@@ -1226,6 +1235,15 @@ void FaceRecognitionService::showFarImage()
 	} else {
 		emit frameReady(standbyImg.convertToFormat(QImage::Format_RGB888).copy());
 	}
+	*/
+	int baseline = 0;
+	cv::Size textSize;
+	int x, y =  135;
+
+	std::string text = "Come on."; 
+	textSize = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 0.8, 2, &baseline); 
+	x = frame.cols - textSize.width - 10;
+	cv::putText(frame, text, {x, y}, cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 200, 255), 2);
 }
 
 // 1) 임계값: 한 곳에서만 관리
@@ -1379,10 +1397,10 @@ void FaceRecognitionService::loopDirect()
 
 		double dist = g_uls.latestDist();
 		if (dist > 50.0) {
-			showFarImage();
-			continue;
+			showFarImage(frame);
+			//continue;
 		}
-		//qDebug() << "[loopDirect] dist: " << dist;
+		// qDebug() << "[loopframRDirect] dist: " << dist;
 
 		if (frame.empty()) {
 			qWarning() << "[loopDirect] frame is empty after consume()";
@@ -1439,14 +1457,13 @@ void FaceRecognitionService::loopDirect()
 			QString label;
 			cv::Scalar color;
 
+			// 품질 체크
+			if (!passQualityForRecog(fd.box, frame)) {
+				printFrame(frame, DetectedStatus::QualityOut);
+				continue;
+			}
+
 			if (!wantReg) {
-				// 품질 체크 (원하면 활성화)
-				if (!passQualityForRecog(fd.box, frame)) {
-					printFrame(frame, DetectedStatus::QualityOut);
-					continue;
-				}
-
-
 				// 인식 처리
 				auto recogResult = handleRecognition(frame, fd.box, aligned, label, color);
 				printFrame(frame, DetectedStatus::FaceDetected);
@@ -1563,7 +1580,7 @@ void FaceRecognitionService::loopDirect()
 			QThread::msleep(1);
 		}
 	}
-	g_uls.stop();
+	//g_uls.stop();
 }
 void FaceRecognitionService::printFrame(Mat &frame, DetectedStatus hasBase) 
 {

@@ -45,7 +45,8 @@ private:
 #include <QDateTime>
 #include <QVector>
 #include <QString>
-#include "services/LogDtos.hpp"
+//#include "services/LogDtos.hpp"
+#include "include/LogDtos.hpp"
 
 
 class QSqliteService {
