@@ -11,7 +11,10 @@
 #include <QFont>
 #include <QStandardItemModel>        
 #include <QSortFilterProxyModel>    
+#include <QPropertyAnimation>
+#include <QEasingCurve>
 
+#include "gui/DoorIconLabel.hpp"
 #include "gui/LogTab.hpp"
 #include "gui/SingleLogDialog.hpp"
 #include "gui/DevInfoDialog.hpp"
@@ -141,6 +144,43 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     	dlg.exec();
 	}, "SysLogs");
 
+	safeConnectSig(logTab, &LogTab::DelAuthLogs, [this] {
+			const auto ret = StyledMsgBox::question(
+                this, tr("인증 로그"),
+                tr("인증 로그를 초기화할까요?"),
+                QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+				if (ret == QMessageBox::Yes) {
+					if (!mainPresenter->onDelAuthLogs()) {
+						showError("Logs", "인증 로그 초기화 실패");
+						return;
+					}
+				}
+	},"DelAuthLogs");
+
+	safeConnectSig(logTab, &LogTab::DelSysLogs, [this] {
+			const auto ret = StyledMsgBox::question(
+                this, tr("시스템 로그"),
+                tr("시스템 로그를 초기화할까요?"),
+                QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+				if (ret == QMessageBox::Yes) {
+					if (!mainPresenter->onDelSysLogs()) {
+						showError("Logs", "인증 로그 초기화 실패");
+						return;
+					}
+				}
+	}, "DelSysLogs");
+	safeConnectSig(logTab, &LogTab::DelAllLogs, [this] {
+		const auto ret = StyledMsgBox::question(
+				this, tr("로그"),
+				tr("모든 로그를 초기화할까요?"),
+				QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+					if (ret == QMessageBox::Yes) {
+						if (!mainPresenter->onDelAllLogs()) {
+						showError("Logs", "모든 로그 초기화 실패");
+					}
+				}
+	}, "DelAllLogs");
+
 	onBleStateChanged(States::BleState::Idle);
 	onDoorStateChanged(States::DoorState::Locked);
 
@@ -156,7 +196,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
     mainPresenter->requestAuthPage(authPage, pageSize, "");
     mainPresenter->requestSystemPage(sysPage, pageSize, 0, "", "");
 
-		// 컨트롤 탭 버튼/라벨이 실제로 존재하는지 방어
+	// 컨트롤 탭 버튼/라벨이 실제로 존재하는지 방어
     Q_ASSERT(ui->rightTabWidget);
     Q_ASSERT(ui->tabControl);
     Q_ASSERT(ui->registerButton);
@@ -179,6 +219,220 @@ static inline const char* toBleText(States::BleState s)
     }
     return "Unknown";
 }
+
+// 배너: 중앙에 투명도 애니메이션
+void MainWindow::showFadeBanner(const QString& text, bool isAuth,int durationMs) {
+    static QLabel* banner = nullptr;
+    if (!banner) {
+        banner = new QLabel(this);
+        banner->setAttribute(Qt::WA_TranslucentBackground);
+        banner->setAlignment(Qt::AlignCenter);
+        banner->setGeometry(0, height()*0.25, width(), 60);
+        banner->hide();
+    }
+
+	QString color = isAuth ? "#00ff00" : "#ff3333";		// true = 초록, false=빨강
+	banner->setStyleSheet(QString(
+        "font-size: 32px;"
+        "font-weight: 700;"
+        "color: %1;"
+        "background: transparent;"
+    ).arg(color));
+
+    banner->setText(text);
+    banner->show();
+
+    // 반투명 배경 한 겹(선택)
+    // 필요하면 QFrame 하나로 살짝 어둡게 깔 수도 있음
+
+    // Opacity 애니메이션
+    auto *effect = new QGraphicsOpacityEffect(banner);
+    banner->setGraphicsEffect(effect);
+    auto *anim = new QPropertyAnimation(effect, "opacity", banner);
+    anim->setDuration(durationMs);
+    anim->setStartValue(0.0);
+    anim->setKeyValueAt(0.15, 1.0);
+    anim->setKeyValueAt(0.85, 1.0);
+    anim->setEndValue(0.0);
+    anim->setEasingCurve(QEasingCurve::InOutQuad);
+	QLabel* bannerPtr = banner;
+    connect(anim, &QPropertyAnimation::finished, bannerPtr, [bannerPtr](){
+		if (bannerPtr) {
+			bannerPtr->hide();
+			bannerPtr->setGraphicsEffect(nullptr);
+		}
+    });
+    anim->start(QAbstractAnimation::DeleteWhenStopped);
+}
+
+void MainWindow::ensureDoorIconLabel() {
+    if (doorIconLabel && doorIconLabel->parent() == nullptr) 
+		doorIconLabel = nullptr;
+
+    QWidget* parent = ui && ui->cameraLabel ? ui->cameraLabel : (ui ? ui->centralwidget : this);
+
+
+    // 2) 이미 객체가 있는데 DoorIconLabel 가 아니라면 교체
+    if (doorIconLabel) {
+        if (!qobject_cast<DoorIconLabel*>(doorIconLabel)) {
+            doorIconLabel->deleteLater();
+            doorIconLabel = nullptr;
+        }
+        // 부모가 바뀌었으면 재부모 or 재생성 (여기선 재생성 선택)
+        else if (doorIconLabel->parent() != parent) {
+            doorIconLabel->deleteLater();
+            doorIconLabel = nullptr;
+        }
+    }
+
+    // 3) 없으면 새로 생성
+    if (!doorIconLabel) {
+        auto* label = new DoorIconLabel(parent);     // ⬅️ 서브클래스 (QLabel* 에 대입 OK)
+        label->setObjectName("doorIconLabel");
+        label->setAttribute(Qt::WA_TranslucentBackground);
+        //label->setGeometry(parent->width()-74, 10, 64, 64);			// x, y, width, height
+        //label->setGeometry(parent->width()-106, 10, 96, 96);			// x, y, width, height
+        label->setGeometry(parent->width()-138, 10, 128, 128);			// x, y, width, height
+        label->show();
+
+        doorIconLabel = label;
+
+        // 부모가 삭제되면 자동 null
+        connect(parent, &QObject::destroyed, this, [this](){
+            doorIconLabel = nullptr;
+        });
+    }
+
+}
+
+// 도어 아이콘 0→90도 회전 (아이콘 위젯이 QGraphicsView가 아니어도 label에 적용)
+void MainWindow::animateDoorIconOpen() {
+	ensureDoorIconLabel();
+    if (!doorIconLabel) {
+		qDebug() << "[animateDoorIconOpen] door icon is not exists";
+		return;
+	}
+
+	doorIconLabel->show();
+	doorIconLabel->raise();
+
+	auto* door = qobject_cast<DoorIconLabel*>(doorIconLabel);
+	if (!door) return;
+	
+	// 중복 애니메이션 정리
+    const auto childrenAnims = door->findChildren<QPropertyAnimation*>();
+    for (auto* a : childrenAnims) a->stop();
+
+    auto *anim = new QPropertyAnimation(door, "openProgress", door);
+    QRect g = doorIconLabel->geometry();
+    anim->setDuration(450);
+    anim->setStartValue(0.0);
+    anim->setEndValue(1.0);
+    anim->setEasingCurve(QEasingCurve::OutCubic);
+    anim->start(QAbstractAnimation::DeleteWhenStopped);
+
+
+	// 열림 후 일정 시간(예: 0.8초) 유지 → 페이드아웃
+    connect(anim, &QPropertyAnimation::finished, door, [this]() {
+        if (!doorIconLabel) return;
+
+        // 1) 일정 시간 후 페이드아웃
+        QTimer::singleShot(800, this, [this]() {
+            if (!doorIconLabel) return;
+
+            auto *fade = new QPropertyAnimation(doorIconLabel, "windowOpacity", doorIconLabel);
+            fade->setDuration(500);
+            fade->setStartValue(1.0);
+            fade->setEndValue(0.0);
+            fade->setEasingCurve(QEasingCurve::OutCubic);
+            fade->start(QAbstractAnimation::DeleteWhenStopped);
+
+            // 2) 페이드 끝나면 숨기기
+            connect(fade, &QPropertyAnimation::finished, doorIconLabel, [this]() {
+                if (doorIconLabel) {
+                    doorIconLabel->hide();
+                    doorIconLabel->setWindowOpacity(1.0); // 다음 표시용 리셋
+                }
+            });
+        });
+    });
+
+}
+
+// HUD: 오른쪽 위에 1초간 시스템 정보 표시
+void MainWindow::showHUD(const QString& lines, int ms) {
+    static QLabel* hud = nullptr;
+    if (!hud) {
+        hud = new QLabel(this);
+        hud->setObjectName("hudOverlay");
+        hud->setAlignment(Qt::AlignRight | Qt::AlignTop);
+        hud->setStyleSheet(
+            "color:#e0e0e0; font-family: Consolas, 'JetBrains Mono', monospace; "
+            "font-size: 14px; background-color: rgba(0,0,0,80); padding:6px; border-radius:6px;");
+        hud->setGeometry(width()-320, 10, 300, 64);
+        hud->hide();
+    }
+    hud->setText(lines);
+    hud->show();
+
+    // 타임아웃으로 자동 숨김
+	QLabel* hudPtr = hud;
+    QTimer::singleShot(ms, hudPtr, [hudPtr](){ if (hudPtr) hudPtr->hide(); });
+}
+
+// 선택: Authorized 순간 살짝 Blur
+void MainWindow::flashBlur(int ms) {
+    // videoView는 네 영상 표시 위젯 이름으로 변경
+    QWidget* video = findChild<QWidget*>("videoView");
+    if (!video) return;
+
+    auto *blur = new QGraphicsBlurEffect(this);
+    blur->setBlurRadius(8);
+    video->setGraphicsEffect(blur);
+
+    QTimer::singleShot(ms, video, [video](){
+        video->setGraphicsEffect(nullptr);
+    });
+}
+
+// ★ 핵심 슬롯: 문이 열렸을 때 호출
+void MainWindow::showDoorAuthUI(bool authorized, const QString& name, float sim, int latencyMs)
+{
+    // 1) 배너 (색상 자동 분기)
+    //showFadeBanner(authorized ? "✅ Authorized" : "❌ Not Authorized", authorized);
+    showFadeBanner(authorized ? "문이 열렸습니다!" : "인증 실패.", authorized);
+
+    // 2) 아이콘 애니메이션 (DoorIconLabel에 locked 사용)
+    ensureDoorIconLabel();
+    if (auto* door = qobject_cast<DoorIconLabel*>(doorIconLabel)) {
+        if (authorized) {
+            door->setLocked(false);
+            animateDoorIconOpen();        // 열림 애니메이션
+        } else {
+            door->setLocked(true);
+            // 닫힘 표시만 하고 애니메이션 생략
+            door->setOpenProgress(0.0);
+            door->show();
+            QTimer::singleShot(1200, door, [door]() { door->hide(); });
+        }
+    }
+
+    // 3) 효과음
+    // QSound::play(authorized ? ":/sounds/unlock.wav" : ":/sounds/denied.wav");
+
+    // 4) HUD
+    QString who = name.isEmpty() ? "Enrolled" : name;
+    showHUD(QString("%1: %2\nsim=%3  latency=%4 ms")
+            .arg(authorized ? "Authorized" : "Denied")
+            .arg(who)
+            .arg(sim, 0, 'f', 3)
+            .arg(latencyMs), 1200);
+
+    // 5) 배경 블러(성공 시만)
+    if (authorized)
+        flashBlur(500);
+}
+
 
 // ====== 상태 갱신 ======
 void MainWindow::onBleStateChanged(States::BleState s)
@@ -376,15 +630,15 @@ void MainWindow::connectSignals() {
         		LOG_WARN(QString("Is not exist button: %1").arg(name));
         		return;
     		}
-    	auto c = QObject::connect(btn, &QPushButton::clicked, this, slot);
-    	if (!c) {
-        	LOG_WARN(QString("Failed to connect button: %1").arg(name));
-        	showError("Button error", name + " Failed to connect button");
-    	}
-	};
+
+			QObject::disconnect(btn, nullptr, this, nullptr);
+			QObject::connect(btn, &QPushButton::clicked, this, slot);
+		};
 
 
 	safeConnect(ui->registerButton,[this]() { emit registerFaceRequested(); }, "User Registration");
+	ui->registerButton->setAutoDefault(false);
+	ui->registerButton->setDefault(false);
 	safeConnect(ui->showUsersList, [this]() { emit requestedShowUserList(); }, "User list");
 	safeConnect(ui->showUserImages, [this]() { emit showUserImagesRequested(); }, "User Image"); 
 	safeConnect(ui->resetButton, [this]() { 

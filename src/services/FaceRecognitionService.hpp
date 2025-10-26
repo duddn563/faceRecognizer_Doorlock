@@ -3,6 +3,7 @@
 // Qt
 #include <QObject>
 #include <QImage>
+#include <QFont>
 #include <QTimer>
 #include <QMutex>
 #include <QMutexLocker>
@@ -18,6 +19,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <QElapsedTimer>
 
 // STL
 #include <atomic>
@@ -86,15 +88,7 @@ struct recogResult_t {
 	QString name;
 	int		idx = -1;
 	float   sim = -1.0f;			// 임베딩 결과 
-	float	secondSim = -1.0f;
 	bool	result = AUTH_FAILED;		// 인식 결과
-};
-
-enum class DetectedStatus {
-	FaceDetected,
-	FaceNotDetected,
-	QualityOut,
-	Registering
 };
 
 // 편의형 원자 래퍼 (cpp에서 loadRelaxed/storeRelaxed 사용)
@@ -134,6 +128,8 @@ class FaceRecognitionService : public QObject {
 
 		bool startDirectCapture(int cam = 0);
 		void stopDirectCapture(); 
+
+		QString nameFromId(int userId);
 signals:
 		// 상태 변경 (FSM → UI)
 		void stateChanged(RecognitionState s);
@@ -196,10 +192,10 @@ public slots:
 		static cv::Rect expandRect(const cv::Rect& r, float scale, const cv::Size& imgSz);
 
 		// 품질 게이트
-		bool passQualityForRecog(const cv::Rect& box, const cv::Mat& face);
+		bool passQualityForRecog(const cv::Rect& box, cv::Mat& face);
 
 		// 등록 파이프라인
-		void handleRegistration(cv::Mat& frame,
+		DetectedStatus handleRegistration(cv::Mat& frame,
 				const cv::Rect& face,
 				const cv::Mat& alignedFace,
 				QString& labelText,
@@ -210,6 +206,11 @@ public slots:
 		void finalizeRegistration();
 		bool isDuplicateFaceDNN(const cv::Mat& alignedFace, int* dupIdOut, float* simOut) const;
 
+		void drawAnglePrompt(cv::Mat& frame, const QString& text);
+		void drawProgressBar(cv::Mat& frame);
+		void advanceAngleStepIfReady();
+		bool angleRegCompleted();
+
 		// 인식 파이프라인
 		recogResult_t handleRecognition(cv::Mat& frame,
 				const cv::Rect& face,
@@ -217,7 +218,6 @@ public slots:
 				QString& labelText,
 				cv::Scalar& boxColor);
 		MatchTop2 bestMatchTop2(const std::vector<float>& emb) const;
-
 		MatchResult bestMatch(const std::vector<float>& emb) const;
 		void printFrame(cv::Mat &frame, DetectedStatus hasBase);
 
@@ -254,7 +254,7 @@ public slots:
 		cv::Size                    yunet_InputSize_{0,0};
 
 		// 임베더(MobileFaceNet)
-		std::unique_ptr<Embedder>   dnnEmbedder_;
+		std::shared_ptr<Embedder>   dnnEmbedder_;
 		// 컨텍스트 스냅샷 -> FSM
 		// 갤러리 및 임베딩 파일 경로
 		QString							embeddingsPath_;
@@ -262,13 +262,29 @@ public slots:
 		mutable QMutex				    embMutex_;
 		std::atomic<int>				nextIdCounter_{1};
 
-		// 등록 버퍼
+		// 등록 파이프 라인 
+		const QString m_anglePrompts[5] = {
+			QStringLiteral("정면을 바라봐주세요"),
+			QStringLiteral("머리를 약간 왼쪽으로 돌려주세요"),
+			QStringLiteral("머리를 약간 오른쪽으로 돌려주세요"),
+			QStringLiteral("턱을 약간 올려주세요"),
+			QStringLiteral("턱을 약간 내려주세요"),
+		};
+		const int m_perStepTarget = 2;
+		const float m_dupSimThreshold = 0.98f;
+		int m_stepIndex = 0;
+		int m_stepCaptured = 0;
+		bool m_isAngleRegActive = false;
+		std::vector<std::vector<float>> m_recentEmbedsThisStep;
+
 		QString							registeringUserName_;
 		int								registeringUserId_ = -1;
 		int								captureCount = 0;
 
 		std::vector<std::vector<float>> regEmbedsBuffers_;
 		std::vector<cv::Mat>            regImageBuffers_;
+
+
 
 		// 원자 플래그
 		RelaxedAtomicInt        isRegisteringAtomic;
@@ -297,6 +313,7 @@ public slots:
 		int    authStreak_		= 0;
 		bool   facePresent_		= false;
 		bool   allowEntry_		= false;
+
 		// UI/상태
 		RecognitionState 			currentState = RecognitionState::IDLE;
 		RecognitionState 			prevState_ = RecognitionState::IDLE;
@@ -308,14 +325,15 @@ public slots:
 		AuthManager authManager;
 		bool hasAlreadyUnlocked = false;
 
+		// 인증 성공/실패시 쿨다운
+		QElapsedTimer authCooldown;
+		QElapsedTimer failCooldown;
+
 		LivenessGate		liveness_;
 		LandmarkAligner		aligner_;
 		FaceDetector		detector_;
 		SimilarityDecision  decision_;
-
-		bool   openOverlayActive_   = false;
-		qint64 openOverlayUntilMs_  = 0;
-		int    openOverlayMs_       = 1500;   // 오버레이 노출 시간(ms) — 원하면 2000으로
+		std::unique_ptr<FaceMatcher> matcher_;
 
 		qint64 lastReedEdgeMs_ = 0;
 

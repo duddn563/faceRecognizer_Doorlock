@@ -133,6 +133,27 @@ bool MainPresenter::onSelectSystemLogs(int offset, int limit, int minLevel, cons
 	return true;
 }
 
+bool MainPresenter::onDelAuthLogs()
+{
+	if (!db_) return false;
+	db_->deleteAuthLogs();
+	return true;
+}
+
+bool MainPresenter::onDelSysLogs()
+{
+	if (!db_) return false; 
+	db_->deleteSysLogs();
+	return true;
+}
+
+bool MainPresenter::onDelAllLogs()
+{
+	if (!db_) return false;
+	db_->deleteAllLogs();
+	return true;
+}
+
 MainPresenter::~MainPresenter()
 {
 	stopBle();

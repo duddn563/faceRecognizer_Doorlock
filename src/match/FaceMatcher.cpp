@@ -5,32 +5,35 @@
 #include <cmath>
 #include <limits>
 
-MatchResult FaceMatcher::bestMatch(const std::vector<float>& emb, const std::vector<UserEmbedding>& gallery)
+MatchResult FaceMatcher::bestMatch(const cv::Mat&  alignedFaceBGR, 
+								   const std::vector<UserEmbedding>& gallery)
 {
 	MatchResult r;
+	r.sim = -1.0f;
+	r.id  = -1;
+
+	if (!m_embedder) {
+		qWarning() << "[FaceMatcher] m_embedder is null";
+		return r;
+	}
 	if (gallery.empty()) {
 		qWarning() << "[FaceMatcher] gallery is empty";
 		return r;
 	}
-	if (emb.empty()) {
-		qWarning() << "[FaceMatcher] input embedding is empty";
+
+	std::vector<float> emb;
+	if (!m_embedder->extract(alignedFaceBGR, emb) || emb.empty()) {
+		qWarning() << "[FaceMatcher] extract() failed or empty embedding";
 		return r;
 	}
 
-	const int d_in = static_cast<int>(emb.size());
+	const int d_in = (int)emb.size();
 
 	for (const auto& u : gallery) {
-		if ((int)u.embedding.size() != d_in) {
-			qWarning() << "[FaceMatcher] dim mismatch user=" << u.name;
-			continue;
-		}
-
-		//  코사인 유사도 (L2 정규화 벡터 가정)
-		float dot = 0.f;
-		for (int i = 0;  i < d_in; ++i) dot += emb[i] * u.embedding[i];
-
-		if (dot > r.sim) {
-			r.sim		= dot;
+		if (u.embedding.empty()) continue;
+		float sim = m_embedder->cosine(emb, u.embedding);
+		if (sim > r.sim) {
+			r.sim		= sim;
 			r.id		= u.id;
 			r.name	= u.name; 
 		}

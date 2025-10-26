@@ -1,0 +1,97 @@
+// DoorIconLabel.hpp
+#pragma once
+#include <QLabel>
+#include <QPropertyAnimation>
+#include <QPainter>
+#include <QPen>
+#include <QPaintEvent>
+#include <QtGlobal>
+#include <cmath>
+
+class DoorIconLabel : public QLabel {
+    Q_OBJECT
+    Q_PROPERTY(qreal openProgress READ openProgress WRITE setOpenProgress)
+public:
+    explicit DoorIconLabel(QWidget* parent=nullptr)
+        : QLabel(parent)
+    {
+        setAttribute(Qt::WA_TranslucentBackground);
+        setAttribute(Qt::WA_TransparentForMouseEvents);
+    }
+
+    qreal openProgress() const { return m_progress; }
+    void setOpenProgress(qreal p) {
+        m_progress = qBound<qreal>(0.0, p, 1.0);
+        update();
+    }
+
+protected:
+    void paintEvent(QPaintEvent* ev) override {
+        Q_UNUSED(ev);
+        // 캔버스 준비
+        QPainter p(this);
+        p.setRenderHint(QPainter::Antialiasing, true);
+
+        const int w = width();
+        const int h = height();
+        const QRectF box(0, 0, w, h);
+
+        // 배경 살짝 어둡게(유리 느낌)
+        p.setPen(Qt::NoPen);
+        p.setBrush(QColor(0,0,0,60));
+        p.drawRoundedRect(box, 10, 10);
+
+        // 문틀 (고정)
+        QRectF frameRect = box.adjusted(w*0.12, h*0.12, -w*0.12, -h*0.12);
+        QPen framePen(QColor(230,230,230), 2);
+        p.setPen(framePen);
+        p.setBrush(Qt::NoBrush);
+        p.drawRoundedRect(frameRect, 8, 8);
+
+        // 회전축(힌지)을 왼쪽에 두고 문짝을 회전
+        // openProgress 0.0 = 닫힘, 1.0 = 90도 열림
+        qreal angle = 90.0 * m_progress;
+
+        // 문짝의 힌지 위치(왼쪽 프레임 내부선)
+        const qreal hingeX = frameRect.left() + 1.0;
+        const qreal hingeY = frameRect.top();
+        const qreal doorW = frameRect.width();
+        const qreal doorH = frameRect.height();
+
+        p.save();
+        // 힌지를 원점으로 변환 후 회전 → 다시 복귀
+        p.translate(hingeX, hingeY + doorH/2.0);
+        p.rotate(-angle);                 // 반시계 회전(열리는 느낌)
+        p.translate(-hingeX, -(hingeY + doorH/2.0));
+
+        // 문짝
+        QRectF doorRect(hingeX, hingeY, doorW, doorH);
+        p.setPen(Qt::NoPen);
+        p.setBrush(QColor(250,250,250));
+        p.drawRoundedRect(doorRect, 6, 6);
+
+        // 손잡이 (열릴수록 약간 이동/살짝 페이드)
+        qreal knobX = doorRect.right() - doorW*0.12;
+        qreal knobY = doorRect.center().y();
+        QColor knobColor = QColor(200, 200, 200, 255 - int(m_progress*80));
+        p.setBrush(knobColor);
+        p.setPen(Qt::NoPen);
+        p.drawEllipse(QPointF(knobX, knobY), w*0.035, w*0.035);
+
+        p.restore();
+
+        // 열릴 때 살짝 “펌핑” 효과 (scale 느낌)
+        if (m_progress > 0.0 && m_progress < 1.0) {
+            // 가장자리 하이라이트
+            QPen glow(QColor(255,255,255, int(120 * std::sin(m_progress*M_PI))));
+            glow.setWidthF(2.0);
+            p.setPen(glow);
+            p.setBrush(Qt::NoBrush);
+            p.drawRoundedRect(frameRect.adjusted(-1,-1,1,1), 9, 9);
+        }
+    }
+
+private:
+    qreal m_progress = 0.0;
+};
+

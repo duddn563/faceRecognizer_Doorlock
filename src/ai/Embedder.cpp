@@ -3,6 +3,7 @@
 #include <iostream>
 #include <QDebug>
 
+// #define DEBUG
 
 using namespace cv;
 namespace fs = std::filesystem;
@@ -35,17 +36,15 @@ Embedder::Embedder(const Options& opt) : opt_(opt)
 		std::cerr << "[ERR] readNetFromONNX failed: " << e.what() << "\n";
 		ready_ = false;
 	}
-
-	qDebug() << "[Embedder] Contructor";
 }
 
 bool Embedder::isReady() const { return ready_; }
 
-bool Embedder::isTrivialFrame(const cv::Mat& bgr, double meanMin, double stdMin) 
+bool Embedder::isTrivialFrame(const cv::Mat& rgb, double meanMin, double stdMin) 
 {
-	if (bgr.empty() || bgr.type() != CV_8UC3) return true;
+	if (rgb.empty() || rgb.type() != CV_8UC3) return true;
 	cv::Scalar mu, sigma;
-	cv::meanStdDev(bgr, mu, sigma);
+	cv::meanStdDev(rgb, mu, sigma);
 	double m =  (mu[0] + mu[1] + mu[2]) / 3.0;
 	double s = (sigma[0] + sigma[1] + sigma[2]) / 3.0;
 	return (m < meanMin || s < stdMin);
@@ -70,46 +69,31 @@ cv::Mat Embedder::preprocess(const cv::Mat& src) const
             << " type=" << src.type() << " ch=" << src.channels();
 #endif
 
-    // ── 1) 색상 경로 선택 (일관된 단일 입력 in 사용) ───────────────────────
-    cv::Mat in;   // 이 in 만을 이후 모든 단계에서 사용
-    bool swapRB = false;
-    if (opt_.useRGB) {
-        // 이미 RGB로 바꿔서 모델에 넣는다 → blobFromImage에서는 swapRB=false
-        cv::cvtColor(src, in, cv::COLOR_BGR2RGB);
-        swapRB = false;
-        //qInfo() << "[preprocess] path=RGB (BGR->RGB cvtColor), swapRB=false";
-    } else {
-        // BGR 원본을 넣고 blob 내부에서 R/B 스왑 → swapRB=true
-        in = src;
-        swapRB = true;
-        //qInfo() << "[preprocess] path=BGR (no convert), swapRB=true";
-    }
-
-    // ── 2) 채널 평균/표준편차 로그 (in 기준) ──────────────────────────────
-    {
-        std::vector<cv::Mat> chs;
-        cv::split(in, chs);
-        cv::Scalar mB = cv::mean(chs[0]);
-        cv::Scalar mG = cv::mean(chs[1]);
-        cv::Scalar mR = cv::mean(chs[2]);
-        //qInfo() << "[preprocess] split-mean (B,G,R) =" << mB[0] << mG[0] << mR[0];
-
-        cv::Scalar mu, sigma;
-        cv::meanStdDev(in, mu, sigma);
-        //qInfo() << "[preprocess] mean(B,G,R)=" << mu[0] << mu[1] << mu[2]
-        //        << " std(B,G,R)=" << sigma[0] << sigma[1] << sigma[2];
-    }
-
-    // ── 3) blob 생성 (모델 규약 확인: size/scale/mean/swapRB) ─────────────
+	    // ── 3) blob 생성 (모델 규약 확인: size/scale/mean/swapRB) ─────────────
     //   ArcFace/MobileFaceNet 계열: 보통 (img-127.5)/128, RGB 입력, 112x112 또는 128x128
-    const int S = 112; // 모델 고정 크기 (필요 시 128로 바꿔도 됨: onnx 규약을 확인)
+	//   output: (N,C,H,W) 배치, 채널, 높이, 너비)`
+	cv::Mat in = src;
+	bool swapRB = opt_.useRGB;
+    const int S = 112; // 모델 고정 크기
+	double scale;
+	bool crop = false;
+	cv::Scalar mean;
+	if (opt_.externalNorm) {
+		scale = 1.0/128;
+		mean = cv::Scalar(127.5, 127.5, 127.5);
+	}
+	else {
+		scale = 1.0;
+		mean = cv::Scalar(0, 0, 0);
+	}
+
     cv::Mat blob = cv::dnn::blobFromImage(
-        in,                           // ← 위에서 선택한 단일 입력
-        1.0/128.0,                    // scale
-        cv::Size(S, S),               // size
-        cv::Scalar(127.5,127.5,127.5),// mean
-        swapRB,                       // 색상 경로에 따라 설정
-        /*crop=*/false,
+        in,                           // 단일 입력
+        scale,                    
+        cv::Size(S, S),               
+		mean, 
+        swapRB,                      
+		crop,
         CV_32F
     );
 
@@ -119,12 +103,12 @@ cv::Mat Embedder::preprocess(const cv::Mat& src) const
         return cv::Mat();
     }
     int N = blob.size[0], C = blob.size[1], H = blob.size[2], W = blob.size[3];
-    //qInfo() << "[preprocess] blob NCHW=" << N << C << H << W;
     if (N!=1 || C!=3 || H!=S || W!=S) {
         qWarning() << "[preprocess] ERR: unexpected blob shape";
         return cv::Mat();
     }
 
+#ifdef DEBUG
     // 채널별 min/max (안전한 2D 뷰로 계산; reshape 사용 안 함)
     auto chw = blob; // alias
     double cmin[3], cmax[3];
@@ -132,7 +116,7 @@ cv::Mat Embedder::preprocess(const cv::Mat& src) const
         cv::Mat ch2D(H, W, CV_32F, (void*)chw.ptr<float>(0, c));
         cv::minMaxLoc(ch2D, &cmin[c], &cmax[c]);
     }
-#ifdef DEBUG
+
     qInfo() << "[preprocess] blob ch0[min,max]=" << cmin[0] << cmax[0]
             << " ch1[min,max]=" << cmin[1] << cmax[1]
             << " ch2[min,max]=" << cmin[2] << cmax[2];
@@ -148,66 +132,14 @@ void Embedder::l2normalize(Mat& row)
 		if (n > 1e-12) row /= static_cast<float>(n);
 }
 
-/*
-bool Embedder::extract(const Mat& face, std::vector<float>& out) const
-{
-	if (!ready_) return false;
-	std::lock_guard<std::mutex> lk(mtx_);
-
-	try {
-		Mat blob = preprocess(face);
-
-		if (blob.empty()) {
-			qWarning() << "[extract] empty blob. skip forward.";
-			return false;
-		}
-
-		net_.setInput(blob);
-
-		Mat emb = net_.forward();        // NxD 또는 1xD
-		if (emb.empty() || emb.total() == 0) {
-			qCritical() << "[Embedder] forward produced empty output";
-			return false;
-		}
-		//qInfo() << "[Embedder] raw out=" << emb.rows << "x" << emb.cols << "type=" << emb.type();
-
-		emb = emb.reshape(1, 1).clone();  // 1xD, 연속 메모리 보장
-		if (emb.type() != CV_32F) emb.convertTo(emb, CV_32F);
-
-		double l2_before = cv::norm(emb, cv::NORM_L2);
-		cv::Scalar mu, sigma;
-		cv::meanStdDev(emb, mu, sigma);
-		qInfo() << "[extract][check] L2_before=" << l2_before
-				<< " mean=" << mu[0] << "std=" << sigma[0];
-
-		l2normalize(emb);
-
-		double l2_after = cv::norm(emb, cv::NORM_L2);
-		qDebug() << "[extract][check] L2_after=" << l2_after;
-
-		// (옵션) 값 범위 간단 체크
-		double minv, maxv;
-		cv::minMaxLoc(emb, &minv, &maxv);
-		//qDebug() << "[Dbg][Embedder] min/max after norm =" << minv << maxv;
-
-		out.resize((size_t)emb.cols);
-		std::memcpy(out.data(), emb.ptr<float>(0), emb.cols * sizeof(float));
-
-		//qDebug() << "[Embedder] extract ok dim=" << emb.cols;
-		return true;
-	} catch (const cv::Exception& e) { std::cerr << "[ERR] forward failed: " << e.what() << "\n";
-		return false;
-	}
-}
-*/
-bool Embedder::extract(const cv::Mat& face_bgr, std::vector<float>& out) const
+bool Embedder::extract(const cv::Mat& face_rgb, std::vector<float>& out) const
 {
     if (!ready_) return false;
     std::lock_guard<std::mutex> lk(mtx_);
 
     try {
         // ── 1) 원본 전처리 (BGR → preprocess 내부에서 RGB, 112x112, (x-127.5)/128) ──
-        cv::Mat blob1 = preprocess(face_bgr);
+        cv::Mat blob1 = preprocess(face_rgb);
         if (blob1.empty()) {
             qWarning() << "[extract] empty blob (orig).";
             return false;
@@ -222,8 +154,8 @@ bool Embedder::extract(const cv::Mat& face_bgr, std::vector<float>& out) const
         }
 
         // ── 3) 좌우반전 이미지 전처리 & 추론 #2 ─────────────────────────────
-        cv::Mat flipped_bgr; cv::flip(face_bgr, flipped_bgr, 1);
-        cv::Mat blob2 = preprocess(flipped_bgr);
+        cv::Mat flipped_rgb; cv::flip(face_rgb, flipped_rgb, 1);
+        cv::Mat blob2 = preprocess(flipped_rgb);
         if (blob2.empty()) {
             qWarning() << "[extract] empty blob (flip).";
             return false;
@@ -270,15 +202,17 @@ bool Embedder::extract(const cv::Mat& face_bgr, std::vector<float>& out) const
 
 float Embedder::cosine(const std::vector<float>& a, const std::vector<float>& b)
 {
-	if (a.size() != b.size() || a.empty()) return -1.f;
-	double dot = 0.0;
-	for (size_t i = 0; i < a.size(); i++) dot += static_cast<double>(a[i])*(b[i]);
+	if (a.size() != b.size() || a.empty() || b.empty()) return -1.f;
 
-	if (dot >  1.0) dot =  1.0;
-	if (dot < -1.0) dot = -1.0;
-
-	// a, b는 L2 정규화된 전제 -> dot=cosin. 안전하게 클램프
-	return static_cast<float>(dot);
+	double dot = 0.0, na = 0.0, nb = 0.0;
+	const size_t n = std::min(a.size(), b.size());
+	for (size_t i = 0; i < a.size(); i++) {
+		dot += a[i]*b[i];
+		na  += a[i]*a[i];
+		nb  += b[i]*b[i];
+	}
+	if (na == 0.0 || nb == 0.0) return 0.0f;
+	return static_cast<float>(dot / (std::sqrt(na)*std::sqrt(nb)));
 }
 
 

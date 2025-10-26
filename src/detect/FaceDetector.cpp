@@ -101,7 +101,7 @@ std::vector<FaceDet> FaceDetector::detectAll(const cv::Mat& bgr) const
   qDebug() << "[FaceDetector] dets rows=" << dets.rows
            << " cols=" << dets.cols
            << " type=" << dets.type()			
-					 << " ch=" << dets.channels();
+		   << " ch=" << dets.channels();
 #endif
 
     // 네 파서 사용

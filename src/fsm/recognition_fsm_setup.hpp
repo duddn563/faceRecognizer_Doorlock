@@ -6,13 +6,13 @@
 // 임계/시간 파라미터(필요시 설정/GUI에서 변경 가능하도록)
 struct FsmParams {
 		// 1) Detect 단계 (얼굴 존재 여부 히스테리시스)
-		double detectEnter        = 0.85f;	// 얼굴 있다고 보기 시작			
-		double detectExit		  = 0.70f;	// 얼굴 해제 조건(조금 낮게 ) -> 깜박임 방지
+		double detectEnter        = 0.80f;	// 얼굴 있다고 보기 시작			
+		double detectExit		  = 0.65f;	// 얼굴 해제 조건(조금 낮게 ) -> 깜박임 방지
 		int	   detectMinDwellMs = 100 + 150;	// 아주 짧은 깜박 방지(100ms~150ms)
 
 		// 2) Recognition단계 (유사도 히스테리시스)
-		double recogEnter		  = 0.90f;	// 인식 성공 "진입": 보수적으로 높임			
-		double recogExit		  = 0.83f;	// 인식 성공 "유지/해제": 약간 낮춤
+		double recogEnter		  = 0.80f;	// 인식 성공 "진입": 보수적으로 높임			
+		double recogExit		  = 0.65f;	// 인식 성공 "유지/해제": 약간 낮춤
 		int	   recogTimeoutMs	  = 3500;	// 한 번의 시도 제한 (3.5s 내 못 넘으면 실패 처리)
 		bool   recogPass          = false;	// 
 
@@ -66,7 +66,7 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				"detect->idle",
 				RecognitionState::DETECTING, RecognitionState::IDLE,
 				[P](const FsmContext& c) {
-						return (!c.facePresent) || (c.detectScore < P.detectExit); // ||(!c.registerRequested);
+						return (!c.facePresent);
 				},
 				P.detectMinDwellMs
 		});
@@ -101,7 +101,7 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				[P] (const FsmContext& c) {
 						return (c.detectScore >= P.detectEnter) &&
 								c.livenessOk && 
-								c.allowEntry && 
+								//c.allowEntry && 
 								(c.recogConfidence >= P.recogEnter) && 
 								(c.authStreak >= 1) &&
 								!c.doorOpened;		// 문이 이미 열려 있으면 재성공 금지
@@ -114,16 +114,10 @@ inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)
 				"success->dooropen",
 				RecognitionState::AUTH_SUCCESS, RecognitionState::DOOR_OPEN,
 				[P] (const FsmContext& c) { 
-						qDebug() << "[FSM] c.authStreak:" << c.authStreak << ", P.authThresh:" << P.authThresh;
-                        qDebug() << "[FSM] c.detectScore:" << (c.detectScore >= 0.8);
-                        qDebug() << "[FSM] c.livenessOk:" << (c.livenessOk);
-                        qDebug() << "[FSM] c.authStreak >= P.authThresh:" << (c.authStreak >= P.authThresh);
-                        qDebug() << "[FSM] c.allowEntry:" << (c.allowEntry);
-						qDebug() << "[FSM] c.doorOpened:" << c.doorOpened;
 						return (c.detectScore >= P.detectEnter) &&  
 							    c.livenessOk &&  
 								c.allowEntry && 
-								(c.authStreak >= P.authThresh) && 
+								//(c.authStreak >= P.authThresh) && 
 								!c.doorOpened; 
 				},
 				/*minDwellMs=*/P.successHoldMs

@@ -47,13 +47,21 @@ public:
 				void onDoorClose();
 				void presentDoorClose(const QString& msg);
 
+
 				void onRetrainRecog();
 				void presentRetrainRecog(const QString& msg);
 				void repaintCameraLabel(QLabel* label, const QImage& img);
 
+				void onDoorAuth(bool authorized, int userId, float sim, int latencyMs);
+
 				QTimer* throttleTimer_;
 				QImage pendingFrame_;
 				QImage lastFrame_;
+
+
+signals:
+				void onDoorAuthUI(bool authorized, const QString& name, float sim, int latencyMs);
+
 				
 private:
 				MainWindow* view;

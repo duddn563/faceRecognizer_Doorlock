@@ -20,7 +20,7 @@ FaceRegisterPresenter::FaceRegisterPresenter(FaceRecognitionService* service, Ma
     // 워치독 타임아웃: 강제 종료 + 디바운스 해제 + 버튼 복구
     connect(&m_registerTimer, &QTimer::timeout, this, [this]() {
 		// sigleShot이면 이미 inactive라 stop()은 생략해도 됨
-        // if (m_registerTimer.isActive()) m_registerTimer.stop();
+        if (m_registerTimer.isActive()) m_registerTimer.stop();
 
         qDebug() << "[WD] timeout fired (presenter=" << this << " timer=" << &m_registerTimer << ")";
         if (this->service) {
@@ -69,6 +69,11 @@ void FaceRegisterPresenter::presentRegistration(bool success, const QString& mes
 }
 
 void FaceRegisterPresenter::onRegisterFace() {
+	static std::atomic<int> seq{0};
+	qDebug() << "[onRegisterFace] called seq=" << ++seq
+			 << " inProgress=" << m_registerInProgress
+			 << " thread=" << QThread::currentThread()
+			 << " sender=" << sender();
 
 	// 0) 연타 디바운스
 	if (m_registerInProgress) {
@@ -76,13 +81,17 @@ void FaceRegisterPresenter::onRegisterFace() {
 		return;
 	}
 
+	m_registerInProgress = true;
+    if (view && view->ui && view->ui->registerButton)
+        view->ui->registerButton->setEnabled(false);
+
 	// 1) UI 입력
 	emit registrationStarted();
 
 	QInputDialog dlg(view);
 	dlg.setWindowTitle(tr("사용자 등록"));
 	dlg.setLabelText(tr("이름을 입력하시겠습니까?\n\n"
-						"입력하지 않으면 'Registered user'로 저장 됩니다."));
+						"입력하지 않으면 'Authorized'로 저장 됩니다."));
 	dlg.setInputMode(QInputDialog::TextInput);
 	dlg.setStyleSheet(INPUT_DIALOG_STYLE);
 	dlg.resize(500, 300);
@@ -90,13 +99,17 @@ void FaceRegisterPresenter::onRegisterFace() {
 	if (dlg.exec() != QDialog::Accepted) {
 		qDebug() << "[onRegisterFace] cancelled -> skip";
 		emit registrationResult(false, "등록이 취소되었습니다.");
+
+		m_registerInProgress = false;
+        if (view && view->ui && view->ui->registerButton)
+            view->ui->registerButton->setEnabled(true);
 		return;
 	}
 
 	QString name = dlg.textValue().trimmed();
 
 	if (name.isEmpty()){
-		name = QStringLiteral("Registered user_%1").arg(registeredUserCnt++);
+		name = QStringLiteral("Authorized");
 	}
 
 
@@ -106,12 +119,14 @@ void FaceRegisterPresenter::onRegisterFace() {
 	// 2) Service 존재/수명 체크
 	if (!service) {
 		emit registrationResult(false, "FaceRecognitionService가 존재하지 않습니다.");
+		m_registerInProgress = false;
+        if (view && view->ui && view->ui->registerButton)
+            view->ui->registerButton->setEnabled(true);
 		return;
 	}
 
 	// 3) 진행중 플래그 + 버튼 잠금 + 요청 On
-	m_registerInProgress = true;
-
+	//m_registerInProgress = true;
 
 	if (view && view->ui && view->ui->registerButton) 
 		view->ui->registerButton->setEnabled(false);
@@ -130,8 +145,8 @@ void FaceRegisterPresenter::onRegisterFace() {
 		<< " thread(timer)=" << m_registerTimer.thread()
 		<< " thread(service)=" << (service ? service->thread() : nullptr);
 #endif
-
-	    // [GUARD] 앱 루트에 매단 30초 단발 가드
+	/*
+	// [GUARD] 앱 루트에 매단 30초 단발 가드
     QPointer<FaceRegisterPresenter> self(this);
     auto guardHolder = new QObject(qApp);         // 앱 수명
     auto* guardTimer = new QTimer(guardHolder);
@@ -155,7 +170,7 @@ void FaceRegisterPresenter::onRegisterFace() {
         emit self->registrationResult(false, "등록 타임아웃");
         guardHolder->deleteLater();
     }, Qt::QueuedConnection);
-    guardTimer->start(10000);
+    guardTimer->start(20000);
     qDebug() << "[WD-GUARD] started";
 
     // 정상 종료 시 가드 제거
@@ -164,7 +179,8 @@ void FaceRegisterPresenter::onRegisterFace() {
     };
     connect(this, &FaceRegisterPresenter::registrationResult, this, [clearGuard](bool, const QString&){
         clearGuard();
-    }, Qt::UniqueConnection);
+	});
+    //}, Qt::UniqueConnection);
 
 	QMetaObject::invokeMethod(&m_registerTimer, [this]() {
 			m_registerTimer.start(30000);
@@ -178,12 +194,14 @@ void FaceRegisterPresenter::onRegisterFace() {
 	}, Qt::QueuedConnection);
 
 	qDebug() << "[onRegisterFace] watchdog set 30,000ms";
+	*/
 
 	// 5) 실제 등록 작업 시작 (서비스 스레드로 안전하게 넘김)
 	QMetaObject::invokeMethod(service, [svc=service.data(), name]() {
  			qDebug() << "[Presenter->Service] invoke startRegistering name=" << name;
 			if (svc) svc->startRegistering(name);
 			}, Qt::QueuedConnection);
+	m_registerTimer.start(20000);
 
 }
 

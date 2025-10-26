@@ -10,13 +10,15 @@
 !_TAG_PROGRAM_URL	https://ctags.io/	/official site/
 !_TAG_PROGRAM_VERSION	5.9.0	//
 ASSERT	include/common_path.hpp	/^#define ASSERT	/;"	d
-AUTH_FAIL	faceRecognitionState.hpp	/^    AUTH_FAIL,				\/\/ 7$/;"	e	enum:RecognitionState
+AUTH_FAIL	include/states.hpp	/^    AUTH_FAIL,				\/\/ 8$/;"	e	enum:RecognitionState
 AUTH_FAILED	services/FaceRecognitionService.hpp	/^#define AUTH_FAILED	/;"	d
-AUTH_SUCCESS	faceRecognitionState.hpp	/^    AUTH_SUCCESS,			\/\/ 6$/;"	e	enum:RecognitionState
+AUTH_SUCCESS	include/states.hpp	/^    AUTH_SUCCESS,			\/\/ 7$/;"	e	enum:RecognitionState
 AUTH_SUCCESSED	services/FaceRecognitionService.hpp	/^#define AUTH_SUCCESSED /;"	d
 Accept	match/SimilarityDecision.hpp	/^	Accept,$/;"	e	enum:Decision
+Anchor	util/textDrawUtil.hpp	/^enum class Anchor { $/;"	g
 Auth	gui/SingleLogDialog.hpp	/^enum class LogKind { Auth, System };$/;"	e	enum:LogKind
 AuthFailState	fsm/recognition_states.hpp	/^struct AuthFailState : public IFsmState {$/;"	s
+AuthLog	include/LogDtos.hpp	/^struct AuthLog {$/;"	s
 AuthLog	services/LogDtos.hpp	/^struct AuthLog {$/;"	s
 AuthLogRepo	ble/AuthLogRepo.h	/^    explicit AuthLogRepo(QString dbPath,$/;"	f	class:AuthLogRepo
 AuthLogRepo	ble/AuthLogRepo.h	/^class AuthLogRepo {$/;"	c
@@ -35,13 +37,24 @@ BasicInfoWidget	gui/BasicInfoWidget.cpp	/^BasicInfoWidget::BasicInfoWidget(QWidg
 BasicInfoWidget	gui/BasicInfoWidget.hpp	/^class BasicInfoWidget : public QWidget {$/;"	c
 BleServer	ble/BleServer.cpp	/^BleServer::BleServer(QObject* parent, FaceRecognitionService* recogServ)$/;"	f	class:BleServer
 BleServer	ble/BleServer.hpp	/^class BleServer : public QObject {$/;"	c
+BleState	include/states.hpp	/^	enum class BleState  { Idle, Scanning, Connected, Disconnected };$/;"	g	namespace:States
+Blue	gui/LedWidget.h	/^    enum class Mode { Off, Green, Red, Blue, Yellow };$/;"	e	enum:LedWidget::Mode
+BottomCenter	util/textDrawUtil.hpp	/^	BottomLeft, BottomCenter, BottomRight $/;"	e	enum:Anchor
 BottomLeft	services/FaceRecognitionService.cpp	/^enum class Corner { TopLeft, TopRight, BottomLeft, BottomRight };$/;"	e	enum:Corner	file:
+BottomLeft	util/textDrawUtil.hpp	/^	BottomLeft, BottomCenter, BottomRight $/;"	e	enum:Anchor
 BottomRight	services/FaceRecognitionService.cpp	/^enum class Corner { TopLeft, TopRight, BottomLeft, BottomRight };$/;"	e	enum:Corner	file:
+BottomRight	util/textDrawUtil.hpp	/^	BottomLeft, BottomCenter, BottomRight $/;"	e	enum:Anchor
 CAM_LABEL_STYLE	gui/styleConstants.hpp	/^const QString CAM_LABEL_STYLE = R"($/;"	v	typeref:typename:const QString
 CAM_NUM	services/FaceRecognitionService.hpp	/^#define CAM_NUM	/;"	d
 COS_THR	include/recog_params.hpp	/^	inline constexpr double COS_THR		 = 0.83;$/;"	v	namespace:recog	typeref:typename:double
+Center	util/textDrawUtil.hpp	/^	CenterLeft, Center ,CenterRight, $/;"	e	enum:Anchor
+CenterLeft	util/textDrawUtil.hpp	/^	CenterLeft, Center ,CenterRight, $/;"	e	enum:Anchor
+CenterOff	include/states.hpp	/^	CenterOff,			\/\/ 화면 중앙에서 벗어남$/;"	e	enum:DetectedStatus
+CenterRight	util/textDrawUtil.hpp	/^	CenterLeft, Center ,CenterRight, $/;"	e	enum:Anchor
 ClickableLabel	gui/MainWindow.hpp	/^			explicit ClickableLabel(const QString& imagePath, QWidget* parent = nullptr)$/;"	f	class:ClickableLabel
 ClickableLabel	gui/MainWindow.hpp	/^class ClickableLabel : public QLabel {$/;"	c
+CompleteRegistration	include/states.hpp	/^	CompleteRegistration,	\/\/ 등록 완료$/;"	e	enum:DetectedStatus
+Connected	include/states.hpp	/^	enum class BleState  { Idle, Scanning, Connected, Disconnected };$/;"	e	enum:States::BleState
 ControlTabView	gui/ControlTabView.cpp	/^ControlTabView::ControlTabView(QWidget* parent) : QWidget(parent) {$/;"	f	class:ControlTabView
 ControlTabView	gui/ControlTabView.hpp	/^class ControlTabView : public QWidget {$/;"	c
 Corner	services/FaceRecognitionService.cpp	/^enum class Corner { TopLeft, TopRight, BottomLeft, BottomRight };$/;"	g	file:
@@ -52,34 +65,37 @@ CpuTimes	gui/CpuInfoWidget.hpp	/^    struct CpuTimes { quint64 user=0,nice=0,sys
 Critical	log/SystemLogTypes.hpp	/^enum class SysLogLevel { Debug=0, Info=1, Warn=2, Error=3, Critical=4 };$/;"	e	enum:SysLogLevel
 DB	include/common_path.hpp	/^#define DB /;"	d
 DB_PATH	include/common_path.hpp	/^#define DB_PATH /;"	d
-DELTA	services/FaceRecognitionService.cpp	/^struct Thresh { float T_in=0.84f, T_out=0.80f, DELTA=0.08f; float z_thr=2.5f; };$/;"	m	struct:Thresh	typeref:typename:float	file:
-DETECTING	faceRecognitionState.hpp	/^		DETECTING,				\/\/ 2$/;"	e	enum:RecognitionState
+DEBUG	liveness/LivenessGate.cpp	/^#define DEBUG$/;"	d	file:
+DEMO	liveness/LivenessGate.cpp	/^#define DEMO$/;"	d	file:
+DETECTING	include/states.hpp	/^	DETECTING,				\/\/ 3$/;"	e	enum:RecognitionState
 DETECTOR_PATH	include/common_path.hpp	/^#define DETECTOR_PATH	/;"	d
 DETECT_THR	include/recog_params.hpp	/^	inline constexpr double DETECT_THR = 0.5;$/;"	v	namespace:recog	typeref:typename:double
-DOORSENSORSERVICE_H	services/DoorSensorService.hpp	/^#define DOORSENSORSERVICE_H$/;"	d
-DOOR_OPEN	faceRecognitionState.hpp	/^		DOOR_OPEN,				\/\/ 1$/;"	e	enum:RecognitionState
-DUPLICATE_FACE	faceRecognitionState.hpp	/^    DUPLICATE_FACE,		\/\/ 5$/;"	e	enum:RecognitionState
+DOOR_OPEN	include/states.hpp	/^	DOOR_OPEN,				\/\/ 1$/;"	e	enum:RecognitionState
+DUPLICATE_FACE	include/states.hpp	/^    DUPLICATE_FACE,		    \/\/ 6$/;"	e	enum:RecognitionState
 Debug	log/SystemLogTypes.hpp	/^enum class SysLogLevel { Debug=0, Info=1, Warn=2, Error=3, Critical=4 };$/;"	e	enum:SysLogLevel
 Decision	match/SimilarityDecision.hpp	/^enum class Decision {$/;"	g
 DecisionParams	match/SimilarityDecision.hpp	/^struct DecisionParams {$/;"	s
 DetOut	include/types.hpp	/^struct DetOut {$/;"	s
+DetectedStatus	include/states.hpp	/^enum class DetectedStatus { $/;"	g
 DetectingState	fsm/recognition_states.hpp	/^		explicit DetectingState(double enterThresh, double exitThresh)$/;"	f	struct:DetectingState
 DetectingState	fsm/recognition_states.hpp	/^struct DetectingState : public IFsmState {$/;"	s
 DevInfoDialog	gui/DevInfoDialog.cpp	/^DevInfoDialog::DevInfoDialog(QWidget* parent)$/;"	f	class:DevInfoDialog
 DevInfoDialog	gui/DevInfoDialog.hpp	/^class DevInfoDialog : public QDialog {$/;"	c
 DevInfoTab	gui/DevInfoTab.cpp	/^DevInfoTab::DevInfoTab(QWidget* parent) : QWidget(parent) $/;"	f	class:DevInfoTab
 DevInfoTab	gui/DevInfoTab.hpp	/^class DevInfoTab : public QWidget {$/;"	c
+Disconnected	include/states.hpp	/^	enum class BleState  { Idle, Scanning, Connected, Disconnected };$/;"	e	enum:States::BleState
+DoorIconLabel	gui/DoorIconLabel.hpp	/^    explicit DoorIconLabel(QWidget* parent=nullptr)$/;"	f	class:DoorIconLabel
+DoorIconLabel	gui/DoorIconLabel.hpp	/^class DoorIconLabel : public QLabel {$/;"	c
 DoorOpenState	fsm/recognition_states.hpp	/^struct DoorOpenState : public IFsmState { $/;"	s
 DoorSensorPresenter	presenter/DoorSensorPresenter.cpp	/^DoorSensorPresenter::DoorSensorPresenter(DoorSensorService *service, MainWindow* view, QObject* /;"	f	class:DoorSensorPresenter
 DoorSensorPresenter	presenter/DoorSensorPresenter.hpp	/^class DoorSensorPresenter : public QObject {$/;"	c
-DoorSensorService	services/DoorSensorService.cpp	/^DoorSensorService::DoorSensorService(QObject *parent) : QObject(parent) $/;"	f	class:DoorSensorService
-DoorSensorService	services/DoorSensorService.hpp	/^class DoorSensorService : public QObject {$/;"	c
+DoorState	include/states.hpp	/^	enum class DoorState { Locked, Open };$/;"	g	namespace:States
 DoorlockController	hw/DoorlockController.cpp	/^DoorlockController::DoorlockController() {}$/;"	f	class:DoorlockController
 DoorlockController	hw/DoorlockController.hpp	/^class DoorlockController {$/;"	c
+DuplicateFace	include/states.hpp	/^	DuplicateFace,			\/\/ 중복 얼굴$/;"	e	enum:DetectedStatus
 DuplicateFaceState	fsm/recognition_states.hpp	/^struct DuplicateFaceState : public IFsmState {$/;"	s
 ECHO_PIN	hw/UltrasonicSensor.hpp	/^#define ECHO_PIN /;"	d
 ECHO_PIN	hw/UltrasonicSensor_back.hpp	/^#define ECHO_PIN /;"	d
-ECHO_PIN	services/FaceSensorService.hpp	/^#define ECHO_PIN /;"	d
 EMBEDDING_JSON	include/common_path.hpp	/^#define EMBEDDING_JSON	/;"	d
 EMBEDDING_JSON_PATH	include/common_path.hpp	/^#define EMBEDDING_JSON_PATH	/;"	d
 EYESDETECTOR	include/common_path.hpp	/^#define EYESDETECTOR /;"	d
@@ -88,10 +104,13 @@ Embedder	ai/Embedder.hpp	/^class Embedder {$/;"	c
 Error	log/SystemLogTypes.hpp	/^enum class SysLogLevel { Debug=0, Info=1, Warn=2, Error=3, Critical=4 };$/;"	e	enum:SysLogLevel
 FACEDETECTOR	include/common_path.hpp	/^#define FACEDETECTOR	/;"	d
 FACESENSORSERVICE_H	hw/UltrasonicSensor_back.hpp	/^#define	FACESENSORSERVICE_H /;"	d
-FACESENSORSERVICE_H	services/FaceSensorService.hpp	/^#define	FACESENSORSERVICE_H /;"	d
 FaceDet	include/types.hpp	/^struct FaceDet {$/;"	s
+FaceDetected	include/states.hpp	/^	FaceDetected,		\/\/ 정상 감지$/;"	e	enum:DetectedStatus
 FaceDetector	detect/FaceDetector.hpp	/^class FaceDetector {$/;"	c
+FaceMatcher	match/FaceMatcher.hpp	/^		explicit FaceMatcher(std::shared_ptr<Embedder> embedder)$/;"	f	class:FaceMatcher
 FaceMatcher	match/FaceMatcher.hpp	/^class FaceMatcher {$/;"	c
+FaceNotDetected	include/states.hpp	/^	FaceNotDetected,	\/\/ 감지 안됨$/;"	e	enum:DetectedStatus
+FaceOffCenter	liveness/LivenessGate.hpp	/^		FaceOffCenter,$/;"	e	enum:QualResult::Reason
 FaceRecognitionPresenter	presenter/FaceRecognitionPresenter.cpp	/^FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* service, MainWindow* /;"	f	class:FaceRecognitionPresenter
 FaceRecognitionPresenter	presenter/FaceRecognitionPresenter.hpp	/^class FaceRecognitionPresenter : public QObject {$/;"	c
 FaceRecognitionService	services/FaceRecognitionService.cpp	/^FaceRecognitionService::FaceRecognitionService(QObject* parent, FaceRecognitionPresenter* presen/;"	f	class:FaceRecognitionService
@@ -101,33 +120,34 @@ FaceRegisterPresenter	presenter/FaceRegisterPresenter.hpp	/^class FaceRegisterPr
 FaceSensorPresenter	presenter/FaceSensorPresenter.cpp	/^FaceSensorPresenter::FaceSensorPresenter(FaceSensorService* service, MainWindow* view, QObject* /;"	f	class:FaceSensorPresenter
 FaceSensorPresenter	presenter/FaceSensorPresenter.hpp	/^class FaceSensorPresenter : public QObject {$/;"	c
 FaceSensorService	hw/UltrasonicSensor_back.hpp	/^class FaceSensorService : public QObject {$/;"	c
-FaceSensorService	services/FaceSensorService.cpp	/^FaceSensorService::FaceSensorService(QObject *parent) : QObject(parent) $/;"	f	class:FaceSensorService
-FaceSensorService	services/FaceSensorService.hpp	/^class FaceSensorService : public QObject {$/;"	c
+FailedRegistration	include/states.hpp	/^	FailedRegistration,		\/\/ 등록 실패$/;"	e	enum:DetectedStatus
 Failure	services/AuthManager.hpp	/^		enum class AuthState { Idle, Authenticating, Success, Failure };$/;"	e	enum:AuthManager::AuthState
-FrameCapture	capture/FrameCapture.cpp	/^FrameCapture::FrameCapture() $/;"	f	class:FrameCapture
-FrameCapture	capture/FrameCapture.hpp	/^class FrameCapture : public QObject {$/;"	c
+ForceAbortRegistration	include/states.hpp	/^	ForceAbortRegistration,	\/\/ 등록 타임아웃$/;"	e	enum:DetectedStatus
 FsmContext	fsm/recognition_fsm.hpp	/^struct FsmContext {$/;"	s
 FsmParams	fsm/recognition_fsm_setup.hpp	/^struct FsmParams {$/;"	s
 GALLERY_DIALOG_STYLE	gui/styleConstants.hpp	/^static const char* GALLERY_DIALOG_STYLE = R"($/;"	v	typeref:typename:const char *
 GROUPBOX_STYLE	gui/styleConstants.hpp	/^const QString GROUPBOX_STYLE = R"($/;"	v	typeref:typename:const QString
 GalleryEntry	include/types.hpp	/^struct GalleryEntry {$/;"	s
 GlobalLogger	log/logger.hpp	/^namespace GlobalLogger {$/;"	n
+Green	gui/LedWidget.h	/^    enum class Mode { Off, Green, Red, Blue, Yellow };$/;"	e	enum:LedWidget::Mode
+HistClipping	liveness/LivenessGate.hpp	/^		HistClipping,$/;"	e	enum:QualResult::Reason
 HysteresisGate	fsm/recognition_fsm.hpp	/^		HysteresisGate(double enterThresh, double exitThresh, int confirmFrames = 3, int window = 3)$/;"	f	class:HysteresisGate
 HysteresisGate	fsm/recognition_fsm.hpp	/^class HysteresisGate {$/;"	c
-IDLE	faceRecognitionState.hpp	/^    IDLE = 0,$/;"	e	enum:RecognitionState
 IDLE	gui/MainWindow.hpp	/^		IDLE,$/;"	e	enum:UiState
+IDLE	include/states.hpp	/^    IDLE = 0,$/;"	e	enum:RecognitionState
 IFsmState	fsm/recognition_fsm.hpp	/^class IFsmState {$/;"	c
 IMAGES_PATH	include/common_path.hpp	/^#define IMAGES_PATH	/;"	d
 INPUT_DIALOG_STYLE	gui/styleConstants.hpp	/^static const char* INPUT_DIALOG_STYLE = R"($/;"	v	typeref:typename:const char *
 INPUT_STYLE	gui/styleConstants.hpp	/^const QString INPUT_STYLE = R"($/;"	v	typeref:typename:const QString
+Idle	include/states.hpp	/^	enum class BleState  { Idle, Scanning, Connected, Disconnected };$/;"	e	enum:States::BleState
 Idle	services/AuthManager.hpp	/^		enum class AuthState { Idle, Authenticating, Success, Failure };$/;"	e	enum:AuthManager::AuthState
 IdleState	fsm/recognition_states.hpp	/^struct IdleState : public IFsmState {$/;"	s
 IfStats	gui/NetworkInfoWidget.hpp	/^    struct IfStats {$/;"	s	class:NetworkInfoWidget
 Info	log/SystemLogTypes.hpp	/^enum class SysLogLevel { Debug=0, Info=1, Warn=2, Error=3, Critical=4 };$/;"	e	enum:SysLogLevel
-Item	services/FaceRecognitionService.cpp	/^	struct Item{ int idx; float s; };$/;"	s	class:Voter	file:
+InvalidInput	liveness/LivenessGate.hpp	/^		InvalidInput$/;"	e	enum:QualResult::Reason
 KBaseConnName	services/SqlCommon.hpp	/^inline const char* KBaseConnName = "doorlock";$/;"	v	namespace:SqlCommon	typeref:typename:const char *
 LBPH_MODEL_FILE	include/common_path.hpp	/^#define LBPH_MODEL_FILE	/;"	d
-LOCKED_OUT	faceRecognitionState.hpp	/^    LOCKED_OUT				\/\/ 8$/;"	e	enum:RecognitionState
+LOCKED_OUT	include/states.hpp	/^    LOCKED_OUT				\/\/ 9$/;"	e	enum:RecognitionState
 LOG_CRITICAL	log/logger.hpp	/^#define LOG_CRITICAL(/;"	d
 LOG_DEBUG	log/logger.hpp	/^#define LOG_DEBUG(/;"	d
 LOG_DIR	log/logger.hpp	/^#define LOG_DIR	/;"	d
@@ -138,13 +158,20 @@ LPBH_MODEL	include/common_path.hpp	/^#define LPBH_MODEL	/;"	d
 LPBH_MODEL_PATH	include/common_path.hpp	/^#define LPBH_MODEL_PATH	/;"	d
 LandmarkAligner	detect/LandmarkAligner.hpp	/^class LandmarkAligner {$/;"	c
 LatestFrameMailbox	include/capture/LatestFrameMailbox.hpp	/^class LatestFrameMailbox {$/;"	c
+LedWidget	gui/LedWidget.cpp	/^LedWidget::LedWidget(QWidget *p): QWidget(p), mode_(Mode::Off) {$/;"	f	class:LedWidget
+LedWidget	gui/LedWidget.h	/^class LedWidget : public QWidget {$/;"	c
 LivenessGate	liveness/LivenessGate.hpp	/^class LivenessGate {$/;"	c
+Locked	include/states.hpp	/^	enum class DoorState { Locked, Open };$/;"	e	enum:States::DoorState
 LockedOutState	fsm/recognition_states.hpp	/^struct LockedOutState : public IFsmState {$/;"	s
 LogKind	gui/SingleLogDialog.hpp	/^enum class LogKind { Auth, System };$/;"	g
 LogTab	gui/LogTab.cpp	/^LogTab::LogTab(QWidget* parent) : QWidget(parent) $/;"	f	class:LogTab
 LogTab	gui/LogTab.hpp	/^class LogTab : public QWidget {$/;"	c
 Logger	log/logger.hpp	/^class Logger {$/;"	c
-M	services/FaceRecognitionService.cpp	/^struct Vote  { int M=5, N=3; };$/;"	m	struct:Vote	typeref:typename:int	file:
+LowCenterContrast	liveness/LivenessGate.hpp	/^		LowCenterContrast,$/;"	e	enum:QualResult::Reason
+LowContrast	include/states.hpp	/^	LowContrast			\/\/ 중앙부 대비 약함(얼굴 중앙이 흐릿)$/;"	e	enum:DetectedStatus
+LowContrast	liveness/LivenessGate.hpp	/^		LowContrast,$/;"	e	enum:QualResult::Reason
+M	gui/MainWindow.cpp	/^    using M = LedWidget::Mode;$/;"	t	function:MainWindow::onBleStateChanged	typeref:typename:LedWidget::Mode	file:
+M	gui/MainWindow.cpp	/^    using M = LedWidget::Mode;$/;"	t	function:MainWindow::onDoorStateChanged	typeref:typename:LedWidget::Mode	file:
 MESSAGEBOX_STYLE	gui/styleConstants.hpp	/^const QString MESSAGEBOX_STYLE = R"($/;"	v	typeref:typename:const QString
 MainPresenter	presenter/MainPresenter.cpp	/^MainPresenter::MainPresenter(MainWindow* view, QObject* p)$/;"	f	class:MainPresenter
 MainPresenter	presenter/MainPresenter.hpp	/^class MainPresenter : public QObject {$/;"	c
@@ -156,58 +183,75 @@ Mem	gui/DevInfoDialog.hpp	/^    enum Page { Basic = 0, Net, Cpu, Mem };$/;"	e	en
 MemInfoWidget	gui/MemInfoWidget.cpp	/^MemInfoWidget::MemInfoWidget(QWidget* parent)$/;"	f	class:MemInfoWidget
 MemInfoWidget	gui/MemInfoWidget.hpp	/^class MemInfoWidget : public QWidget {$/;"	c
 MinusOneToOne	ai/Embedder.hpp	/^                enum class Norm { ZeroToOne, MinusOneToOne } norm = Norm::ZeroToOne;$/;"	e	enum:Embedder::Options::Norm
-N	services/FaceRecognitionService.cpp	/^struct Vote  { int M=5, N=3; };$/;"	m	struct:Vote	typeref:typename:int	file:
+Mode	gui/LedWidget.h	/^    enum class Mode { Off, Green, Red, Blue, Yellow };$/;"	g	class:LedWidget
 Net	gui/DevInfoDialog.hpp	/^    enum Page { Basic = 0, Net, Cpu, Mem };$/;"	e	enum:DevInfoDialog::Page
 NetworkInfoWidget	gui/NetworkInfoWidget.cpp	/^NetworkInfoWidget::NetworkInfoWidget(QWidget* parent)$/;"	f	class:NetworkInfoWidget
 NetworkInfoWidget	gui/NetworkInfoWidget.hpp	/^class NetworkInfoWidget : public QWidget {$/;"	c
 Norm	ai/Embedder.hpp	/^                enum class Norm { ZeroToOne, MinusOneToOne } norm = Norm::ZeroToOne;$/;"	g	struct:Embedder::Options
 OPEN_IMAGE	include/common_path.hpp	/^#define OPEN_IMAGE	/;"	d
+Off	gui/LedWidget.h	/^    enum class Mode { Off, Green, Red, Blue, Yellow };$/;"	e	enum:LedWidget::Mode
+Ok	liveness/LivenessGate.hpp	/^		Ok = 0,$/;"	e	enum:QualResult::Reason
+Open	include/states.hpp	/^	enum class DoorState { Locked, Open };$/;"	e	enum:States::DoorState
 Opt	hw/UnlockUntilReed.hpp	/^    	  struct Opt {$/;"	s	class:UnlockUntilReed
 Opt	hw/UnlockUntilReed.hpp	/^         constexpr Opt(int p=50, int h=6, int openMs=5000, int maxMs=10000)$/;"	f	struct:UnlockUntilReed::Opt
 Options	ai/Embedder.hpp	/^		struct Options {$/;"	s	class:Embedder
+OverUnderExposure	liveness/LivenessGate.hpp	/^		OverUnderExposure,$/;"	e	enum:QualResult::Reason
 PREVIEWING	gui/MainWindow.hpp	/^		PREVIEWING$/;"	e	enum:UiState
 Page	gui/DevInfoDialog.hpp	/^    enum Page { Basic = 0, Net, Cpu, Mem };$/;"	g	class:DevInfoDialog
 Phase	hw/UnlockUntilReed.hpp	/^    enum class Phase { WaitOpen, WaitClose }; \/\/ 1단계: 열기 대기, 2단계: 닫기 대기$/;"	g	class:UnlockUntilReed
+PoseFront	include/states.hpp	/^	PoseFront,			\/\/ 정면$/;"	e	enum:DetectedStatus
+PosePitchDown	include/states.hpp	/^	PosePitchDown,		\/\/ 턱을 약간 내리기(고개 숙이기)$/;"	e	enum:DetectedStatus
+PosePitchUp	include/states.hpp	/^	PosePitchUp,		\/\/ 턱을 약갼 올리기(고개 들기)$/;"	e	enum:DetectedStatus
+PoseYawLeft	include/states.hpp	/^	PoseYawLeft,		\/\/ 머리를 약간 왼쪽으로$/;"	e	enum:DetectedStatus
+PoseYawRight	include/states.hpp	/^	PoseYawRight,		\/\/ 머리를 약간 오른쪽으로$/;"	e	enum:DetectedStatus
 PresentCamRestart	gui/MainWindow.cpp	/^void MainWindow::PresentCamRestart(const QString& msg)$/;"	f	class:MainWindow	typeref:typename:void
 PresentDoorClose	gui/MainWindow.cpp	/^void MainWindow::PresentDoorClose(const QString& msg)$/;"	f	class:MainWindow	typeref:typename:void
 PresentDoorOpen	gui/MainWindow.cpp	/^void MainWindow::PresentDoorOpen(const QString& msg)$/;"	f	class:MainWindow	typeref:typename:void
 PresentRetrainRecog	gui/MainWindow.cpp	/^void MainWindow::PresentRetrainRecog(const QString& msg)$/;"	f	class:MainWindow	typeref:typename:void
 QSqliteService	services/QSqliteService.hpp	/^class QSqliteService {$/;"	c
-RECOGNIZING	faceRecognitionState.hpp	/^    RECOGNIZING,			\/\/ 3$/;"	e	enum:RecognitionState
+QualResult	liveness/LivenessGate.hpp	/^struct QualResult {$/;"	s
+RECOGNIZING	include/states.hpp	/^    RECOGNIZING,			\/\/ 4$/;"	e	enum:RecognitionState
 REED_PIN	hw/ReedSensor.hpp	/^#define REED_PIN /;"	d
-REGISTERING	faceRecognitionState.hpp	/^    REGISTERING,			\/\/ 4$/;"	e	enum:RecognitionState
 REGISTERING	gui/MainWindow.hpp	/^		REGISTERING,$/;"	e	enum:UiState
+REGISTERING	include/states.hpp	/^    REGISTERING,			\/\/ 5$/;"	e	enum:RecognitionState
 RELAY_PIN	hw/DoorlockController.hpp	/^#define RELAY_PIN /;"	d
 ROOT	include/common_path.hpp	/^#define ROOT	/;"	d
+Reason	liveness/LivenessGate.hpp	/^	enum Reason {$/;"	g	struct:QualResult
 RecognitionFsm	fsm/recognition_fsm.cpp	/^RecognitionFsm::RecognitionFsm(QObject* parent) : QObject(parent)$/;"	f	class:RecognitionFsm
 RecognitionFsm	fsm/recognition_fsm.hpp	/^class RecognitionFsm : public QObject {$/;"	c
-RecognitionState	faceRecognitionState.hpp	/^enum class RecognitionState {$/;"	g
+RecognitionState	include/states.hpp	/^enum class RecognitionState {$/;"	g
+Recognized	include/states.hpp	/^	Recognized,			\/\/ 정상 인증$/;"	e	enum:DetectedStatus
 RecognizingState	fsm/recognition_states.hpp	/^		explicit RecognizingState(double enterThresh, double exitThresh)$/;"	f	struct:RecognizingState
 RecognizingState	fsm/recognition_states.hpp	/^struct RecognizingState : public IFsmState {$/;"	s
+Red	gui/LedWidget.h	/^    enum class Mode { Off, Green, Red, Blue, Yellow };$/;"	e	enum:LedWidget::Mode
 ReedSensor	hw/ReedSensor.cpp	/^ReadSensor::ReedSensor(const char* chip, unsigned line, bool reedActiveHigh)$/;"	f	class:ReadSensor
 ReedSensor	hw/ReedSensor.cpp	/^ReedSensor::ReedSensor() {}$/;"	f	class:ReedSensor
 ReedSensor	hw/ReedSensor.hpp	/^class ReedSensor {$/;"	c
+Registering	include/states.hpp	/^	Registering,		\/\/ 등록$/;"	e	enum:DetectedStatus
 RegisteringState	fsm/recognition_states.hpp	/^struct RegisteringState : public IFsmState {$/;"	s
 Reject	match/SimilarityDecision.hpp	/^	Reject = 0,$/;"	e	enum:Decision
 RelaxedAtomicInt	services/FaceRecognitionService.hpp	/^struct RelaxedAtomicInt {$/;"	s
+RetryRegistration	include/states.hpp	/^	RetryRegistration,		\/\/ 등록 재시도	$/;"	e	enum:DetectedStatus
 RouteInfo	gui/NetworkInfoWidget.hpp	/^    struct RouteInfo {$/;"	s	class:NetworkInfoWidget
 SFACE_RECOGNIZER	include/common_path.hpp	/^#define SFACE_RECOGNIZER	/;"	d
 SFACE_RECOGNIZER_PATH	include/common_path.hpp	/^#define SFACE_RECOGNIZER_PATH	/;"	d
-SIG_PIN	services/DoorSensorService.hpp	/^#define SIG_PIN /;"	d
 STANDBY_IMAGE	include/common_path.hpp	/^#define STANDBY_IMAGE	/;"	d
 STATUS_BAR_STYLE	gui/styleConstants.hpp	/^const QString STATUS_BAR_STYLE = R"($/;"	v	typeref:typename:const QString
 STREAK_N	include/recog_params.hpp	/^	inline constexpr int	  STREAK_N   = 3;$/;"	v	namespace:recog	typeref:typename:int
+Scanning	include/states.hpp	/^	enum class BleState  { Idle, Scanning, Connected, Disconnected };$/;"	e	enum:States::BleState
 SimilarityDecision	match/SimilarityDecision.hpp	/^    explicit SimilarityDecision(const DecisionParams& p): p_(p) {}$/;"	f	class:SimilarityDecision
 SimilarityDecision	match/SimilarityDecision.hpp	/^class SimilarityDecision {$/;"	c
 SingleLogDialog	gui/SingleLogDialog.cpp	/^SingleLogDialog::SingleLogDialog(LogKind kind, QWidget* parent)$/;"	f	class:SingleLogDialog
 SingleLogDialog	gui/SingleLogDialog.hpp	/^class SingleLogDialog : public QDialog {$/;"	c
 SqlCommon	services/SqlCommon.hpp	/^namespace SqlCommon {$/;"	n
+States	include/states.hpp	/^namespace States {$/;"	n
 StrongAccept	match/SimilarityDecision.hpp	/^	StrongAccept$/;"	e	enum:Decision
 StyledMsgBox	gui/StyledMsgBox.cpp	/^namespace StyledMsgBox {$/;"	n	file:
 StyledMsgBox	gui/StyledMsgBox.hpp	/^namespace StyledMsgBox {$/;"	n
 Success	services/AuthManager.hpp	/^		enum class AuthState { Idle, Authenticating, Success, Failure };$/;"	e	enum:AuthManager::AuthState
 SysLogLevel	log/SystemLogTypes.hpp	/^enum class SysLogLevel { Debug=0, Info=1, Warn=2, Error=3, Critical=4 };$/;"	g
 System	gui/SingleLogDialog.hpp	/^enum class LogKind { Auth, System };$/;"	e	enum:LogKind
+SystemLog	include/LogDtos.hpp	/^struct SystemLog {$/;"	s
 SystemLog	services/LogDtos.hpp	/^struct SystemLog {$/;"	s
 SystemLogEntry	log/SystemLogTypes.hpp	/^struct SystemLogEntry {$/;"	s
 SystemLogWriter	log/SystemLogger.cpp	/^class SystemLogWriter : public QObject {$/;"	c	namespace:syslog_detail	file:
@@ -215,13 +259,18 @@ SystemLogger	log/SystemLogger.cpp	/^SystemLogger::SystemLogger(QObject* p) : QOb
 SystemLogger	log/SystemLogger.hpp	/^class SystemLogger final : public QObject {$/;"	c
 TRIG_PIN	hw/UltrasonicSensor.hpp	/^#define TRIG_PIN /;"	d
 TRIG_PIN	hw/UltrasonicSensor_back.hpp	/^#define TRIG_PIN /;"	d
-TRIG_PIN	services/FaceSensorService.hpp	/^#define TRIG_PIN /;"	d
-T_in	services/FaceRecognitionService.cpp	/^struct Thresh { float T_in=0.84f, T_out=0.80f, DELTA=0.08f; float z_thr=2.5f; };$/;"	m	struct:Thresh	typeref:typename:float	file:
-T_out	services/FaceRecognitionService.cpp	/^struct Thresh { float T_in=0.84f, T_out=0.80f, DELTA=0.08f; float z_thr=2.5f; };$/;"	m	struct:Thresh	typeref:typename:float	file:
 Tentative	match/SimilarityDecision.hpp	/^	Tentative,$/;"	e	enum:Decision
-Thresh	services/FaceRecognitionService.cpp	/^struct Thresh { float T_in=0.84f, T_out=0.80f, DELTA=0.08f; float z_thr=2.5f; };$/;"	s	file:
+TimeoutRegistration	include/states.hpp	/^	TimeoutRegistration,	\/\/ 등록 타임 아웃$/;"	e	enum:DetectedStatus
+TooBlur	liveness/LivenessGate.hpp	/^		TooBlur,$/;"	e	enum:QualResult::Reason
+TooBlurry	include/states.hpp	/^	TooBlurry,			\/\/ 흔들림\/초점 불량$/;"	e	enum:DetectedStatus
+TooDark	include/states.hpp	/^	TooDark,			\/\/ 조도 부족$/;"	e	enum:DetectedStatus
+TooSmall	include/states.hpp	/^	TooSmall,			\/\/ 얼굴 박스가 너무 작음\/멀다$/;"	e	enum:DetectedStatus
+TooSmall	liveness/LivenessGate.hpp	/^		TooSmall,$/;"	e	enum:QualResult::Reason
+TopCenter	util/textDrawUtil.hpp	/^	TopLeft, TopCenter, TopRight,$/;"	e	enum:Anchor
 TopLeft	services/FaceRecognitionService.cpp	/^enum class Corner { TopLeft, TopRight, BottomLeft, BottomRight };$/;"	e	enum:Corner	file:
+TopLeft	util/textDrawUtil.hpp	/^	TopLeft, TopCenter, TopRight,$/;"	e	enum:Anchor
 TopRight	services/FaceRecognitionService.cpp	/^enum class Corner { TopLeft, TopRight, BottomLeft, BottomRight };$/;"	e	enum:Corner	file:
+TopRight	util/textDrawUtil.hpp	/^	TopLeft, TopCenter, TopRight,$/;"	e	enum:Anchor
 Transition	fsm/recognition_fsm.hpp	/^struct Transition {$/;"	s
 ULTRASONICSENSOR_H	hw/UltrasonicSensor.hpp	/^#define	ULTRASONICSENSOR_H$/;"	d
 UNK_THR	include/recog_params.hpp	/^	inline constexpr double UNK_THR	   = 0.80;$/;"	v	namespace:recog	typeref:typename:double
@@ -238,9 +287,7 @@ UserImagePresenter	presenter/UserImagePresenter.cpp	/^UserImagePresenter::UserIm
 UserImagePresenter	presenter/UserImagePresenter.hpp	/^class UserImagePresenter : public QObject {$/;"	c
 UserImageService	services/UserImageService.cpp	/^UserImageService::UserImageService(UserImagePresenter* presenter)$/;"	f	class:UserImageService
 UserImageService	services/UserImageService.hpp	/^class UserImageService {$/;"	c
-Vote	services/FaceRecognitionService.cpp	/^struct Vote  { int M=5, N=3; };$/;"	s	file:
-Voter	services/FaceRecognitionService.cpp	/^	explicit Voter(Vote v):v_(v){}$/;"	f	class:Voter	file:
-Voter	services/FaceRecognitionService.cpp	/^class Voter {$/;"	c	file:
+WAIT_CLOSE	include/states.hpp	/^	WAIT_CLOSE,				\/\/ 2$/;"	e	enum:RecognitionState
 WINDOW_MIN_HEIGHT	gui/MainWindow.hpp	/^constexpr int WINDOW_MIN_HEIGHT = 600;$/;"	v	typeref:typename:int
 WINDOW_MIN_WIDTH	gui/MainWindow.hpp	/^constexpr int WINDOW_MIN_WIDTH = 900;$/;"	v	typeref:typename:QT_END_NAMESPACE int
 WaitClose	hw/UnlockUntilReed.hpp	/^    enum class Phase { WaitOpen, WaitClose }; \/\/ 1단계: 열기 대기, 2단계: 닫기 대기$/;"	e	enum:UnlockUntilReed::Phase
@@ -248,15 +295,23 @@ WaitOpen	hw/UnlockUntilReed.hpp	/^    enum class Phase { WaitOpen, WaitClose }; 
 Warn	log/SystemLogTypes.hpp	/^enum class SysLogLevel { Debug=0, Info=1, Warn=2, Error=3, Critical=4 };$/;"	e	enum:SysLogLevel
 YNMODEL	include/common_path.hpp	/^#define YNMODEL	/;"	d
 YNMODEL_PATH	include/common_path.hpp	/^#define YNMODEL_PATH	/;"	d
+Yellow	gui/LedWidget.h	/^    enum class Mode { Off, Green, Red, Blue, Yellow };$/;"	e	enum:LedWidget::Mode
 ZeroToOne	ai/Embedder.hpp	/^                enum class Norm { ZeroToOne, MinusOneToOne } norm = Norm::ZeroToOne;$/;"	e	enum:Embedder::Options::Norm
 __anon0a8bcd7c0102	services/UserImageService.cpp	/^		auto appendUser = [&](int id, const QString& name) {$/;"	f	function:UserImageService::fetchUserList	file:
+__anon0df354710102	fsm/recognition_fsm.cpp	/^			auto resetAuthAttempt = [](FsmContext& c){$/;"	f	function:RecognitionFsm::tick	file:
 __anon21b2c2a90102	presenter/FaceRegisterPresenter.cpp	/^    connect(&m_registerTimer, &QTimer::timeout, this, [this]() {$/;"	f	function:FaceRegisterPresenter::FaceRegisterPresenter	file:
-__anon21b2c2a90202	presenter/FaceRegisterPresenter.cpp	/^	QMetaObject::invokeMethod(service, [svc=service.data(), name]() {$/;"	f	function:FaceRegisterPresenter::onRegisterFace	file:
+__anon21b2c2a90202	presenter/FaceRegisterPresenter.cpp	/^    QObject::connect(guardTimer, &QTimer::timeout, guardHolder, [self, guardHolder]{$/;"	f	function:FaceRegisterPresenter::onRegisterFace	file:
+__anon21b2c2a90302	presenter/FaceRegisterPresenter.cpp	/^    auto clearGuard = [guardHolder](){$/;"	f	function:FaceRegisterPresenter::onRegisterFace	file:
+__anon21b2c2a90402	presenter/FaceRegisterPresenter.cpp	/^    connect(this, &FaceRegisterPresenter::registrationResult, this, [clearGuard](bool, const QSt/;"	f	function:FaceRegisterPresenter::onRegisterFace	file:
+__anon21b2c2a90502	presenter/FaceRegisterPresenter.cpp	/^	QMetaObject::invokeMethod(&m_registerTimer, [this]() {$/;"	f	function:FaceRegisterPresenter::onRegisterFace	file:
+__anon21b2c2a90602	presenter/FaceRegisterPresenter.cpp	/^	QMetaObject::invokeMethod(service, [svc=service.data(), name]() {$/;"	f	function:FaceRegisterPresenter::onRegisterFace	file:
 __anon36a793a20102	hw/UltrasonicSensor.cpp	/^	th_ = std::thread([this]() { $/;"	f	function:UltrasonicSensor::start	file:
 __anon36a793a20202	hw/UltrasonicSensor.cpp	/^	auto waitState = [](int pin, int level, unsigned timeout_us)->bool {$/;"	f	function:UltrasonicSensor::main_loop	typeref:typename:bool	file:
-__anon3b5b11db0102	main.cpp	/^				    QObject::connect(&app, &QCoreApplication::aboutToQuit, []{$/;"	f	function:main	file:
-__anon443d2a5a0102	presenter/MainPresenter.cpp	/^	connect(bleServer, &BleServer::log, this, [](const QString& s){ qDebug().noquote() << s; });$/;"	f	function:MainPresenter::MainPresenter	file:
-__anon443d2a5a0202	presenter/MainPresenter.cpp	/^	connect(bleServer, &BleServer::ready, this, [](){ qDebug() << "[Ble] ready"; });$/;"	f	function:MainPresenter::MainPresenter	file:
+__anon3b5b11db0102	main.cpp	/^				QObject::connect(&app, &QCoreApplication::aboutToQuit, []{$/;"	f	function:main	file:
+__anon443d2a5a0102	presenter/MainPresenter.cpp	/^	connect(faceRecognitionThread, &QThread::started, faceRecognitionService, [=]() {$/;"	f	function:MainPresenter::MainPresenter	file:
+__anon443d2a5a0202	presenter/MainPresenter.cpp	/^	connect(bleServer, &BleServer::log, this, [](const QString& s){ qDebug().noquote() << s; });$/;"	f	function:MainPresenter::MainPresenter	file:
+__anon443d2a5a0302	presenter/MainPresenter.cpp	/^	connect(bleServer, &BleServer::ready, this, [](){ qDebug() << "[Ble] ready"; });$/;"	f	function:MainPresenter::MainPresenter	file:
+__anon443d2a5a0402	presenter/MainPresenter.cpp	/^			[] (States::BleState s) { qDebug() << "[MainPresenter] signal out:" << int(s);$/;"	f	function:MainPresenter::MainPresenter	file:
 __anon47077e070102	detect/FaceDetector.cpp	/^      auto inRange = [&](const cv::Point2f& p) {$/;"	f	function:FaceDetector::detectAll	file:
 __anon47077e070202	detect/FaceDetector.cpp	/^		auto rank = [&](const FaceDet& d) {$/;"	f	function:FaceDetector::detectBest	file:
 __anon47077e070302	detect/FaceDetector.cpp	/^				[&] (const FaceDet& a, const FaceDet& b) { $/;"	f	function:FaceDetector::detectBest	file:
@@ -265,28 +320,40 @@ __anon5223f6a70202	gui/MainWindow.cpp	/^	auto safeConnectSig = [this](auto* send
 __anon5223f6a70302	gui/MainWindow.cpp	/^	safeConnectSig(devInfoTab, &DevInfoTab::showDevInfo, [this] {$/;"	f	function:MainWindow::MainWindow	file:
 __anon5223f6a70402	gui/MainWindow.cpp	/^	safeConnectSig(logTab, &LogTab::showAuthLogs, [this]{$/;"	f	function:MainWindow::MainWindow	file:
 __anon5223f6a70502	gui/MainWindow.cpp	/^	safeConnectSig(logTab, &LogTab::showSysLogs, [this]{$/;"	f	function:MainWindow::MainWindow	file:
-__anon5223f6a70602	gui/MainWindow.cpp	/^        connect(ui->btnRefresh, &QPushButton::clicked, this, [this](){$/;"	f	function:MainWindow::setupControlTab	file:
-__anon5223f6a70702	gui/MainWindow.cpp	/^        connect(ui->btnRestartCamera, &QPushButton::clicked, this, [this](){$/;"	f	function:MainWindow::setupControlTab	file:
-__anon5223f6a70802	gui/MainWindow.cpp	/^        connect(ui->btnUnlockDoor, &QPushButton::clicked, this, [this](){$/;"	f	function:MainWindow::setupControlTab	file:
-__anon5223f6a70902	gui/MainWindow.cpp	/^        connect(ui->btnLockDoor, &QPushButton::clicked, this, [this](){$/;"	f	function:MainWindow::setupControlTab	file:
-__anon5223f6a70a02	gui/MainWindow.cpp	/^        connect(ui->btnRetrain, &QPushButton::clicked, this, [this](){$/;"	f	function:MainWindow::setupControlTab	file:
-__anon5223f6a70b02	gui/MainWindow.cpp	/^        connect(ui->btnExportLogs, &QPushButton::clicked, this, [this](){$/;"	f	function:MainWindow::setupControlTab	file:
-__anon5223f6a70c02	gui/MainWindow.cpp	/^    connect(ui->rightTabWidget, &QTabWidget::currentChanged, this, [this](int idx){$/;"	f	function:MainWindow::setupControlTab	file:
-__anon5223f6a70d02	gui/MainWindow.cpp	/^		auto safeConnect = [this](QPushButton* btn, auto slot, const QString& name) {$/;"	f	function:MainWindow::connectSignals	file:
-__anon5223f6a70e02	gui/MainWindow.cpp	/^	safeConnect(ui->registerButton,[this]() { emit registerFaceRequested(); }, "User Registration")/;"	f	function:MainWindow::connectSignals	file:
-__anon5223f6a70f02	gui/MainWindow.cpp	/^	safeConnect(ui->showUsersList, [this]() { emit requestedShowUserList(); }, "User list");$/;"	f	function:MainWindow::connectSignals	file:
-__anon5223f6a71002	gui/MainWindow.cpp	/^	safeConnect(ui->showUserImages, [this]() { emit showUserImagesRequested(); }, "User Image"); $/;"	f	function:MainWindow::connectSignals	file:
-__anon5223f6a71102	gui/MainWindow.cpp	/^	safeConnect(ui->resetButton, [this]() { $/;"	f	function:MainWindow::connectSignals	file:
-__anon5223f6a71202	gui/MainWindow.cpp	/^	safeConnect(ui->ExitButton, [this]() { $/;"	f	function:MainWindow::connectSignals	file:
-__anon5223f6a71302	gui/MainWindow.cpp	/^	connect(deleteButton, &QPushButton::clicked, this, [=]() {$/;"	f	function:MainWindow::showImagePreview	file:
-__anon5223f6a71402	gui/MainWindow.cpp	/^	connect(closeButton, &QPushButton::clicked, this, [=]() {$/;"	f	function:MainWindow::showImagePreview	file:
-__anon5223f6a71502	gui/MainWindow.cpp	/^		connect(previewDialog, &QDialog::finished, this, [=]() {$/;"	f	function:MainWindow::showImagePreview	file:
-__anon5223f6a71602	gui/MainWindow.cpp	/^        connect(delBtn, &QPushButton::clicked, this, [=]() {$/;"	f	function:MainWindow::showUserImageGallery	file:
-__anon5223f6a71702	gui/MainWindow.cpp	/^    connect(galleryDialog, &QDialog::destroyed, this, [=]() {$/;"	f	function:MainWindow::showUserImageGallery	file:
+__anon5223f6a70602	gui/MainWindow.cpp	/^	safeConnectSig(logTab, &LogTab::DelAuthLogs, [this] {$/;"	f	function:MainWindow::MainWindow	file:
+__anon5223f6a70702	gui/MainWindow.cpp	/^	safeConnectSig(logTab, &LogTab::DelSysLogs, [this] {$/;"	f	function:MainWindow::MainWindow	file:
+__anon5223f6a70802	gui/MainWindow.cpp	/^	safeConnectSig(logTab, &LogTab::DelAllLogs, [this] {$/;"	f	function:MainWindow::MainWindow	file:
+__anon5223f6a70902	gui/MainWindow.cpp	/^    connect(anim, &QPropertyAnimation::finished, bannerPtr, [bannerPtr](){$/;"	f	function:MainWindow::showFadeBanner	file:
+__anon5223f6a70a02	gui/MainWindow.cpp	/^        connect(parent, &QObject::destroyed, this, [this](){$/;"	f	function:MainWindow::ensureDoorIconLabel	file:
+__anon5223f6a70b02	gui/MainWindow.cpp	/^    connect(anim, &QPropertyAnimation::finished, door, [this]() {$/;"	f	function:MainWindow::animateDoorIconOpen	file:
+__anon5223f6a70c02	gui/MainWindow.cpp	/^        QTimer::singleShot(800, this, [this]() {$/;"	f	function:MainWindow::animateDoorIconOpen::__anon5223f6a70b02	file:
+__anon5223f6a70d02	gui/MainWindow.cpp	/^            connect(fade, &QPropertyAnimation::finished, doorIconLabel, [this]() {$/;"	f	function:MainWindow::animateDoorIconOpen::__anon5223f6a70b02::__anon5223f6a70c02	file:
+__anon5223f6a70e02	gui/MainWindow.cpp	/^    QTimer::singleShot(ms, hudPtr, [hudPtr](){ if (hudPtr) hudPtr->hide(); });$/;"	f	function:MainWindow::showHUD	file:
+__anon5223f6a70f02	gui/MainWindow.cpp	/^    QTimer::singleShot(ms, video, [video](){$/;"	f	function:MainWindow::flashBlur	file:
+__anon5223f6a71002	gui/MainWindow.cpp	/^            QTimer::singleShot(1200, door, [door]() { door->hide(); });$/;"	f	function:MainWindow::showDoorAuthUI	file:
+__anon5223f6a71102	gui/MainWindow.cpp	/^        connect(ui->btnRefresh, &QPushButton::clicked, this, [this](){$/;"	f	function:MainWindow::setupControlTab	file:
+__anon5223f6a71202	gui/MainWindow.cpp	/^        connect(ui->btnRestartCamera, &QPushButton::clicked, this, [this](){$/;"	f	function:MainWindow::setupControlTab	file:
+__anon5223f6a71302	gui/MainWindow.cpp	/^        connect(ui->btnUnlockDoor, &QPushButton::clicked, this, [this](){$/;"	f	function:MainWindow::setupControlTab	file:
+__anon5223f6a71402	gui/MainWindow.cpp	/^        connect(ui->btnLockDoor, &QPushButton::clicked, this, [this](){$/;"	f	function:MainWindow::setupControlTab	file:
+__anon5223f6a71502	gui/MainWindow.cpp	/^        connect(ui->btnRetrain, &QPushButton::clicked, this, [this](){$/;"	f	function:MainWindow::setupControlTab	file:
+__anon5223f6a71602	gui/MainWindow.cpp	/^        connect(ui->btnExportLogs, &QPushButton::clicked, this, [this](){$/;"	f	function:MainWindow::setupControlTab	file:
+__anon5223f6a71702	gui/MainWindow.cpp	/^    connect(ui->rightTabWidget, &QTabWidget::currentChanged, this, [this](int idx){$/;"	f	function:MainWindow::setupControlTab	file:
+__anon5223f6a71802	gui/MainWindow.cpp	/^		auto safeConnect = [this](QPushButton* btn, auto slot, const QString& name) {$/;"	f	function:MainWindow::connectSignals	file:
+__anon5223f6a71902	gui/MainWindow.cpp	/^	safeConnect(ui->registerButton,[this]() { emit registerFaceRequested(); }, "User Registration")/;"	f	function:MainWindow::connectSignals	file:
+__anon5223f6a71a02	gui/MainWindow.cpp	/^	safeConnect(ui->showUsersList, [this]() { emit requestedShowUserList(); }, "User list");$/;"	f	function:MainWindow::connectSignals	file:
+__anon5223f6a71b02	gui/MainWindow.cpp	/^	safeConnect(ui->showUserImages, [this]() { emit showUserImagesRequested(); }, "User Image"); $/;"	f	function:MainWindow::connectSignals	file:
+__anon5223f6a71c02	gui/MainWindow.cpp	/^	safeConnect(ui->resetButton, [this]() { $/;"	f	function:MainWindow::connectSignals	file:
+__anon5223f6a71d02	gui/MainWindow.cpp	/^	safeConnect(ui->ExitButton, [this]() { $/;"	f	function:MainWindow::connectSignals	file:
+__anon5223f6a71e02	gui/MainWindow.cpp	/^	connect(deleteButton, &QPushButton::clicked, this, [=]() {$/;"	f	function:MainWindow::showImagePreview	file:
+__anon5223f6a71f02	gui/MainWindow.cpp	/^	connect(closeButton, &QPushButton::clicked, this, [=]() {$/;"	f	function:MainWindow::showImagePreview	file:
+__anon5223f6a72002	gui/MainWindow.cpp	/^		connect(previewDialog, &QDialog::finished, this, [=]() {$/;"	f	function:MainWindow::showImagePreview	file:
+__anon5223f6a72102	gui/MainWindow.cpp	/^        connect(delBtn, &QPushButton::clicked, this, [=]() {$/;"	f	function:MainWindow::showUserImageGallery	file:
+__anon5223f6a72202	gui/MainWindow.cpp	/^    connect(galleryDialog, &QDialog::destroyed, this, [=]() {$/;"	f	function:MainWindow::showUserImageGallery	file:
 __anon74a2dcc50102	presenter/FaceRecognitionPresenter.cpp	/^	connect(service, &FaceRecognitionService::frameReady, this, [=](const QImage& image) {$/;"	f	function:FaceRecognitionPresenter::FaceRecognitionPresenter	file:
-__anon74a2dcc50202	presenter/FaceRecognitionPresenter.cpp	/^	connect(service, &FaceRecognitionService::stateChanged, this, [=] (RecognitionState s) {$/;"	f	function:FaceRecognitionPresenter::FaceRecognitionPresenter	file:
-__anon74a2dcc50302	presenter/FaceRecognitionPresenter.cpp	/^	connect(faceRegisterPresenter, &FaceRegisterPresenter::registrationStarted, [=]() { $/;"	f	function:FaceRecognitionPresenter::FaceRecognitionPresenter	file:
-__anon74a2dcc50402	presenter/FaceRecognitionPresenter.cpp	/^			this, [=](bool success, const QString& message) {$/;"	f	function:FaceRecognitionPresenter::FaceRecognitionPresenter	file:
+__anon74a2dcc50202	presenter/FaceRecognitionPresenter.cpp	/^	connect(service, &FaceRecognitionService::doorStateChanged, this, [=] (States::DoorState s) {$/;"	f	function:FaceRecognitionPresenter::FaceRecognitionPresenter	file:
+__anon74a2dcc50302	presenter/FaceRecognitionPresenter.cpp	/^	connect(service, &FaceRecognitionService::stateChanged, this, [=] (RecognitionState s) {$/;"	f	function:FaceRecognitionPresenter::FaceRecognitionPresenter	file:
+__anon74a2dcc50402	presenter/FaceRecognitionPresenter.cpp	/^			this, [=]() { $/;"	f	function:FaceRecognitionPresenter::FaceRecognitionPresenter	file:
+__anon74a2dcc50502	presenter/FaceRecognitionPresenter.cpp	/^			this, [=](bool success, const QString& message) {$/;"	f	function:FaceRecognitionPresenter::FaceRecognitionPresenter	file:
 __anon7d8912a30102	presenter/DoorSensorPresenter.cpp	/^		connect(service, &DoorSensorService::doorClosed, view, [=]() {$/;"	f	function:DoorSensorPresenter::DoorSensorPresenter	file:
 __anon7d8912a30202	presenter/DoorSensorPresenter.cpp	/^		connect(service, &DoorSensorService::doorOpened, view, [=]() {$/;"	f	function:DoorSensorPresenter::DoorSensorPresenter	file:
 __anon7f6176bc0102	gui/BasicInfoWidget.cpp	/^    auto mkTitle = [&](const QString& text) {$/;"	f	function:BasicInfoWidget::BasicInfoWidget	file:
@@ -295,13 +362,13 @@ __anon9d7d81120102	hw/UltrasonicSensor_back.cpp	/^	th_ = std::thread([this](){$/
 __anon9d7d81120202	hw/UltrasonicSensor_back.cpp	/^	th_ = std::thread([this](){$/;"	f	function:UnlockUntilReed::start	file:
 __anon9def225e0102	presenter/FaceSensorPresenter.cpp	/^		connect(service, &FaceSensorService::personDetected, view, [=]() {$/;"	f	function:FaceSensorPresenter::FaceSensorPresenter	file:
 __anon9def225e0202	presenter/FaceSensorPresenter.cpp	/^		connect(service, &FaceSensorService::personLeft, view, [=]() {$/;"	f	function:FaceSensorPresenter::FaceSensorPresenter	file:
-__anon9f078fea0102	services/FaceRecognitionService.cpp	/^	connect(&fsm_, &RecognitionFsm::stateChanged, this, [this](RecognitionState s) {$/;"	f	function:FaceRecognitionService::FaceRecognitionService	file:
+__anon9f078fea0102	services/FaceRecognitionService.cpp	/^			[this](RecognitionState s) {$/;"	f	function:FaceRecognitionService::FaceRecognitionService	file:
 __anon9f078fea0202	services/FaceRecognitionService.cpp	/^			[&] (const UserEmbedding& u) { return u.id == id; });$/;"	f	function:FaceRecognitionService::idExists	file:
 __anon9f078fea0302	services/FaceRecognitionService.cpp	/^				[&] (const UserEmbedding& u) {$/;"	f	function:FaceRecognitionService::finalizeRegistration	file:
-__anon9f078fea0402	services/FaceRecognitionService.cpp	/^    auto clamp1 = [](double v){ return std::max(-1.0, std::min(1.0, v)); };$/;"	f	function:FaceRecognitionService::handleRecognition	file:
-__anon9f078fea0502	services/FaceRecognitionService.cpp	/^	std::sort(v.begin(), v.end(), [](auto& a, auto& b){ return a.y < b.y; });$/;"	f	function:normalizeSrc5	file:
-__anon9f078fea0602	services/FaceRecognitionService.cpp	/^	capThread_ = QThread::create([this] {$/;"	f	function:FaceRecognitionService::startDirectCapture	file:
-__anon9f078fea0702	services/FaceRecognitionService.cpp	/^    auto clamp01 = [](double v){ return std::max(-1.0, std::min(1.0, v)); };$/;"	f	function:FaceRecognitionService::loopDirect	file:
+__anon9f078fea0402	services/FaceRecognitionService.cpp	/^	std::sort(v.begin(), v.end(), [](auto& a, auto& b){ return a.y < b.y; });$/;"	f	function:normalizeSrc5	file:
+__anon9f078fea0502	services/FaceRecognitionService.cpp	/^	capThread_ = QThread::create([this] {$/;"	f	function:FaceRecognitionService::startDirectCapture	file:
+__anon9f078fea0602	services/FaceRecognitionService.cpp	/^						tryIncStreakCooldown(recogResult.idx, [&]() { incAuthStreak(); });$/;"	f	function:FaceRecognitionService::loopDirect	file:
+__anon9f078fea0702	services/FaceRecognitionService.cpp	/^                    int fontPx = 28) {$/;"	f	function:FaceRecognitionService::printFrame	file:
 __anona06c61c20102	gui/CpuInfoWidget.cpp	/^	std::sort(ids.begin(), ids.end(), [](const QString& a, const QString& b){$/;"	f	function:CpuInfoWidget::listCpuIds	file:
 __anona06c61c20202	gui/CpuInfoWidget.cpp	/^        auto at=[&](int i)->quint64{ return (i<(int)t.size()) ? t[i].toULongLong() : 0ULL; };$/;"	f	function:CpuInfoWidget::readProcStat	typeref:typename:quint64	file:
 __anona06c61c20302	gui/CpuInfoWidget.cpp	/^        auto rd = [&](const QString& leaf)->qint64{$/;"	f	function:CpuInfoWidget::fillPerCore	typeref:typename:qint64	file:
@@ -313,15 +380,19 @@ __anonc26a16a60302	fsm/recognition_fsm_setup.hpp	/^				[P](const FsmContext& c) 
 __anonc26a16a60402	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) {$/;"	f	function:setupRecognitionFsm	file:
 __anonc26a16a60502	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) {$/;"	f	function:setupRecognitionFsm	file:
 __anonc26a16a60602	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) {$/;"	f	function:setupRecognitionFsm	file:
-__anonc26a16a60702	fsm/recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { return c.isDuplicate; },$/;"	f	function:setupRecognitionFsm	file:
-__anonc26a16a60802	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) { $/;"	f	function:setupRecognitionFsm	file:
-__anonc26a16a60902	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) {$/;"	f	function:setupRecognitionFsm	file:
-__anonc26a16a60a02	fsm/recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { $/;"	f	function:setupRecognitionFsm	file:
-__anonc26a16a60b02	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) { return c.failCount >= P.lockoutFails; },$/;"	f	function:setupRecognitionFsm	file:
-__anonc26a16a60c02	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) { return true; },$/;"	f	function:setupRecognitionFsm	file:
-__anonc26a16a60d02	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) { return true\/*c.timeout*\/; },            \/\/ 현재 상태는 /;"	f	function:setupRecognitionFsm	file:
-__anonc26a16a60e02	fsm/recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { return c.registerRequested; },$/;"	f	function:setupRecognitionFsm	file:
-__anonc26a16a60f02	fsm/recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { return !c.registerRequested; },$/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a60702	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) { $/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a60802	fsm/recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { return c.doorOpened; },$/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a60902	fsm/recognition_fsm_setup.hpp	/^				[](const FsmContext& c){ return !c.doorOpened; },$/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a60a02	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) {$/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a60b02	fsm/recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { $/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a60c02	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) {$/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a60d02	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) { return c.failCount >= P.lockoutFails; },$/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a60e02	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) { return true; },$/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a60f02	fsm/recognition_fsm_setup.hpp	/^				[P] (const FsmContext& c) { return true\/*c.timeout*\/; },             $/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a61002	fsm/recognition_fsm_setup.hpp	/^				[](const FsmContext& c){ return !c.facePresent; },$/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a61102	fsm/recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { return c.isDuplicate; },$/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a61202	fsm/recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { return c.registerRequested; },$/;"	f	function:setupRecognitionFsm	file:
+__anonc26a16a61302	fsm/recognition_fsm_setup.hpp	/^				[] (const FsmContext& c) { return !c.registerRequested; },$/;"	f	function:setupRecognitionFsm	file:
 __anonc4b96a220102	ble/BleServer.cpp	/^    auto kbToPretty = [](long kb){ double mb = kb \/ 1024.0; return QString::number(mb, 'f', 0) /;"	f	function:BleServer::getInfoJson	file:
 __anonc4b96a220202	ble/BleServer.cpp	/^                     this, [this](QLowEnergyController::Error e){$/;"	f	function:BleServer::run	file:
 __anonc4b96a220302	ble/BleServer.cpp	/^		this, [this](const QLowEnergyDescriptor &d, const QByteArray &val) {$/;"	f	function:BleServer::addConnect_	file:
@@ -329,8 +400,10 @@ __anonc4b96a220402	ble/BleServer.cpp	/^			this, [this] (const QLowEnergyCharacte
 __anonc4b96a220502	ble/BleServer.cpp	/^		this, [this](QLowEnergyService::ServiceState s) {$/;"	f	function:BleServer::addConnect_	file:
 __anonc4b96a220602	ble/BleServer.cpp	/^		this, [this](const QLowEnergyCharacteristic& c, const QByteArray &value) {$/;"	f	function:BleServer::addConnect_	file:
 __anonc4b96a220702	ble/BleServer.cpp	/^		this, [this](QLowEnergyController::Error e){ qWarning() << "[gatt] ctrl error:" << int(e); });$/;"	f	function:BleServer::setupGatt_	file:
-__anonc4b96a220802	ble/BleServer.cpp	/^		auto hasImageFor = [](int \/*id*\/, const QString& \/*name*\/) -> bool {$/;"	f	function:BleServer::handleCommand_	typeref:typename:bool	file:
-__anonc4b96a220902	ble/BleServer.cpp	/^        auto esc = [](QString s){ s.replace('"',"\\"\\""); return "\\"" + s + "\\""; };$/;"	f	function:BleServer::handleCommand_	file:
+__anonc4b96a220802	ble/BleServer.cpp	/^    QObject::connect(g_peripheral_.data(), &QLowEnergyController::connected, this, [this]{$/;"	f	function:BleServer::setupGatt_	file:
+__anonc4b96a220902	ble/BleServer.cpp	/^    QObject::connect(g_peripheral_.data(), &QLowEnergyController::disconnected, this, [this]{$/;"	f	function:BleServer::setupGatt_	file:
+__anonc4b96a220a02	ble/BleServer.cpp	/^		auto hasImageFor = [](int \/*id*\/, const QString& \/*name*\/) -> bool {$/;"	f	function:BleServer::handleCommand_	typeref:typename:bool	file:
+__anonc4b96a220b02	ble/BleServer.cpp	/^        auto esc = [](QString s){ s.replace('"',"\\"\\""); return "\\"" + s + "\\""; };$/;"	f	function:BleServer::handleCommand_	file:
 __anond60254450102	gui/DevInfoDialog.cpp	/^    connect(btnBasic_, &QPushButton::clicked, this, [this]{ switchTo(Page::Basic); });$/;"	f	function:DevInfoDialog::DevInfoDialog	file:
 __anond60254450202	gui/DevInfoDialog.cpp	/^    connect(btnNet_,   &QPushButton::clicked, this, [this]{ switchTo(Page::Net);   });$/;"	f	function:DevInfoDialog::DevInfoDialog	file:
 __anond60254450302	gui/DevInfoDialog.cpp	/^    connect(btnCpu_,   &QPushButton::clicked, this, [this]{ switchTo(Page::Cpu);   });$/;"	f	function:DevInfoDialog::DevInfoDialog	file:
@@ -338,16 +411,19 @@ __anond60254450402	gui/DevInfoDialog.cpp	/^    connect(btnMem_,   &QPushButton::
 __anond74c6c1c0102	hw/UnlockUntilReed.cpp	/^	th_ = std::thread([this](){$/;"	f	function:UnlockUntilReed::start	file:
 __anond762f3040102	gui/NetworkInfoWidget.cpp	/^    auto rd = [&ifname](const QString& leaf)->qulonglong {$/;"	f	function:NetworkInfoWidget::readIfStats	typeref:typename:qulonglong	file:
 __anond762f3040202	gui/NetworkInfoWidget.cpp	/^        auto add = [root](const QString& k, const QString& v) {$/;"	f	function:NetworkInfoWidget::refresh	file:
-acceptSim	match/SimilarityDecision.hpp	/^		float acceptSim        = 0.97f; \/\/ 이 이상이면 Accept$/;"	m	struct:DecisionParams	typeref:typename:float
+acceptSim	match/SimilarityDecision.hpp	/^	float acceptSim        = 0.97f; \/\/ 이 이상이면 Accept$/;"	m	struct:DecisionParams	typeref:typename:float
 activeHigh_	hw/ReedSensor.hpp	/^    bool activeHigh_;$/;"	m	class:ReedSensor	typeref:typename:bool
 addConnect_	ble/BleServer.cpp	/^void BleServer::addConnect_()$/;"	f	class:BleServer	typeref:typename:void
 addState	fsm/recognition_fsm.cpp	/^void RecognitionFsm::addState(RecognitionState s, std::unique_ptr<IFsmState> st) $/;"	f	class:RecognitionFsm	typeref:typename:void
 addTransition	fsm/recognition_fsm.cpp	/^void RecognitionFsm::addTransition(const Transition& t) $/;"	f	class:RecognitionFsm	typeref:typename:void
+advanceAngleStepIfReady	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::advanceAngleStepIfReady()$/;"	f	class:FaceRecognitionService	typeref:typename:void
 alignBy5pts	detect/LandmarkAligner.cpp	/^cv::Mat LandmarkAligner::alignBy5pts(const cv::Mat& srcBgr, $/;"	f	class:LandmarkAligner	typeref:typename:cv::Mat
 alignBy5pts	services/FaceRecognitionService.cpp	/^cv::Mat FaceRecognitionService::alignBy5pts(const cv::Mat& srcBgr, const std::array<cv::Point2f,/;"	f	class:FaceRecognitionService	typeref:typename:cv::Mat
-aligner_	services/FaceRecognitionService.hpp	/^		LandmarkAligner aligner_;$/;"	m	class:FaceRecognitionService	typeref:typename:LandmarkAligner
-allowEntry	fsm/recognition_fsm.hpp	/^		bool allowEntry = false;				\/\/ 문 열림 여부$/;"	m	struct:FsmContext	typeref:typename:bool
-allowEntry_	services/FaceRecognitionService.hpp	/^		bool	 allowEntry_  = false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
+aligner_	services/FaceRecognitionService.hpp	/^		LandmarkAligner		aligner_;$/;"	m	class:FaceRecognitionService	typeref:typename:LandmarkAligner
+allowEntry	fsm/recognition_fsm.hpp	/^		bool allowEntry = false;				\/\/ 문 열어도 되는 권한 (임계 규칙 통과 여부) $/;"	m	struct:FsmContext	typeref:typename:bool
+allowEntry_	services/FaceRecognitionService.hpp	/^		bool   allowEntry_		= false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
+angleRegCompleted	services/FaceRecognitionService.cpp	/^bool FaceRecognitionService::angleRegCompleted()$/;"	f	class:FaceRecognitionService	typeref:typename:bool
+animateDoorIconOpen	gui/MainWindow.cpp	/^void MainWindow::animateDoorIconOpen() {$/;"	f	class:MainWindow	typeref:typename:void
 append	log/SystemLogger.cpp	/^    void append(const SystemLogEntry& e) {$/;"	f	class:syslog_detail::SystemLogWriter	typeref:typename:void	file:
 appendUserEmbedding	services/FaceRecognitionService.cpp	/^int FaceRecognitionService::appendUserEmbedding(const QString& name, const std::vector<float>& e/;"	f	class:FaceRecognitionService	typeref:typename:int
 applyGalleryDialogStyle	gui/styleConstants.hpp	/^inline void applyGalleryDialogStyle(QDialog* dlg) {$/;"	f	typeref:typename:void
@@ -358,27 +434,29 @@ authManager	services/FaceRecognitionService.hpp	/^		AuthManager authManager;$/;"
 authModel	gui/MainWindow.hpp	/^        QStandardItemModel* authModel = nullptr;$/;"	m	class:MainWindow	typeref:typename:QStandardItemModel *
 authPage	gui/MainWindow.hpp	/^        int authPage = 0, sysPage = 0;$/;"	m	class:MainWindow	typeref:typename:int
 authProxy	gui/MainWindow.hpp	/^        QSortFilterProxyModel* authProxy = nullptr;$/;"	m	class:MainWindow	typeref:typename:QSortFilterProxyModel *
-authStreak	fsm/recognition_fsm.hpp	/^		int	 authStreak = 0;					  \/\/ 인증 성공 횟수$/;"	m	struct:FsmContext	typeref:typename:int
-authStreak_	services/FaceRecognitionService.hpp	/^		int    authStreak_	= 0;$/;"	m	class:FaceRecognitionService	typeref:typename:int
-authThresh	fsm/recognition_fsm_setup.hpp	/^		int authThresh = 5;					\/\/ 5 프레임(or 5회) 연속\/가까운 시퀀스 성공시 도어/;"	m	struct:FsmParams	typeref:typename:int
+authStreak	fsm/recognition_fsm.hpp	/^		int	 authStreak = 0;				    \/\/ 인증 성공 횟수$/;"	m	struct:FsmContext	typeref:typename:int
+authStreak_	services/FaceRecognitionService.hpp	/^		int    authStreak_		= 0;$/;"	m	class:FaceRecognitionService	typeref:typename:int
+authThresh	fsm/recognition_fsm_setup.hpp	/^		int authThresh			  = 5;		\/\/ 5 프레임(or 5회) 연속\/가까운 시퀀스 성공시 도어/;"	m	struct:FsmParams	typeref:typename:int
 backend_	detect/FaceDetector.hpp	/^		int backend_  = cv::dnn::DNN_BACKEND_OPENCV;$/;"	m	class:FaceDetector	typeref:typename:int
 basicPage	gui/DevInfoDialog.hpp	/^    QWidget* basicPage() const { return basicPage_; }$/;"	f	class:DevInfoDialog	typeref:typename:QWidget *
 basicPage_	gui/DevInfoDialog.hpp	/^    QWidget* basicPage_ = nullptr;$/;"	m	class:DevInfoDialog	typeref:typename:QWidget *
 bestIdx	include/types.hpp	/^    int   bestIdx   = -1;$/;"	m	struct:MatchTop2	typeref:typename:int
-bestMatch	match/FaceMatcher.cpp	/^MatchResult FaceMatcher::bestMatch(const std::vector<float>& emb, const std::vector<UserEmbeddin/;"	f	class:FaceMatcher	typeref:typename:MatchResult
-bestMatch	services/FaceRecognitionService.cpp	/^MatchResult FaceRecognitionService::bestMatch(const std::vector<float>& emb) const$/;"	f	class:FaceRecognitionService	typeref:typename:MatchResult
+bestMatch	match/FaceMatcher.cpp	/^MatchResult FaceMatcher::bestMatch(const cv::Mat&  alignedFaceBGR, $/;"	f	class:FaceMatcher	typeref:typename:MatchResult
 bestMatchTop2	match/FaceMatcher.cpp	/^MatchTop2 FaceMatcher::bestMatchTop2(const std::vector<float>& emb, const std::vector<UserEmbedd/;"	f	class:FaceMatcher	typeref:typename:MatchTop2
 bestMatchTop2	services/FaceRecognitionService.cpp	/^MatchTop2 FaceRecognitionService::bestMatchTop2(const std::vector<float>& emb) const$/;"	f	class:FaceRecognitionService	typeref:typename:MatchTop2
 bestSim	include/types.hpp	/^    float bestSim   = -2.0f;$/;"	m	struct:MatchTop2	typeref:typename:float
 bleServer	presenter/MainPresenter.hpp	/^		BleServer* bleServer;$/;"	m	class:MainPresenter	typeref:typename:BleServer *
 bleThread	presenter/MainPresenter.hpp	/^		QThread* bleThread;$/;"	m	class:MainPresenter	typeref:typename:QThread *
-ble_	presenter/MainPresenter.hpp	/^		std::unique_ptr<BleServer> ble_;$/;"	m	class:MainPresenter	typeref:typename:std::unique_ptr<BleServer>
+blurVar	liveness/LivenessGate.hpp	/^	double blurVar	= 0.0;$/;"	m	struct:QualResult	typeref:typename:double
 boolOnOff	gui/NetworkInfoWidget.cpp	/^QString NetworkInfoWidget::boolOnOff(const QString& state) {$/;"	f	class:NetworkInfoWidget	typeref:typename:QString
 box	include/types.hpp	/^	cv::Rect box;$/;"	m	struct:DetOut	typeref:typename:cv::Rect
 box	include/types.hpp	/^	cv::Rect box;$/;"	m	struct:FaceDet	typeref:typename:cv::Rect
 btnAuthLog	gui/LogTab.hpp	/^    QPushButton* btnAuthLog = nullptr;$/;"	m	class:LogTab	typeref:typename:QPushButton *
 btnBasic_	gui/DevInfoDialog.hpp	/^    QPushButton* btnBasic_ = nullptr;$/;"	m	class:DevInfoDialog	typeref:typename:QPushButton *
 btnCpu_	gui/DevInfoDialog.hpp	/^    QPushButton* btnCpu_   = nullptr;$/;"	m	class:DevInfoDialog	typeref:typename:QPushButton *
+btnDelAll	gui/LogTab.hpp	/^	QPushButton* btnDelAll  = nullptr;$/;"	m	class:LogTab	typeref:typename:QPushButton *
+btnDelAuth	gui/LogTab.hpp	/^	QPushButton* btnDelAuth = nullptr;$/;"	m	class:LogTab	typeref:typename:QPushButton *
+btnDelSys	gui/LogTab.hpp	/^	QPushButton* btnDelSys  = nullptr;$/;"	m	class:LogTab	typeref:typename:QPushButton *
 btnDevInfo	gui/DevInfoTab.hpp	/^    QPushButton* btnDevInfo = nullptr;$/;"	m	class:DevInfoTab	typeref:typename:QPushButton *
 btnMem_	gui/DevInfoDialog.hpp	/^    QPushButton* btnMem_   = nullptr;$/;"	m	class:DevInfoDialog	typeref:typename:QPushButton *
 btnNet_	gui/DevInfoDialog.hpp	/^    QPushButton* btnNet_   = nullptr;$/;"	m	class:DevInfoDialog	typeref:typename:QPushButton *
@@ -401,19 +479,19 @@ camRestart	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::ca
 cameraWatchdog_	gui/MainWindow.hpp	/^		QTimer* cameraWatchdog_ = nullptr;$/;"	m	class:MainWindow	typeref:typename:QTimer *
 cancelRegistering	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::cancelRegistering() $/;"	f	class:FaceRecognitionService	typeref:typename:void
 capThread_	services/FaceRecognitionService.hpp	/^		QThread* capThread_ = nullptr;$/;"	m	class:FaceRecognitionService	typeref:typename:QThread *
-cap_	capture/FrameCapture.hpp	/^    cv::VideoCapture cap_;$/;"	m	class:FrameCapture	typeref:typename:cv::VideoCapture
 cap_	services/FaceRecognitionService.hpp	/^		cv::VideoCapture cap_;$/;"	m	class:FaceRecognitionService	typeref:typename:cv::VideoCapture
-captureCount	services/FaceRecognitionService.hpp	/^		int															captureCount = 0;$/;"	m	class:FaceRecognitionService	typeref:typename:int
+captureCount	services/FaceRecognitionService.hpp	/^		int								captureCount = 0;$/;"	m	class:FaceRecognitionService	typeref:typename:int
 captureJpeg	ble/BleServer.cpp	/^QByteArray BleServer::captureJpeg(int w, int h, int quality) {$/;"	f	class:BleServer	typeref:typename:QByteArray
 captureJpegOneShot	ble/BleServer.cpp	/^QByteArray BleServer::captureJpegOneShot(int w, int h, int quality) {$/;"	f	class:BleServer	typeref:typename:QByteArray
-capture_	presenter/MainPresenter.hpp	/^		std::unique_ptr<FrameCapture> capture_;$/;"	m	class:MainPresenter	typeref:typename:std::unique_ptr<FrameCapture>
 celsius	gui/ControlTabView.hpp	/^    static QString celsius(double c) { return QString::number(c, 'f', 1) + "°C"; }$/;"	f	class:ControlTabView	typeref:typename:QString
+checkQuality	liveness/LivenessGate.cpp	/^QualResult LivenessGate::checkQuality(const cv::Rect& box, const cv::Mat& rgb)$/;"	f	class:LivenessGate	typeref:typename:QualResult
 chip_	hw/ReedSensor.hpp	/^    gpiod_chip* chip_ = nullptr;$/;"	m	class:ReedSensor	typeref:typename:gpiod_chip *
 chipname_	hw/ReedSensor.hpp	/^    const char* chipname_;$/;"	m	class:ReedSensor	typeref:typename:const char *
 chkAuto_	gui/CpuInfoWidget.hpp	/^    QCheckBox*   chkAuto_    = nullptr;$/;"	m	class:CpuInfoWidget	typeref:typename:QCheckBox *
 chkAuto_	gui/MemInfoWidget.hpp	/^    QCheckBox*   chkAuto_    = nullptr;$/;"	m	class:MemInfoWidget	typeref:typename:QCheckBox *
 clampRect	services/FaceRecognitionService.cpp	/^static inline cv::Rect clampRect(const cv::Rect& r, const cv::Size& sz) {$/;"	f	typeref:typename:cv::Rect	file:
-closeCamera	capture/FrameCapture.cpp	/^void FrameCapture::closeCamera(){ if (cap_.isOpened()) cap_.release(); }$/;"	f	class:FrameCapture	typeref:typename:void
+clip0	liveness/LivenessGate.hpp	/^	double clip0	= 0.0;$/;"	m	struct:QualResult	typeref:typename:double
+clip255	liveness/LivenessGate.hpp	/^	double clip255	= 0.0;$/;"	m	struct:QualResult	typeref:typename:double
 closeEvent	gui/MainWindow.cpp	/^void MainWindow::closeEvent(QCloseEvent* e)$/;"	f	class:MainWindow	typeref:typename:void
 computeTimeout	services/FaceRecognitionService.cpp	/^bool FaceRecognitionService::computeTimeout(const FsmContext& c) $/;"	f	class:FaceRecognitionService	typeref:typename:bool
 connName_	ble/AuthLogRepo.h	/^    QString connName_;$/;"	m	class:AuthLogRepo	typeref:typename:QString
@@ -437,38 +515,48 @@ dbFilePath	services/SqlCommon.hpp	/^    inline QString dbFilePath() $/;"	f	names
 dbPath_	ble/AuthLogRepo.h	/^    QString dbPath_;$/;"	m	class:AuthLogRepo	typeref:typename:QString
 dbPath_	ble/BleServer.hpp	/^		QString dbPath_  = QStringLiteral("\/root\/trunk\/faceRecognizer_Doorlock\/assert\/db\/doorloc/;"	m	class:BleServer	typeref:typename:QString
 db_	ble/AuthLogRepo.h	/^    QSqlDatabase db_;$/;"	m	class:AuthLogRepo	typeref:typename:QSqlDatabase
-db_	presenter/MainPresenter.hpp	/^    QSqliteService* db_;$/;"	m	class:MainPresenter	typeref:typename:QSqliteService *
+db_	presenter/MainPresenter.hpp	/^		QSqliteService* db_;$/;"	m	class:MainPresenter	typeref:typename:QSqliteService *
 debug	log/SystemLogger.cpp	/^void SystemLogger::debug(const QString& tag, const QString& msg, const QString& extra){ post(Sys/;"	f	class:SystemLogger	typeref:typename:void
 decide	match/SimilarityDecision.cpp	/^Decision SimilarityDecision::decide(const MatchTop2& m) const {$/;"	f	class:SimilarityDecision	typeref:typename:Decision
-decision_	services/FaceRecognitionService.hpp	/^		SimilarityDecision decision_;$/;"	m	class:FaceRecognitionService	typeref:typename:SimilarityDecision
+decision_	services/FaceRecognitionService.hpp	/^		SimilarityDecision  decision_;$/;"	m	class:FaceRecognitionService	typeref:typename:SimilarityDecision
 defIf	gui/NetworkInfoWidget.hpp	/^        QString defIf;$/;"	m	struct:NetworkInfoWidget::RouteInfo	typeref:typename:QString
 deinit	hw/ReedSensor.cpp	/^void deinit()$/;"	f	typeref:typename:void
+deleteAllLogs	services/QSqliteService.cpp	/^bool QSqliteService::deleteAllLogs()$/;"	f	class:QSqliteService	typeref:typename:bool
+deleteAuthLogs	services/QSqliteService.cpp	/^bool QSqliteService::deleteAuthLogs()$/;"	f	class:QSqliteService	typeref:typename:bool
 deleteImage	services/UserImageService.cpp	/^bool UserImageService::deleteImage(const QString& path)$/;"	f	class:UserImageService	typeref:typename:bool
+deleteSysLogs	services/QSqliteService.cpp	/^bool QSqliteService::deleteSysLogs()$/;"	f	class:QSqliteService	typeref:typename:bool
 detectAll	detect/FaceDetector.cpp	/^std::vector<FaceDet> FaceDetector::detectAll(const cv::Mat& bgr) const$/;"	f	class:FaceDetector	typeref:typename:std::vector<FaceDet>
 detectAllYuNet	services/FaceRecognitionService.cpp	/^std::vector<FaceDet> FaceRecognitionService::detectAllYuNet(const cv::Mat& bgr) const$/;"	f	class:FaceRecognitionService	typeref:typename:std::vector<FaceDet>
 detectBest	detect/FaceDetector.cpp	/^std::optional<FaceDet> FaceDetector::detectBest(const cv::Mat& bgr) const$/;"	f	class:FaceDetector	typeref:typename:std::optional<FaceDet>
 detectBestYuNet	services/FaceRecognitionService.cpp	/^std::optional<FaceDet> FaceRecognitionService::detectBestYuNet(const cv::Mat& bgr) const$/;"	f	class:FaceRecognitionService	typeref:typename:std::optional<FaceDet>
-detectEnter	fsm/recognition_fsm_setup.hpp	/^		double detectEnter = 0.70;			\/\/ 얼굴 있다고 보기 시작			$/;"	m	struct:FsmParams	typeref:typename:double
-detectExit	fsm/recognition_fsm_setup.hpp	/^		double detectExit	 = 0.35;		\/\/ 얼굴 해제 조건(조금 낮게 ) -> 깜박임 방지$/;"	m	struct:FsmParams	typeref:typename:double
-detectMinDwellMs	fsm/recognition_fsm_setup.hpp	/^		int		 detectMinDwellMs = 100;	\/\/ 아주 짧은 깜박 방지(100ms~150ms)$/;"	m	struct:FsmParams	typeref:typename:int
+detectEnter	fsm/recognition_fsm_setup.hpp	/^		double detectEnter        = 0.85f;	\/\/ 얼굴 있다고 보기 시작			$/;"	m	struct:FsmParams	typeref:typename:double
+detectExit	fsm/recognition_fsm_setup.hpp	/^		double detectExit		  = 0.70f;	\/\/ 얼굴 해제 조건(조금 낮게 ) -> 깜박임 방지$/;"	m	struct:FsmParams	typeref:typename:double
+detectMinDwellMs	fsm/recognition_fsm_setup.hpp	/^		int	   detectMinDwellMs = 100 + 150;	\/\/ 아주 짧은 깜박 방지(100ms~150ms)$/;"	m	struct:FsmParams	typeref:typename:int
 detectScore	fsm/recognition_fsm.hpp	/^		double detectScore = 0.0;				\/\/ 얼굴 검출 강도\/스코어$/;"	m	struct:FsmContext	typeref:typename:double
-detectScore_	services/FaceRecognitionService.hpp	/^		double detectScore_ = 0.0;$/;"	m	class:FaceRecognitionService	typeref:typename:double
+detectScore_	services/FaceRecognitionService.hpp	/^		double detectScore_		= 0.0;$/;"	m	class:FaceRecognitionService	typeref:typename:double
 detectorModel	ai/Embedder.hpp	/^				QString detectorModel;$/;"	m	struct:Embedder::Options	typeref:typename:QString
-detector_	services/FaceRecognitionService.hpp	/^		FaceDetector detector_;$/;"	m	class:FaceRecognitionService	typeref:typename:FaceDetector
+detector_	services/FaceRecognitionService.hpp	/^		FaceDetector		detector_;$/;"	m	class:FaceRecognitionService	typeref:typename:FaceDetector
 devInfoDlg_	gui/MainWindow.hpp	/^		DevInfoDialog* devInfoDlg_ = nullptr;$/;"	m	class:MainWindow	typeref:typename:DevInfoDialog *
 devInfoTab	gui/MainWindow.hpp	/^		DevInfoTab* devInfoTab = nullptr;$/;"	m	class:MainWindow	typeref:typename:DevInfoTab *
-devPath_	capture/FrameCapture.hpp	/^    QString devPath_;$/;"	m	class:FrameCapture	typeref:typename:QString
-dnnEmbedder_	services/FaceRecognitionService.hpp	/^		std::unique_ptr<Embedder>   dnnEmbedder_;$/;"	m	class:FaceRecognitionService	typeref:typename:std::unique_ptr<Embedder>
+dnnEmbedder_	services/FaceRecognitionService.hpp	/^		std::shared_ptr<Embedder>   dnnEmbedder_;$/;"	m	class:FaceRecognitionService	typeref:typename:std::shared_ptr<Embedder>
+doorIconLabel	gui/MainWindow.hpp	/^		QPointer<QLabel> doorIconLabel;$/;"	m	class:MainWindow	typeref:typename:QPointer<QLabel>
 doorOpened	fsm/recognition_fsm.hpp	/^		bool doorOpened = false;				\/\/ 리드 수위치 등 문 열림$/;"	m	struct:FsmContext	typeref:typename:bool
-doorOpened_	services/FaceRecognitionService.hpp	/^		bool	 doorOpened_  = false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
-doorSensorThread	presenter/MainPresenter.hpp	/^		QThread* doorSensorThread;$/;"	m	class:MainPresenter	typeref:typename:QThread *
+doorOpened_	services/FaceRecognitionService.hpp	/^		bool   doorOpened_		= false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
 door_	hw/UnlockUntilReed.hpp	/^    DoorlockController* door_;$/;"	m	class:UnlockUntilReed	typeref:typename:DoorlockController *
+drawAnglePrompt	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::drawAnglePrompt(cv::Mat& frame, const QString& text) $/;"	f	class:FaceRecognitionService	typeref:typename:void
+drawClosedImage	gui/DoorIconLabel.hpp	/^    void drawClosedImage(QPainter& p, const QRectF& frameRect, int w, int h) {$/;"	f	class:DoorIconLabel	typeref:typename:void
+drawColorProbe	services/FaceRecognitionService.cpp	/^static void drawColorProbe(cv::Mat& frame)$/;"	f	typeref:typename:void	file:
 drawCornerBox	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::drawCornerBox(Mat& img, Rect rect, Scalar color, int thickness = 2,/;"	f	class:FaceRecognitionService	typeref:typename:void
+drawKoreanTextOnMat	util/textDrawUtil.cpp	/^void drawKoreanTextOnMat(cv::Mat& frame,$/;"	f	typeref:typename:void
+drawLabel	util/textDrawUtil.cpp	/^void drawLabel(QImage& img,$/;"	f	typeref:typename:void
+drawProgressBar	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::drawProgressBar(cv::Mat& frame)$/;"	f	class:FaceRecognitionService	typeref:typename:void
 drawTransparentBox	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::drawTransparentBox(Mat& img, Rect rect, Scalar color, double alpha /;"	f	class:FaceRecognitionService	typeref:typename:void
+duplicateHoldMs	fsm/recognition_fsm_setup.hpp	/^		int duplicateHoldMs       = 200;    \/\/	중복 얼굴 표시 시간$/;"	m	struct:FsmParams	typeref:typename:int
 emb	include/types.hpp	/^		std::vector<float>	emb;			\/\/ 128 floats$/;"	m	struct:GalleryEntry	typeref:typename:std::vector<float>
-embMutex_	services/FaceRecognitionService.hpp	/^		mutable QMutex						 embMutex_;$/;"	m	class:FaceRecognitionService	typeref:typename:QMutex
+embMutex_	services/FaceRecognitionService.hpp	/^		mutable QMutex				    embMutex_;$/;"	m	class:FaceRecognitionService	typeref:typename:QMutex
 embedding	include/types.hpp	/^    std::vector<float>  embedding; \/\/ L2 정규화된 벡터$/;"	m	struct:UserEmbedding	typeref:typename:std::vector<float>
-embeddingsPath_	services/FaceRecognitionService.hpp	/^		QString embeddingsPath_;$/;"	m	class:FaceRecognitionService	typeref:typename:QString
+embeddingsPath_	services/FaceRecognitionService.hpp	/^		QString							embeddingsPath_;$/;"	m	class:FaceRecognitionService	typeref:typename:QString
+ensureDoorIconLabel	gui/MainWindow.cpp	/^void MainWindow::ensureDoorIconLabel() {$/;"	f	class:MainWindow	typeref:typename:void
 ensureEmbFile	services/FaceRecognitionService.cpp	/^bool FaceRecognitionService::ensureEmbFile()$/;"	f	class:FaceRecognitionService	typeref:typename:bool
 ensureOpenConnectionForThisThread	services/QSqliteService.cpp	/^static QSqlDatabase ensureOpenConnectionForThisThread() {$/;"	f	typeref:typename:QSqlDatabase	file:
 enterTime_	fsm/recognition_fsm.hpp	/^		QElapsedTimer enterTime_;$/;"	m	class:RecognitionFsm	typeref:typename:QElapsedTimer
@@ -478,22 +566,21 @@ evalEvery_	fsm/recognition_fsm.hpp	/^		int evalEvery_ = 1;		\/\/ 샘플링 간�
 execBox	gui/StyledMsgBox.cpp	/^static QMessageBox::StandardButton execBox($/;"	f	namespace:StyledMsgBox	typeref:typename:QMessageBox::StandardButton	file:
 exit_	fsm/recognition_fsm.hpp	/^	double exit_;					\/\/ exit Threshold:  OFF(꺼짐) 상태로 전환할 때 내려가야하는 /;"	m	class:HysteresisGate	typeref:typename:double
 expandRect	services/FaceRecognitionService.cpp	/^cv::Rect FaceRecognitionService::expandRect(const cv::Rect& r, float scale, const cv::Size& imgS/;"	f	class:FaceRecognitionService	typeref:typename:cv::Rect
+externalNorm	ai/Embedder.hpp	/^                bool externalNorm = false;  \/\/ 내부에서 강제 크롭 여부$/;"	m	struct:Embedder::Options	typeref:typename:bool
+extra	include/LogDtos.hpp	/^    QString extra;$/;"	m	struct:SystemLog	typeref:typename:QString
 extra	log/SystemLogTypes.hpp	/^    QString extra;$/;"	m	struct:SystemLogEntry	typeref:typename:QString
 extra	services/LogDtos.hpp	/^    QString extra;$/;"	m	struct:SystemLog	typeref:typename:QString
-extract	ai/Embedder.cpp	/^bool Embedder::extract(const Mat& face, std::vector<float>& out) const$/;"	f	class:Embedder	typeref:typename:bool
+extract	ai/Embedder.cpp	/^bool Embedder::extract(const cv::Mat& face_rgb, std::vector<float>& out) const$/;"	f	class:Embedder	typeref:typename:bool
 facePresent	fsm/recognition_fsm.hpp	/^		bool facePresent = false;				\/\/ 얼굴 존재 여부$/;"	m	struct:FsmContext	typeref:typename:bool
-facePresent_	services/FaceRecognitionService.hpp	/^		bool	 facePresent_ = false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
+facePresent_	services/FaceRecognitionService.hpp	/^		bool   facePresent_		= false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
 faceRecognitionPresenter	presenter/MainPresenter.hpp	/^		FaceRecognitionPresenter* faceRecognitionPresenter;$/;"	m	class:MainPresenter	typeref:typename:FaceRecognitionPresenter *
 faceRecognitionService	presenter/MainPresenter.hpp	/^		FaceRecognitionService* faceRecognitionService;$/;"	m	class:MainPresenter	typeref:typename:FaceRecognitionService *
 faceRecognitionThread	presenter/MainPresenter.hpp	/^		QThread* faceRecognitionThread;$/;"	m	class:MainPresenter	typeref:typename:QThread *
 faceRegisterPresenter	presenter/FaceRecognitionPresenter.hpp	/^				QPointer<FaceRegisterPresenter> faceRegisterPresenter;$/;"	m	class:FaceRecognitionPresenter	typeref:typename:QPointer<FaceRegisterPresenter>
-faceRegisterPresenter	presenter/MainPresenter.hpp	/^		FaceRegisterPresenter* faceRegisterPresenter;$/;"	m	class:MainPresenter	typeref:typename:FaceRegisterPresenter *
-failCooldownMs	fsm/recognition_fsm_setup.hpp	/^		int failCooldownMs = 1000;			\/\/ 실패 후 짧은 쿨다운(연속 시도 급증 방지)$/;"	m	struct:FsmParams	typeref:typename:int
-failCount	fsm/recognition_fsm.hpp	/^		int  failCount = 0;							\/\/ 연속 실패 횟수$/;"	m	struct:FsmContext	typeref:typename:int
-failCount_	capture/FrameCapture.hpp	/^    int failCount_{0};$/;"	m	class:FrameCapture	typeref:typename:int
-failCount_	services/FaceRecognitionService.hpp	/^		int		 failCount_   = 0;$/;"	m	class:FaceRecognitionService	typeref:typename:int
+failCooldownMs	fsm/recognition_fsm_setup.hpp	/^		int failCooldownMs		  = 1000;	\/\/ 실패 후 짧은 쿨다운(연속 시도 급증 방지)$/;"	m	struct:FsmParams	typeref:typename:int
+failCount	fsm/recognition_fsm.hpp	/^		int  failCount = 0;						\/\/ 연속 실패 횟수$/;"	m	struct:FsmContext	typeref:typename:int
+failCount_	services/FaceRecognitionService.hpp	/^		int	   failCount_		= 0;$/;"	m	class:FaceRecognitionService	typeref:typename:int
 feed	fsm/recognition_fsm.hpp	/^		bool feed(double x) {$/;"	f	class:HysteresisGate	typeref:typename:bool
-feed	services/FaceRecognitionService.cpp	/^	bool feed(int idx, float s, float T_out){$/;"	f	class:Voter	typeref:typename:bool	file:
 fetchImageBlob	ble/AuthLogRepo.h	/^		QByteArray fetchImageBlob(int id) {$/;"	f	class:AuthLogRepo	typeref:typename:QByteArray
 fetchRecent	ble/AuthLogRepo.h	/^    QList<AuthLogRow> fetchRecent(int limit = 50, const QString& sinceIso = QString()) {$/;"	f	class:AuthLogRepo	typeref:typename:QList<AuthLogRow>
 fetchReset	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::fetchReset()$/;"	f	class:FaceRecognitionService	typeref:typename:void
@@ -504,10 +591,9 @@ fillSummary	gui/CpuInfoWidget.cpp	/^void CpuInfoWidget::fillSummary(){$/;"	f	cla
 finalizeRegistration	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::finalizeRegistration()$/;"	f	class:FaceRecognitionService	typeref:typename:void
 firstAuthTime	services/AuthManager.hpp	/^		QDateTime firstAuthTime;$/;"	m	class:AuthManager	typeref:typename:QDateTime
 firstFrameShown_	gui/MainWindow.hpp	/^		bool firstFrameShown_ = false;$/;"	m	class:MainWindow	typeref:typename:bool
+flashBlur	gui/MainWindow.cpp	/^void MainWindow::flashBlur(int ms) {$/;"	f	class:MainWindow	typeref:typename:void
 forceAbortRegistration	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::forceAbortRegistration() {$/;"	f	class:FaceRecognitionService	typeref:typename:void
-fourcc_	capture/FrameCapture.hpp	/^    int fourcc_{0};$/;"	m	class:FrameCapture	typeref:typename:int
-fpsReq_	capture/FrameCapture.hpp	/^    double fpsReq_{30.0};$/;"	m	class:FrameCapture	typeref:typename:double
-frameMutex	services/FaceRecognitionService.hpp	/^		QMutex                      frameMutex;$/;"	m	class:FaceRecognitionService	typeref:typename:QMutex
+frameMutex	services/FaceRecognitionService.hpp	/^		QMutex                  frameMutex;$/;"	m	class:FaceRecognitionService	typeref:typename:QMutex
 from	fsm/recognition_fsm.hpp	/^		RecognitionState from;$/;"	m	struct:Transition	typeref:typename:RecognitionState
 fsm_	services/FaceRecognitionService.hpp	/^		RecognitionFsm			fsm_{this};$/;"	m	class:FaceRecognitionService	typeref:typename:RecognitionFsm
 g_auth_	ble/BleServer.hpp	/^		std::unique_ptr<AuthLogRepo>				 g_auth_;$/;"	m	class:BleServer	typeref:typename:std::unique_ptr<AuthLogRepo>
@@ -519,7 +605,7 @@ g_uls	services/FaceRecognitionService.cpp	/^static UltrasonicSensor		   g_uls;$/
 g_unlockMgr	services/FaceRecognitionService.cpp	/^static UnlockUntilReed         g_unlockMgr(&g_door, &g_reed, g_unlockOpt);$/;"	v	typeref:typename:UnlockUntilReed	file:
 g_unlockOpt	services/FaceRecognitionService.cpp	/^static UnlockUntilReed::Opt    g_unlockOpt{\/*pollMs*\/50, \/*hits*\/6, \/*openTimeoutMs*\/5000,/;"	v	typeref:typename:UnlockUntilReed::Opt	file:
 galleryDialog	gui/MainWindow.hpp	/^		QPointer<QDialog> galleryDialog = nullptr;$/;"	m	class:MainWindow	typeref:typename:QPointer<QDialog>
-gallery_	services/FaceRecognitionService.hpp	/^		std::vector<UserEmbedding> gallery_;$/;"	m	class:FaceRecognitionService	typeref:typename:std::vector<UserEmbedding>
+gallery_	services/FaceRecognitionService.hpp	/^		std::vector<UserEmbedding>		gallery_;$/;"	m	class:FaceRecognitionService	typeref:typename:std::vector<UserEmbedding>
 gate	fsm/recognition_states.hpp	/^		HysteresisGate gate;		\/\/ 검출 히스테리시스$/;"	m	struct:DetectingState	typeref:typename:HysteresisGate
 gate	fsm/recognition_states.hpp	/^		HysteresisGate gate;	\/\/ 인식 신뢰도 히스테리시스 $/;"	m	struct:RecognizingState	typeref:typename:HysteresisGate
 gateway	gui/NetworkInfoWidget.hpp	/^        QString gateway;$/;"	m	struct:NetworkInfoWidget::RouteInfo	typeref:typename:QString
@@ -535,18 +621,16 @@ getState	services/AuthManager.cpp	/^AuthManager::AuthState AuthManager::getState
 getUserImages	services/UserImageService.cpp	/^QList<UserImage> UserImageService::getUserImages() $/;"	f	class:UserImageService	typeref:typename:QList<UserImage>
 getUserName	services/FaceRecognitionService.cpp	/^QString FaceRecognitionService::getUserName() const { return registeringUserName_; }$/;"	f	class:FaceRecognitionService	typeref:typename:QString
 getVec	services/FaceRecognitionService.cpp	/^static inline const std::vector<float>& getVec(const UserEmbedding& u)$/;"	f	typeref:typename:const std::vector<float> &	file:
-gstPipeline_	capture/FrameCapture.hpp	/^    QString gstPipeline_;$/;"	m	class:FrameCapture	typeref:typename:QString
 guard	fsm/recognition_fsm.hpp	/^		std::function<bool(const FsmContext&)> guard;		\/\/ 전환 조건$/;"	m	struct:Transition	typeref:typename:std::function<bool (const FsmContext &)>
 guest	gui/CpuInfoWidget.hpp	/^    struct CpuTimes { quint64 user=0,nice=0,system=0,idle=0,iowait=0,irq=0,softirq=0,steal=0,gue/;"	m	struct:CpuInfoWidget::CpuTimes	typeref:typename:quint64
 guest_nice	gui/CpuInfoWidget.hpp	/^    struct CpuTimes { quint64 user=0,nice=0,system=0,idle=0,iowait=0,irq=0,softirq=0,steal=0,gue/;"	m	struct:CpuInfoWidget::CpuTimes	typeref:typename:quint64
-h_	capture/FrameCapture.hpp	/^    int w_{640}, h_{480};$/;"	m	class:FrameCapture	typeref:typename:int
 handleAuthFailure	services/AuthManager.cpp	/^void AuthManager::handleAuthFailure() $/;"	f	class:AuthManager	typeref:typename:void
-handleAuthSuccess	services/AuthManager.cpp	/^void AuthManager::handleAuthSuccess() $/;"	f	class:AuthManager	typeref:typename:void
+handleAuthSuccess	services/AuthManager.cpp	/^void AuthManager::handleAuthSuccess(int authStreak) $/;"	f	class:AuthManager	typeref:typename:void
 handleCommand_	ble/BleServer.cpp	/^void BleServer::handleCommand_(const QString& s)$/;"	f	class:BleServer	typeref:typename:void
 handleDeleteImage	presenter/UserImagePresenter.cpp	/^void UserImagePresenter::handleDeleteImage(const QString& imagePath)$/;"	f	class:UserImagePresenter	typeref:typename:void
 handleImagePreview	presenter/UserImagePresenter.cpp	/^void UserImagePresenter::handleImagePreview(const QString& imagePath) $/;"	f	class:UserImagePresenter	typeref:typename:void
 handleRecognition	services/FaceRecognitionService.cpp	/^recogResult_t FaceRecognitionService::handleRecognition(cv::Mat& frame,$/;"	f	class:FaceRecognitionService	typeref:typename:recogResult_t
-handleRegistration	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::handleRegistration(Mat& frame, const Rect& face, const Mat& aligned/;"	f	class:FaceRecognitionService	typeref:typename:void
+handleRegistration	services/FaceRecognitionService.cpp	/^DetectedStatus FaceRecognitionService::handleRegistration(Mat& frame, const Rect& face, const Ma/;"	f	class:FaceRecognitionService	typeref:typename:DetectedStatus
 hasAlreadyUnlocked	services/FaceRecognitionService.hpp	/^		bool hasAlreadyUnlocked = false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
 hasImage	ble/AuthLogRepo.h	/^    bool    hasImage = false;$/;"	m	struct:AuthLogRow	typeref:typename:bool
 hciName_	ble/BleServer.hpp	/^		QString hciName_ = QStringLiteral("hci0");$/;"	m	class:BleServer	typeref:typename:QString
@@ -560,6 +644,8 @@ humanDurationSeconds	gui/BasicInfoWidget.cpp	/^QString BasicInfoWidget::humanDur
 humanMHz	gui/CpuInfoWidget.cpp	/^QString CpuInfoWidget::humanMHz(qint64 khz){$/;"	f	class:CpuInfoWidget	typeref:typename:QString
 humanTempMilliC	gui/CpuInfoWidget.cpp	/^QString CpuInfoWidget::humanTempMilliC(qint64 milliC){$/;"	f	class:CpuInfoWidget	typeref:typename:QString
 id	ble/AuthLogRepo.h	/^    int     id = 0;$/;"	m	struct:AuthLogRow	typeref:typename:int
+id	include/LogDtos.hpp	/^    int id{};$/;"	m	struct:AuthLog	typeref:typename:int
+id	include/LogDtos.hpp	/^    int id{};$/;"	m	struct:SystemLog	typeref:typename:int
 id	include/types.hpp	/^		int									id = -1;$/;"	m	struct:GalleryEntry	typeref:typename:int
 id	include/types.hpp	/^        int     id   = -1;$/;"	m	struct:MatchResult	typeref:typename:int
 id	include/types.hpp	/^    int                 id = -1;$/;"	m	struct:UserEmbedding	typeref:typename:int
@@ -567,9 +653,10 @@ id	services/LogDtos.hpp	/^    int id{};$/;"	m	struct:AuthLog	typeref:typename:in
 id	services/LogDtos.hpp	/^    int id{};$/;"	m	struct:SystemLog	typeref:typename:int
 idExists	services/FaceRecognitionService.cpp	/^bool FaceRecognitionService::idExists(int id) const$/;"	f	class:FaceRecognitionService	typeref:typename:bool
 idle	gui/CpuInfoWidget.hpp	/^    struct CpuTimes { quint64 user=0,nice=0,system=0,idle=0,iowait=0,irq=0,softirq=0,steal=0,gue/;"	m	struct:CpuInfoWidget::CpuTimes	typeref:typename:quint64
-idx	services/FaceRecognitionService.cpp	/^	struct Item{ int idx; float s; };$/;"	m	struct:Voter::Item	typeref:typename:int	file:
+idleNoFaceMs	fsm/recognition_fsm_setup.hpp	/^		int idleNoFaceMs		  = 800;	\/\/ 얼굴 사라지면 IDLE로$/;"	m	struct:FsmParams	typeref:typename:int
 idx	services/FaceRecognitionService.hpp	/^	int		idx = -1;$/;"	m	struct:recogResult_t	typeref:typename:int
 idx_	include/capture/LatestFrameMailbox.hpp	/^    std::atomic<int> idx_{0};$/;"	m	class:LatestFrameMailbox	typeref:typename:std::atomic<int>
+imageBlob	include/LogDtos.hpp	/^    QByteArray imageBlob;$/;"	m	struct:AuthLog	typeref:typename:QByteArray
 imageBlob	services/LogDtos.hpp	/^    QByteArray imageBlob;$/;"	m	struct:AuthLog	typeref:typename:QByteArray
 imagePath	gui/MainWindow.hpp	/^			QString imagePath;$/;"	m	class:ClickableLabel	typeref:typename:QString
 inH_	detect/FaceDetector.hpp	/^		int inH_ = 240;$/;"	m	class:FaceDetector	typeref:typename:int
@@ -596,21 +683,19 @@ irq	gui/CpuInfoWidget.hpp	/^    struct CpuTimes { quint64 user=0,nice=0,system=0
 isAuthValid	services/AuthManager.cpp	/^bool AuthManager::isAuthValid() const $/;"	f	class:AuthManager	typeref:typename:bool
 isClosed	hw/ReedSensor.cpp	/^bool ReedSensor::isClosed() const $/;"	f	class:ReedSensor	typeref:typename:bool
 isClosed	hw/ReedSensor.cpp	/^bool isClosed() const $/;"	f	typeref:typename:bool
-isDup_	services/FaceRecognitionService.hpp	/^		bool	 isDup_				= false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
+isDup_	services/FaceRecognitionService.hpp	/^		bool   isDup_			= false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
 isDuplicate	fsm/recognition_fsm.hpp	/^		bool isDuplicate = false;				\/\/ 중복 사용자 탐지$/;"	m	struct:FsmContext	typeref:typename:bool
 isDuplicateFaceDNN	services/FaceRecognitionService.cpp	/^bool FaceRecognitionService::isDuplicateFaceDNN(const cv::Mat& alignedFace, int* dupId, float* s/;"	f	class:FaceRecognitionService	typeref:typename:bool
 isOpen	ble/AuthLogRepo.h	/^    bool isOpen() const { return db_.isOpen(); }$/;"	f	class:AuthLogRepo	typeref:typename:bool
-isOpenDoorAtomic	services/FaceRecognitionService.hpp	/^		RelaxedAtomicInt						isOpenDoorAtomic;$/;"	m	class:FaceRecognitionService	typeref:typename:RelaxedAtomicInt
+isOpenDoorAtomic	services/FaceRecognitionService.hpp	/^		RelaxedAtomicInt		isOpenDoorAtomic;$/;"	m	class:FaceRecognitionService	typeref:typename:RelaxedAtomicInt
 isReady	ai/Embedder.cpp	/^bool Embedder::isReady() const { return ready_; }$/;"	f	class:Embedder	typeref:typename:bool
 isReady	hw/DoorlockController.cpp	/^bool DoorlockController::isReady() { return isReady_; }$/;"	f	class:DoorlockController	typeref:typename:bool
 isReady_	hw/DoorlockController.hpp	/^	bool isReady_;$/;"	m	class:DoorlockController	typeref:typename:bool
-isRegisteringAtomic	services/FaceRecognitionService.hpp	/^		RelaxedAtomicInt            isRegisteringAtomic;$/;"	m	class:FaceRecognitionService	typeref:typename:RelaxedAtomicInt
+isRegisteringAtomic	services/FaceRecognitionService.hpp	/^		RelaxedAtomicInt        isRegisteringAtomic;$/;"	m	class:FaceRecognitionService	typeref:typename:RelaxedAtomicInt
 isRunning	hw/UltrasonicSensor.hpp	/^		std::atomic<bool> isRunning{false};$/;"	m	class:UltrasonicSensor	typeref:typename:std::atomic<bool>
 isRunning	hw/UltrasonicSensor_back.hpp	/^				std::atomic<bool> isRunning = true;$/;"	m	class:FaceSensorService	typeref:typename:std::atomic<bool>
-isRunning	services/DoorSensorService.hpp	/^				std::atomic<bool> isRunning = true;$/;"	m	class:DoorSensorService	typeref:typename:std::atomic<bool>
 isRunning	services/FaceRecognitionService.hpp	/^		bool isRunning = true;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
-isRunning	services/FaceSensorService.hpp	/^				std::atomic<bool> isRunning = true;$/;"	m	class:FaceSensorService	typeref:typename:std::atomic<bool>
-isTrivialFrame	ai/Embedder.cpp	/^bool Embedder::isTrivialFrame(const cv::Mat& bgr, double meanMin, double stdMin) $/;"	f	class:Embedder	typeref:typename:bool
+isTrivialFrame	ai/Embedder.cpp	/^bool Embedder::isTrivialFrame(const cv::Mat& rgb, double meanMin, double stdMin) $/;"	f	class:Embedder	typeref:typename:bool
 isUnknownLikely	match/SimilarityDecision.cpp	/^bool SimilarityDecision::isUnknownLikely(const MatchTop2& m) const {$/;"	f	class:SimilarityDecision	typeref:typename:bool
 kDst5_112	detect/LandmarkAligner.cpp	/^const std::array<cv::Point2f, 5> LandmarkAligner::kDst5_112 = {{$/;"	m	class:LandmarkAligner	typeref:typename:const std::array<cv::Point2f,5>
 kDst5_112	detect/LandmarkAligner.hpp	/^    static const std::array<cv::Point2f,5> kDst5_112;$/;"	m	class:LandmarkAligner	typeref:typename:const std::array<cv::Point2f,5>
@@ -622,6 +707,7 @@ l2normalize	ai/Embedder.cpp	/^void Embedder::l2normalize(Mat& row) $/;"	f	class:
 lastEval_	fsm/recognition_fsm.hpp	/^		std::unordered_map<std::string, bool> lastEval_; \/\/ 전의 상태 마지막 변화$/;"	m	class:RecognitionFsm	typeref:typename:std::unordered_map<std::string,bool>
 lastFrameMs_	gui/MainWindow.hpp	/^		qint64 lastFrameMs_ = 0;$/;"	m	class:MainWindow	typeref:typename:qint64
 lastFrame_	presenter/FaceRecognitionPresenter.hpp	/^				QImage lastFrame_;$/;"	m	class:FaceRecognitionPresenter	typeref:typename:QImage
+lastReedEdgeMs_	services/FaceRecognitionService.hpp	/^		qint64 lastReedEdgeMs_ = 0;$/;"	m	class:FaceRecognitionService	typeref:typename:qint64
 latestDist	hw/UltrasonicSensor.cpp	/^float UltrasonicSensor::latestDist() const $/;"	f	class:UltrasonicSensor	typeref:typename:float
 latestDist_	hw/UltrasonicSensor.hpp	/^		std::atomic<float> latestDist_{-1.0f};$/;"	m	class:UltrasonicSensor	typeref:typename:std::atomic<float>
 lbActionMsg_	gui/ControlTabView.hpp	/^    QLabel *lbActionMsg_{};$/;"	m	class:ControlTabView	typeref:typename:QLabel *
@@ -678,13 +764,14 @@ lblSwapSummary_	gui/MemInfoWidget.hpp	/^    QLabel* lblSwapSummary_= nullptr;$/;
 lblTemp_	gui/CpuInfoWidget.hpp	/^    QLabel* lblTemp_     = nullptr;$/;"	m	class:CpuInfoWidget	typeref:typename:QLabel *
 lblUptime_	gui/BasicInfoWidget.hpp	/^    QLabel* lblUptime_        = nullptr;$/;"	m	class:BasicInfoWidget	typeref:typename:QLabel *
 letterboxSquare	services/FaceRecognitionService.cpp	/^static inline cv::Mat letterboxSquare(const cv::Mat& src, int out=128) {$/;"	f	typeref:typename:cv::Mat	file:
+level	include/LogDtos.hpp	/^    int level{};        \/\/ 0~4$/;"	m	struct:SystemLog	typeref:typename:int
 level	log/SystemLogTypes.hpp	/^    SysLogLevel level;$/;"	m	struct:SystemLogEntry	typeref:typename:SysLogLevel
 level	services/LogDtos.hpp	/^    int level{};        \/\/ 0~4$/;"	m	struct:SystemLog	typeref:typename:int
 line_	hw/ReedSensor.hpp	/^    unsigned line_;$/;"	m	class:ReedSensor	typeref:typename:unsigned
 listCpuIds	gui/CpuInfoWidget.cpp	/^QStringList CpuInfoWidget::listCpuIds(){$/;"	f	class:CpuInfoWidget	typeref:typename:QStringList
 listInterfaces	gui/NetworkInfoWidget.cpp	/^QStringList NetworkInfoWidget::listInterfaces() {$/;"	f	class:NetworkInfoWidget	typeref:typename:QStringList
 livenessOk	fsm/recognition_fsm.hpp	/^		bool livenessOk = true;					\/\/ 라이브니스 결과$/;"	m	struct:FsmContext	typeref:typename:bool
-livenessOk_	services/FaceRecognitionService.hpp	/^		bool	 livenessOk_	= false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
+livenessOk_	services/FaceRecognitionService.hpp	/^		bool   livenessOk_		= false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
 liveness_	services/FaceRecognitionService.hpp	/^		LivenessGate		liveness_;$/;"	m	class:FaceRecognitionService	typeref:typename:LivenessGate
 lm	include/types.hpp	/^	std::array<cv::Point2f,5> lm;$/;"	m	struct:DetOut	typeref:typename:std::array<cv::Point2f,5>
 lmk	include/types.hpp	/^	std::array<cv::Point2f, 5> lmk;				\/\/ leftEye, right Eye, nose, mouthL, mouthR$/;"	m	struct:FaceDet	typeref:typename:std::array<cv::Point2f,5>
@@ -694,36 +781,50 @@ loadImageBytes	ble/AuthLogRepo.h	/^    QByteArray loadImageBytes(int id) {$/;"	f
 loadRecognizer	services/FaceRecognitionService.cpp	/^bool FaceRecognitionService::loadRecognizer()$/;"	f	class:FaceRecognitionService	typeref:typename:bool
 loadRelaxed	services/FaceRecognitionService.hpp	/^	int  loadRelaxed() const            { return v.load(std::memory_order_relaxed); }$/;"	f	struct:RelaxedAtomicInt	typeref:typename:int
 lock	hw/DoorlockController.cpp	/^bool DoorlockController::lock() { return setUnlocked(false); }$/;"	f	class:DoorlockController	typeref:typename:bool
-lockoutFails	fsm/recognition_fsm_setup.hpp	/^		int lockoutFails = 5;				\/\/ 연속 실패 n회 시 $/;"	m	struct:FsmParams	typeref:typename:int
-lockoutMs	fsm/recognition_fsm_setup.hpp	/^		int lockoutMs = 30000;				\/\/ 30초 쿨다운$/;"	m	struct:FsmParams	typeref:typename:int
+locked	gui/DoorIconLabel.hpp	/^    Q_PROPERTY(bool  locked       READ locked       WRITE setLocked)$/;"	p	class:DoorIconLabel	typeref:typename:bool
+locked	gui/DoorIconLabel.hpp	/^    bool locked() const { return m_locked; }$/;"	f	class:DoorIconLabel	typeref:typename:bool
+lockoutFails	fsm/recognition_fsm_setup.hpp	/^		int lockoutFails		  = 5;		\/\/ 연속 실패 n회 시 $/;"	m	struct:FsmParams	typeref:typename:int
+lockoutMs	fsm/recognition_fsm_setup.hpp	/^		int lockoutMs			  = 30000;	\/\/ 30초 쿨다운$/;"	m	struct:FsmParams	typeref:typename:int
 logMessage	log/logger.hpp	/^inline void logMessage(QtMsgType type, const QString& functionName, const QString& message)$/;"	f	namespace:GlobalLogger	typeref:typename:void
 logTab	gui/MainWindow.hpp	/^		LogTab* logTab = nullptr;$/;"	m	class:MainWindow	typeref:typename:LogTab *
-loop	capture/FrameCapture.cpp	/^void FrameCapture::loop() {$/;"	f	class:FrameCapture	typeref:typename:void
 loopDirect	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::loopDirect()$/;"	f	class:FaceRecognitionService	typeref:typename:void
-m_cancelReg	services/FaceRecognitionService.hpp	/^		std::atomic<bool>           m_cancelReg{false};$/;"	m	class:FaceRecognitionService	typeref:typename:std::atomic<bool>
+m_anglePrompts	services/FaceRecognitionService.hpp	/^		const QString m_anglePrompts[5] = {$/;"	m	class:FaceRecognitionService	typeref:typename:const QString[5]
+m_cancelReg	services/FaceRecognitionService.hpp	/^		std::atomic<bool>       m_cancelReg{false};$/;"	m	class:FaceRecognitionService	typeref:typename:std::atomic<bool>
+m_dupSimThreshold	services/FaceRecognitionService.hpp	/^		const float m_dupSimThreshold = 0.98f;$/;"	m	class:FaceRecognitionService	typeref:typename:const float
+m_embedder	match/FaceMatcher.hpp	/^		std::shared_ptr<Embedder> m_embedder;$/;"	m	class:FaceMatcher	typeref:typename:std::shared_ptr<Embedder>
+m_isAngleRegActive	services/FaceRecognitionService.hpp	/^		bool m_isAngleRegActive = false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
+m_locked	gui/DoorIconLabel.hpp	/^    bool  m_locked   = true; \/\/ 기본은 잠김으로 시작(원하면 false로 초기화)$/;"	m	class:DoorIconLabel	typeref:typename:bool
+m_perStepTarget	services/FaceRecognitionService.hpp	/^		const int m_perStepTarget = 2;$/;"	m	class:FaceRecognitionService	typeref:typename:const int
+m_progress	gui/DoorIconLabel.hpp	/^    qreal m_progress = 0.0;$/;"	m	class:DoorIconLabel	typeref:typename:qreal
+m_recentEmbedsThisStep	services/FaceRecognitionService.hpp	/^		std::vector<std::vector<float>> m_recentEmbedsThisStep;$/;"	m	class:FaceRecognitionService	typeref:typename:std::vector<std::vector<float>>
 m_registerInProgress	presenter/FaceRegisterPresenter.hpp	/^		bool m_registerInProgress = false;		\/\/ 디바운스$/;"	m	class:FaceRegisterPresenter	typeref:typename:bool
 m_registerTimer	presenter/FaceRegisterPresenter.hpp	/^		QTimer m_registerTimer;								\/\/ 위치독$/;"	m	class:FaceRegisterPresenter	typeref:typename:QTimer
-mailbox_	presenter/MainPresenter.hpp	/^		LatestFrameMailbox mailbox_;	$/;"	m	class:MainPresenter	typeref:typename:LatestFrameMailbox
+m_stepCaptured	services/FaceRecognitionService.hpp	/^		int m_stepCaptured = 0;$/;"	m	class:FaceRecognitionService	typeref:typename:int
+m_stepIndex	services/FaceRecognitionService.hpp	/^		int m_stepIndex = 0;$/;"	m	class:FaceRecognitionService	typeref:typename:int
 main	main.cpp	/^int main(int argc, char *argv[]) $/;"	f	typeref:typename:int
 mainPresenter	gui/MainWindow.hpp	/^		MainPresenter* mainPresenter;$/;"	m	class:MainWindow	typeref:typename:MainPresenter *
 main_loop	hw/UltrasonicSensor.cpp	/^void UltrasonicSensor::main_loop()$/;"	f	class:UltrasonicSensor	typeref:typename:void
 makeSeparator	gui/DevInfoDialog.cpp	/^static QFrame* makeSeparator(Qt::Orientation ori, QWidget* parent = nullptr) {$/;"	f	typeref:typename:QFrame *	file:
+matcher_	services/FaceRecognitionService.hpp	/^		std::unique_ptr<FaceMatcher> matcher_;$/;"	m	class:FaceRecognitionService	typeref:typename:std::unique_ptr<FaceMatcher>
 maxAuthDurationMs	services/AuthManager.hpp	/^		const int maxAuthDurationMs = 30000;		\/\/ 30 second limit$/;"	m	class:AuthManager	typeref:typename:const int
-maxFailBeforeReopen_	capture/FrameCapture.hpp	/^    const int maxFailBeforeReopen_{10};$/;"	m	class:FrameCapture	typeref:typename:const int
 maxUnlockMs	hw/UnlockUntilReed.hpp	/^         int maxUnlockMs;					\/\/ 전체 안전 타임 아웃(열림 유지 시작 ~ 종료)$/;"	m	struct:UnlockUntilReed::Opt	typeref:typename:int
+mean	liveness/LivenessGate.hpp	/^	double mean		= 0.0;$/;"	m	struct:QualResult	typeref:typename:double
 memPage	gui/DevInfoDialog.hpp	/^    QWidget* memPage()   const { return memPage_; }$/;"	f	class:DevInfoDialog	typeref:typename:QWidget *
 memPage_	gui/DevInfoDialog.hpp	/^    QWidget* memPage_   = nullptr;$/;"	m	class:DevInfoDialog	typeref:typename:QWidget *
 message	ble/AuthLogRepo.h	/^    QString message;$/;"	m	struct:AuthLogRow	typeref:typename:QString
+message	include/LogDtos.hpp	/^    QString message;$/;"	m	struct:AuthLog	typeref:typename:QString
+message	include/LogDtos.hpp	/^    QString message;$/;"	m	struct:SystemLog	typeref:typename:QString
 message	log/SystemLogTypes.hpp	/^    QString message;$/;"	m	struct:SystemLogEntry	typeref:typename:QString
 message	services/LogDtos.hpp	/^    QString message;$/;"	m	struct:AuthLog	typeref:typename:QString
 message	services/LogDtos.hpp	/^    QString message;$/;"	m	struct:SystemLog	typeref:typename:QString
 minBestOnly	match/SimilarityDecision.hpp	/^    float minBestOnly      = 0.40f; \/\/ second가 없을 때 허용 하한$/;"	m	struct:DecisionParams	typeref:typename:float
 minDwellMs	fsm/recognition_fsm.hpp	/^		int minDwellMs = 50;			\/\/ 상태 유지 최소 시간(히스테리시스)$/;"	m	struct:Transition	typeref:typename:int
 minTop2Gap	match/SimilarityDecision.hpp	/^    float minTop2Gap       = 0.04f; \/\/ best - second 최소 간격$/;"	m	struct:DecisionParams	typeref:typename:float
+mode_	gui/LedWidget.h	/^    Mode mode_;$/;"	m	class:LedWidget	typeref:typename:Mode
 modelPath	ai/Embedder.hpp	/^				QString modelPath;$/;"	m	struct:Embedder::Options	typeref:typename:QString
 modelPath_	detect/FaceDetector.hpp	/^		std::string modelPath_;$/;"	m	class:FaceDetector	typeref:typename:std::string
 model_	gui/SingleLogDialog.hpp	/^    QStandardItemModel* model_ = nullptr;$/;"	m	class:SingleLogDialog	typeref:typename:QStandardItemModel *
-monotonic_	services/FaceRecognitionService.hpp	/^		QElapsedTimer				monotonic_;$/;"	m	class:FaceRecognitionService	typeref:typename:QElapsedTimer
+monotonic_	services/FaceRecognitionService.hpp	/^		QElapsedTimer			monotonic_;$/;"	m	class:FaceRecognitionService	typeref:typename:QElapsedTimer
 mousePressEvent	gui/MainWindow.hpp	/^			void mousePressEvent(QMouseEvent* event) override {$/;"	f	class:ClickableLabel	typeref:typename:void
 mtx_	ai/Embedder.hpp	/^		mutable std::mutex mtx_;$/;"	m	class:Embedder	typeref:typename:std::mutex
 name	fsm/recognition_fsm.hpp	/^		const char* name = "unnamed";			\/\/ 전환 식별용 이름$/;"	m	struct:Transition	typeref:typename:const char *
@@ -731,20 +832,27 @@ name	include/types.hpp	/^		QString							name;$/;"	m	struct:GalleryEntry	typeref
 name	include/types.hpp	/^        QString name;$/;"	m	struct:MatchResult	typeref:typename:QString
 name	include/types.hpp	/^    QString             name;$/;"	m	struct:UserEmbedding	typeref:typename:QString
 name	services/FaceRecognitionService.hpp	/^	QString name;$/;"	m	struct:recogResult_t	typeref:typename:QString
+nameFromId	services/FaceRecognitionService.cpp	/^QString FaceRecognitionService::nameFromId(int userId)$/;"	f	class:FaceRecognitionService	typeref:typename:QString
 need_	fsm/recognition_fsm.hpp	/^	int need_;						\/\/  $/;"	m	class:HysteresisGate	typeref:typename:int
 netPage	gui/DevInfoDialog.hpp	/^    QWidget* netPage()   const { return netPage_; }$/;"	f	class:DevInfoDialog	typeref:typename:QWidget *
 netPage_	gui/DevInfoDialog.hpp	/^    QWidget* netPage_   = nullptr;$/;"	m	class:DevInfoDialog	typeref:typename:QWidget *
 net_	ai/Embedder.hpp	/^		mutable cv::dnn::Net net_;$/;"	m	class:Embedder	typeref:typename:cv::dnn::Net
-nextIdCounter_	services/FaceRecognitionService.hpp	/^		std::atomic<int>           nextIdCounter_{1};$/;"	m	class:FaceRecognitionService	typeref:typename:std::atomic<int>
+nextIdCounter_	services/FaceRecognitionService.hpp	/^		std::atomic<int>				nextIdCounter_{1};$/;"	m	class:FaceRecognitionService	typeref:typename:std::atomic<int>
 nextSequentialId	services/FaceRecognitionService.cpp	/^int FaceRecognitionService::nextSequentialId()$/;"	f	class:FaceRecognitionService	typeref:typename:int
 nice	gui/CpuInfoWidget.hpp	/^    struct CpuTimes { quint64 user=0,nice=0,system=0,idle=0,iowait=0,irq=0,softirq=0,steal=0,gue/;"	m	struct:CpuInfoWidget::CpuTimes	typeref:typename:quint64
 nmsThr_	detect/FaceDetector.hpp	/^		float nmsThr_ = 0.3;$/;"	m	class:FaceDetector	typeref:typename:float
 norm	ai/Embedder.hpp	/^                enum class Norm { ZeroToOne, MinusOneToOne } norm = Norm::ZeroToOne;$/;"	m	struct:Embedder::Options	typeref:enum:Embedder::Options::Norm
 normalizeSrc5	services/FaceRecognitionService.cpp	/^normalizeSrc5(const std::array<cv::Point2f,5>& in) {$/;"	f	typeref:typename:std::array<cv::Point2f,5>	file:
-nowMs	fsm/recognition_fsm.hpp	/^		qint64 nowMs = 0;								\/\/ 단조 시간(ms)$/;"	m	struct:FsmContext	typeref:typename:qint64
+nowMs	fsm/recognition_fsm.hpp	/^		qint64 nowMs = 0;						\/\/ 단조 시간(ms)$/;"	m	struct:FsmContext	typeref:typename:qint64
+onBleStateChanged	gui/MainWindow.cpp	/^void MainWindow::onBleStateChanged(States::BleState s)$/;"	f	class:MainWindow	typeref:typename:void
 onCamRestart	presenter/FaceRecognitionPresenter.cpp	/^void FaceRecognitionPresenter::onCamRestart()$/;"	f	class:FaceRecognitionPresenter	typeref:typename:void
+onDelAllLogs	presenter/MainPresenter.cpp	/^bool MainPresenter::onDelAllLogs()$/;"	f	class:MainPresenter	typeref:typename:bool
+onDelAuthLogs	presenter/MainPresenter.cpp	/^bool MainPresenter::onDelAuthLogs()$/;"	f	class:MainPresenter	typeref:typename:bool
+onDelSysLogs	presenter/MainPresenter.cpp	/^bool MainPresenter::onDelSysLogs()$/;"	f	class:MainPresenter	typeref:typename:bool
+onDoorAuth	presenter/FaceRecognitionPresenter.cpp	/^void FaceRecognitionPresenter::onDoorAuth(bool authorized, int userId, float sim, int latencyMs)$/;"	f	class:FaceRecognitionPresenter	typeref:typename:void
 onDoorClose	presenter/FaceRecognitionPresenter.cpp	/^void FaceRecognitionPresenter::onDoorClose()$/;"	f	class:FaceRecognitionPresenter	typeref:typename:void
 onDoorOpen	presenter/FaceRecognitionPresenter.cpp	/^void FaceRecognitionPresenter::onDoorOpen()$/;"	f	class:FaceRecognitionPresenter	typeref:typename:void
+onDoorStateChanged	gui/MainWindow.cpp	/^void MainWindow::onDoorStateChanged(States::DoorState s)$/;"	f	class:MainWindow	typeref:typename:void
 onEnter	fsm/recognition_fsm.hpp	/^		virtual void onEnter(const FsmContext&) {}$/;"	f	class:IFsmState	typeref:typename:void
 onEnter	fsm/recognition_states.hpp	/^		void onEnter(const FsmContext&) override { $/;"	f	struct:AuthFailState	typeref:typename:void
 onEnter	fsm/recognition_states.hpp	/^		void onEnter(const FsmContext&) override { $/;"	f	struct:AuthSuccessState	typeref:typename:void
@@ -770,6 +878,8 @@ onRegisterFace	presenter/FaceRegisterPresenter.cpp	/^void FaceRegisterPresenter:
 onRegistrationCompleted	presenter/FaceRegisterPresenter.cpp	/^void FaceRegisterPresenter::onRegistrationCompleted(bool ok, const QString& msg)$/;"	f	class:FaceRegisterPresenter	typeref:typename:void
 onReset	presenter/FaceRecognitionPresenter.cpp	/^void FaceRecognitionPresenter::onReset()$/;"	f	class:FaceRecognitionPresenter	typeref:typename:void
 onRetrainRecog	presenter/FaceRecognitionPresenter.cpp	/^void FaceRecognitionPresenter::onRetrainRecog()$/;"	f	class:FaceRecognitionPresenter	typeref:typename:void
+onSelectAuthLogs	presenter/MainPresenter.cpp	/^bool MainPresenter::onSelectAuthLogs(int offset, int limit, const QString& tagLike, $/;"	f	class:MainPresenter	typeref:typename:bool
+onSelectSystemLogs	presenter/MainPresenter.cpp	/^bool MainPresenter::onSelectSystemLogs(int offset, int limit, int minLevel, const QString& tagLi/;"	f	class:MainPresenter	typeref:typename:bool
 onShowImages	presenter/UserImagePresenter.cpp	/^void UserImagePresenter::onShowImages()$/;"	f	class:UserImagePresenter	typeref:typename:void
 onShowUserList	presenter/UserImagePresenter.cpp	/^void UserImagePresenter::onShowUserList()$/;"	f	class:UserImagePresenter	typeref:typename:void
 onTick	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::onTick() $/;"	f	class:FaceRecognitionService	typeref:typename:void
@@ -785,7 +895,8 @@ onUpdate	fsm/recognition_states.hpp	/^		void onUpdate(const FsmContext&) overrid
 onUpdate	fsm/recognition_states.hpp	/^		void onUpdate(const FsmContext&) override {}$/;"	f	struct:IdleState	typeref:typename:void
 onViewStateChanged	presenter/FaceRecognitionPresenter.cpp	/^void FaceRecognitionPresenter::onViewStateChanged(RecognitionState state)$/;"	f	class:FaceRecognitionPresenter	typeref:typename:void
 open	ble/AuthLogRepo.h	/^    bool open() {$/;"	f	class:AuthLogRepo	typeref:typename:bool
-openCamera	capture/FrameCapture.cpp	/^bool FrameCapture::openCamera() {$/;"	f	class:FrameCapture	typeref:typename:bool
+openProgress	gui/DoorIconLabel.hpp	/^    Q_PROPERTY(qreal openProgress READ openProgress WRITE setOpenProgress)$/;"	p	class:DoorIconLabel	typeref:typename:qreal
+openProgress	gui/DoorIconLabel.hpp	/^    qreal openProgress() const { return m_progress; }$/;"	f	class:DoorIconLabel	typeref:typename:qreal
 openTimeoutMs	hw/UnlockUntilReed.hpp	/^         int openTimeoutMs;				\/\/ 열림 유지 후 '문을 여는 데' 혀옹 되는 최대 시/;"	m	struct:UnlockUntilReed::Opt	typeref:typename:int
 open_chip_name_or_path	hw/ReedSensor.cpp	/^static inline gpiod_chip* open_chip_name_or_path(const char* s) {$/;"	f	typeref:typename:gpiod_chip *	file:
 operator int	services/FaceRecognitionService.hpp	/^	operator int() const                { return v.load(std::memory_order_relaxed); }$/;"	f	struct:RelaxedAtomicInt
@@ -794,13 +905,15 @@ opt_	hw/UnlockUntilReed.hpp	/^    Opt opt_;$/;"	m	class:UnlockUntilReed	typeref:
 overlayThumbnail	services/FaceRecognitionService.cpp	/^static void overlayThumbnail(cv::Mat& frame, cv::Mat thumb, Corner corner, int margin=10) {$/;"	f	typeref:typename:void	file:
 p_	match/SimilarityDecision.hpp	/^    DecisionParams p_;$/;"	m	class:SimilarityDecision	typeref:typename:DecisionParams
 pageSize	gui/MainWindow.hpp	/^        const int pageSize = 50;$/;"	m	class:MainWindow	typeref:typename:const int
+paintEvent	gui/DoorIconLabel.hpp	/^    void paintEvent(QPaintEvent* ev) override {$/;"	f	class:DoorIconLabel	typeref:typename:void
+paintEvent	gui/LedWidget.cpp	/^void LedWidget::paintEvent(QPaintEvent *){$/;"	f	class:LedWidget	typeref:typename:void
 params	match/SimilarityDecision.hpp	/^    const DecisionParams& params() const { return p_; }$/;"	f	class:SimilarityDecision	typeref:typename:const DecisionParams &
-params_	services/FaceRecognitionService.hpp	/^		FsmParams 					params_;$/;"	m	class:FaceRecognitionService	typeref:typename:FsmParams
+params_	services/FaceRecognitionService.hpp	/^		FsmParams 				params_;$/;"	m	class:FaceRecognitionService	typeref:typename:FsmParams
 parseLineKB	gui/MemInfoWidget.cpp	/^qulonglong MemInfoWidget::parseLineKB(const QString& text, const QString& key) {$/;"	f	class:MemInfoWidget	typeref:typename:qulonglong
 parseYuNet	detect/FaceDetector.cpp	/^std::vector<FaceDet> FaceDetector::parseYuNet(const cv::Mat& dets, float scoreThresh)$/;"	f	class:FaceDetector	typeref:typename:std::vector<FaceDet>
 parseYuNet	services/FaceRecognitionService.cpp	/^static std::vector<FaceDet> parseYuNet(const cv::Mat& dets, float scoreThresh=0.6f)$/;"	f	typeref:typename:std::vector<FaceDet>	file:
-passQualityForRecog	liveness/LivenessGate.cpp	/^bool LivenessGate::passQualityForRecog(const cv::Rect& box, const cv::Mat& bgr)$/;"	f	class:LivenessGate	typeref:typename:bool
-passQualityForRecog	services/FaceRecognitionService.cpp	/^bool FaceRecognitionService::passQualityForRecog(const cv::Rect& box, const cv::Mat& face)$/;"	f	class:FaceRecognitionService	typeref:typename:bool
+pass	liveness/LivenessGate.hpp	/^	bool pass = false;$/;"	m	struct:QualResult	typeref:typename:bool
+passQualityForRecog	liveness/LivenessGate.cpp	/^DetectedStatus LivenessGate::passQualityForRecog(const cv::Rect& box, cv::Mat& bgr)$/;"	f	class:LivenessGate	typeref:typename:DetectedStatus
 pct	gui/ControlTabView.hpp	/^    static QString pct(double x) { return QString::number(x, 'f', 1) + "%"; }$/;"	f	class:ControlTabView	typeref:typename:QString
 pendingFrame_	presenter/FaceRecognitionPresenter.hpp	/^				QImage pendingFrame_;$/;"	m	class:FaceRecognitionPresenter	typeref:typename:QImage
 pollMs	hw/UnlockUntilReed.hpp	/^         int pollMs;							\/\/ 폴링 간격$/;"	m	struct:UnlockUntilReed::Opt	typeref:typename:int
@@ -817,14 +930,15 @@ presenter	services/FaceRecognitionService.hpp	/^		FaceRecognitionPresenter* pres
 presenter	services/UserImageService.hpp	/^				UserImagePresenter* presenter;$/;"	m	class:UserImageService	typeref:typename:UserImagePresenter *
 prevState_	services/FaceRecognitionService.hpp	/^		RecognitionState 			prevState_ = RecognitionState::IDLE;$/;"	m	class:FaceRecognitionService	typeref:typename:RecognitionState
 prev_	gui/CpuInfoWidget.hpp	/^    QMap<QString, CpuTimes> prev_;                 \/\/ 이전 샘플$/;"	m	class:CpuInfoWidget	typeref:typename:QMap<QString,CpuTimes>
+printFrame	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::printFrame(cv::Mat &frame, DetectedStatus hasBase)$/;"	f	class:FaceRecognitionService	typeref:typename:void
+printVector	services/FaceRecognitionService.cpp	/^static void printVector(const std::vector<float>& v, const QString& tag = "embedding")$/;"	f	typeref:typename:void	file:
 proto	include/types.hpp	/^		cv::Mat							proto;				   \/\/ 1xD, CV_32F, L2=1 고정 클론$/;"	m	struct:UserEmbedding	typeref:typename:cv::Mat
 publish	include/capture/LatestFrameMailbox.hpp	/^    void publish(const cv::Mat& bgr) {$/;"	f	class:LatestFrameMailbox	typeref:typename:void
-q_	services/FaceRecognitionService.cpp	/^	std::deque<Item> q_; Vote v_;$/;"	m	class:Voter	typeref:typename:std::deque<Item>	file:
 queryDefaultRoute	gui/NetworkInfoWidget.cpp	/^NetworkInfoWidget::RouteInfo NetworkInfoWidget::queryDefaultRoute() {$/;"	f	class:NetworkInfoWidget	typeref:typename:NetworkInfoWidget::RouteInfo
 queryDnsServers	gui/NetworkInfoWidget.cpp	/^QStringList NetworkInfoWidget::queryDnsServers() {$/;"	f	class:NetworkInfoWidget	typeref:typename:QStringList
 queryIpAddrs	gui/NetworkInfoWidget.cpp	/^QStringList NetworkInfoWidget::queryIpAddrs(const QString& ifname, bool v6) {$/;"	f	class:NetworkInfoWidget	typeref:typename:QStringList
 question	gui/StyledMsgBox.cpp	/^QMessageBox::StandardButton question($/;"	f	namespace:StyledMsgBox	typeref:typename:QMessageBox::StandardButton
-readAll	ble/BleServer.cpp	/^QString BleServer::readAll(const QString& path) {$/;"	f	class:BleServer	typeref:typename:QString
+readAll	ble/BleServer.cpp	/^QString BleServer::readAll(const QString& path) $/;"	f	class:BleServer	typeref:typename:QString
 readAll	gui/BasicInfoWidget.cpp	/^QString BasicInfoWidget::readAll(const QString& path) {$/;"	f	class:BasicInfoWidget	typeref:typename:QString
 readAll	gui/CpuInfoWidget.cpp	/^QString CpuInfoWidget::readAll(const QString& path){$/;"	f	class:CpuInfoWidget	typeref:typename:QString
 readAll	gui/MemInfoWidget.cpp	/^QString MemInfoWidget::readAll(const QString& path) {$/;"	f	class:MemInfoWidget	typeref:typename:QString
@@ -833,19 +947,25 @@ readFirstLine	gui/CpuInfoWidget.cpp	/^QString CpuInfoWidget::readFirstLine(const
 readFirstLine	gui/NetworkInfoWidget.cpp	/^QString NetworkInfoWidget::readFirstLine(const QString& path) {$/;"	f	class:NetworkInfoWidget	typeref:typename:QString
 readIfStats	gui/NetworkInfoWidget.cpp	/^NetworkInfoWidget::IfStats NetworkInfoWidget::readIfStats(const QString& ifname) {$/;"	f	class:NetworkInfoWidget	typeref:typename:NetworkInfoWidget::IfStats
 readIfValue	gui/NetworkInfoWidget.cpp	/^QString NetworkInfoWidget::readIfValue(const QString& ifname, const QString& leaf) {$/;"	f	class:NetworkInfoWidget	typeref:typename:QString
-readOne	capture/FrameCapture.cpp	/^bool FrameCapture::readOne(cv::Mat& out) {$/;"	f	class:FrameCapture	typeref:typename:bool
 readProcStat	gui/CpuInfoWidget.cpp	/^QMap<QString, CpuInfoWidget::CpuTimes> CpuInfoWidget::readProcStat(){$/;"	f	class:CpuInfoWidget	typeref:typename:QMap<QString,CpuInfoWidget::CpuTimes>
 readTextFile	gui/NetworkInfoWidget.cpp	/^QString NetworkInfoWidget::readTextFile(const QString& path) {$/;"	f	class:NetworkInfoWidget	typeref:typename:QString
 ready_	ai/Embedder.hpp	/^		bool ready_ = false;$/;"	m	class:Embedder	typeref:typename:bool
 ready_	detect/FaceDetector.hpp	/^		bool ready_ = false;$/;"	m	class:FaceDetector	typeref:typename:bool
+reason	liveness/LivenessGate.hpp	/^	Reason reason = Reason::Ok;$/;"	m	struct:QualResult	typeref:typename:Reason
 rebuildNextIdFromGallery	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::rebuildNextIdFromGallery()$/;"	f	class:FaceRecognitionService	typeref:typename:void
 recog	include/recog_params.hpp	/^namespace recog {$/;"	n
 recogConf_	services/FaceRecognitionService.hpp	/^		double recogConf_		= 0.0;$/;"	m	class:FaceRecognitionService	typeref:typename:double
-recogConfidence	fsm/recognition_fsm.hpp	/^		double recogConfidence = 0.0;		\/\/ 인식 신뢰도(확률)$/;"	m	struct:FsmContext	typeref:typename:double
-recogEnter	fsm/recognition_fsm_setup.hpp	/^		double recogEnter = 0.90f;			\/\/ 인식 성공 "진입": 보수적으로 높임			$/;"	m	struct:FsmParams	typeref:typename:double
-recogExit	fsm/recognition_fsm_setup.hpp	/^		double recogExit	= 0.88f;		\/\/ 인식 성공 "유지\/해제": 약간 낮춤$/;"	m	struct:FsmParams	typeref:typename:double
+recogConfidence	fsm/recognition_fsm.hpp	/^		double recogConfidence = 0.0;			\/\/ 인식 신뢰도(확률)$/;"	m	struct:FsmContext	typeref:typename:double
+recogEnter	fsm/recognition_fsm_setup.hpp	/^		double recogEnter		  = 0.85f;	\/\/ 인식 성공 "진입": 보수적으로 높임			$/;"	m	struct:FsmParams	typeref:typename:double
+recogExit	fsm/recognition_fsm_setup.hpp	/^		double recogExit		  = 0.65f;	\/\/ 인식 성공 "유지\/해제": 약간 낮춤$/;"	m	struct:FsmParams	typeref:typename:double
+recogFailHoldMs	fsm/recognition_fsm_setup.hpp	/^		int recogFailHoldMs       = 300;    \/\/ 인식 실패 판정 대기$/;"	m	struct:FsmParams	typeref:typename:int
+recogPass	fsm/recognition_fsm.hpp	/^		bool recogPass	= false;				\/\/ 히스테리시스 통과 (FSM에서만 세팅)$/;"	m	struct:FsmContext	typeref:typename:bool
+recogPass	fsm/recognition_fsm.hpp	/^		virtual bool recogPass() const { return false; }$/;"	f	class:IFsmState	typeref:typename:bool
+recogPass	fsm/recognition_fsm_setup.hpp	/^		bool   recogPass          = false;	\/\/ $/;"	m	struct:FsmParams	typeref:typename:bool
+recogPass	fsm/recognition_states.hpp	/^		bool recogPass() const override { return gate.state(); }$/;"	f	struct:RecognizingState	typeref:typename:bool
 recogResult_t	services/FaceRecognitionService.hpp	/^struct recogResult_t {$/;"	s
-recogTimeoutMs	fsm/recognition_fsm_setup.hpp	/^		int		 recogTimeoutMs = 3500;		\/\/ 한 번의 시도 제한 (3.5s 내 못 넘으면 실패 처/;"	m	struct:FsmParams	typeref:typename:int
+recogTimeoutMs	fsm/recognition_fsm_setup.hpp	/^		int	   recogTimeoutMs	  = 3500;	\/\/ 한 번의 시도 제한 (3.5s 내 못 넘으면 실패 처/;"	m	struct:FsmParams	typeref:typename:int
+reedDebounceMs	fsm/recognition_fsm_setup.hpp	/^		int reedDebounceMs        = 80;$/;"	m	struct:FsmParams	typeref:typename:int
 reed_	hw/UnlockUntilReed.hpp	/^    ReedSensor* reed_;$/;"	m	class:UnlockUntilReed	typeref:typename:ReedSensor *
 refresh	gui/BasicInfoWidget.cpp	/^void BasicInfoWidget::refresh()$/;"	f	class:BasicInfoWidget	typeref:typename:void
 refresh	gui/CpuInfoWidget.cpp	/^void CpuInfoWidget::refresh(){$/;"	f	class:CpuInfoWidget	typeref:typename:void
@@ -853,12 +973,11 @@ refresh	gui/MemInfoWidget.cpp	/^void MemInfoWidget::refresh() {$/;"	f	class:MemI
 refresh	gui/NetworkInfoWidget.cpp	/^void NetworkInfoWidget::refresh() {$/;"	f	class:NetworkInfoWidget	typeref:typename:void
 regEmbedsBuffers_	services/FaceRecognitionService.hpp	/^		std::vector<std::vector<float>> regEmbedsBuffers_;$/;"	m	class:FaceRecognitionService	typeref:typename:std::vector<std::vector<float>>
 regImageBuffers_	services/FaceRecognitionService.hpp	/^		std::vector<cv::Mat>            regImageBuffers_;$/;"	m	class:FaceRecognitionService	typeref:typename:std::vector<cv::Mat>
-regReq_	services/FaceRecognitionService.hpp	/^		bool	 regReq_			= false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
-registerRequested	fsm/recognition_fsm.hpp	/^		bool registerRequested = false;	\/\/ 등록 요청(버튼\/메뉴)$/;"	m	struct:FsmContext	typeref:typename:bool
+regReq_	services/FaceRecognitionService.hpp	/^		bool   regReq_			= false;$/;"	m	class:FaceRecognitionService	typeref:typename:bool
+registerRequested	fsm/recognition_fsm.hpp	/^		bool registerRequested = false;			\/\/ 등록 요청(버튼\/메뉴)$/;"	m	struct:FsmContext	typeref:typename:bool
 registeredUserCnt	presenter/FaceRegisterPresenter.hpp	/^		int registeredUserCnt;$/;"	m	class:FaceRegisterPresenter	typeref:typename:int
-registeringUserId_	services/FaceRecognitionService.hpp	/^		int															registeringUserId_ = -1;$/;"	m	class:FaceRecognitionService	typeref:typename:int
-registeringUserName_	services/FaceRecognitionService.hpp	/^		QString													registeringUserName_;$/;"	m	class:FaceRecognitionService	typeref:typename:QString
-reopenSleepMs_	capture/FrameCapture.hpp	/^    const int reopenSleepMs_{300};$/;"	m	class:FrameCapture	typeref:typename:const int
+registeringUserId_	services/FaceRecognitionService.hpp	/^		int								registeringUserId_ = -1;$/;"	m	class:FaceRecognitionService	typeref:typename:int
+registeringUserName_	services/FaceRecognitionService.hpp	/^		QString							registeringUserName_;$/;"	m	class:FaceRecognitionService	typeref:typename:QString
 repaintCameraLabel	presenter/FaceRecognitionPresenter.cpp	/^void FaceRecognitionPresenter::repaintCameraLabel(QLabel* label, const QImage& img)$/;"	f	class:FaceRecognitionPresenter	typeref:typename:void
 requestAuthPage	presenter/MainPresenter.cpp	/^void MainPresenter::requestAuthPage(int page, int pageSize, const QString& userLike) $/;"	f	class:MainPresenter	typeref:typename:void
 requestSystemPage	presenter/MainPresenter.cpp	/^void MainPresenter::requestSystemPage(int page, int pageSize, int minLevel,$/;"	f	class:MainPresenter	typeref:typename:void
@@ -876,21 +995,17 @@ reset_ble_stack	ble/BleServer.cpp	/^void BleServer::reset_ble_stack(const std::s
 result	services/FaceRecognitionService.hpp	/^	bool	result = AUTH_FAILED;		\/\/ 인식 결과$/;"	m	struct:recogResult_t	typeref:typename:bool
 run	ble/BleServer.cpp	/^void BleServer::run() {$/;"	f	class:BleServer	typeref:typename:void
 run	hw/UltrasonicSensor_back.cpp	/^void FaceSensorService::run() {$/;"	f	class:FaceSensorService	typeref:typename:void
-run	services/DoorSensorService.cpp	/^void DoorSensorService::run()$/;"	f	class:DoorSensorService	typeref:typename:void
-run	services/FaceSensorService.cpp	/^void FaceSensorService::run() {$/;"	f	class:FaceSensorService	typeref:typename:void
-runCmd	ble/BleServer.cpp	/^QString BleServer::runCmd(const QString& cmd) {$/;"	f	class:BleServer	typeref:typename:QString
+runCmd	ble/BleServer.cpp	/^QString BleServer::runCmd(const QString& cmd) $/;"	f	class:BleServer	typeref:typename:QString
 runCmd	gui/BasicInfoWidget.cpp	/^static QString runCmd(const QString& cmd, const QStringList& args = {}) {$/;"	f	typeref:typename:QString	file:
 runCmd	gui/CpuInfoWidget.cpp	/^QString CpuInfoWidget::runCmd(const QString& cmd, const QStringList& args, int msec){$/;"	f	class:CpuInfoWidget	typeref:typename:QString
 runCmd	gui/NetworkInfoWidget.cpp	/^QString NetworkInfoWidget::runCmd(const QString& cmd, const QStringList& args, int msec) {$/;"	f	class:NetworkInfoWidget	typeref:typename:QString
-run_cmd	ble/BleServer.cpp	/^std::string BleServer::run_cmd(const std::string& cmd, int *exit_code) {$/;"	f	class:BleServer	typeref:typename:std::string
+run_cmd	ble/BleServer.cpp	/^std::string BleServer::run_cmd(const std::string& cmd, int *exit_code) $/;"	f	class:BleServer	typeref:typename:std::string
 run_cmds	ble/BleServer.cpp	/^void BleServer::run_cmds(const std::vector<std::string>& cmds, int delay_ms) {$/;"	f	class:BleServer	typeref:typename:void
 running	hw/UnlockUntilReed.hpp	/^    bool running() const { return running_.load(); }$/;"	f	class:UnlockUntilReed	typeref:typename:bool
-running_	capture/FrameCapture.hpp	/^    std::atomic_bool running_{false};$/;"	m	class:FrameCapture	typeref:typename:std::atomic_bool
 running_	hw/UnlockUntilReed.hpp	/^    std::atomic<bool> running_{false};$/;"	m	class:UnlockUntilReed	typeref:typename:std::atomic<bool>
 running_	services/FaceRecognitionService.hpp	/^		QAtomicInt running_{0};					$/;"	m	class:FaceRecognitionService	typeref:typename:QAtomicInt
 rxBytes	gui/NetworkInfoWidget.hpp	/^        qulonglong rxBytes=0, txBytes=0;$/;"	m	struct:NetworkInfoWidget::IfStats	typeref:typename:qulonglong
 rxPackets	gui/NetworkInfoWidget.hpp	/^        qulonglong rxPackets=0, txPackets=0;$/;"	m	struct:NetworkInfoWidget::IfStats	typeref:typename:qulonglong
-s	services/FaceRecognitionService.cpp	/^	struct Item{ int idx; float s; };$/;"	m	struct:Voter::Item	typeref:typename:float	file:
 saveCapturedFace	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::saveCapturedFace(const Rect& face, const Mat& alignedFace, const Ma/;"	f	class:FaceRecognitionService	typeref:typename:void
 saveEmbeddingsToFile	services/FaceRecognitionService.cpp	/^bool FaceRecognitionService::saveEmbeddingsToFile() const$/;"	f	class:FaceRecognitionService	typeref:typename:bool
 scaleDst112	services/FaceRecognitionService.cpp	/^scaleDst112(const cv::Size& outSize) {$/;"	f	typeref:typename:std::array<cv::Point2f,5>	file:
@@ -899,13 +1014,14 @@ score	include/types.hpp	/^	float score;$/;"	m	struct:FaceDet	typeref:typename:fl
 scoreThr_	detect/FaceDetector.hpp	/^		float scoreThr_ = 0.6f; $/;"	m	class:FaceDetector	typeref:typename:float
 secondIdx	include/types.hpp	/^    int   secondIdx = -1;$/;"	m	struct:MatchTop2	typeref:typename:int
 secondSim	include/types.hpp	/^    float secondSim = -2.0f;$/;"	m	struct:MatchTop2	typeref:typename:float
-secondSim	services/FaceRecognitionService.hpp	/^	float	secondSim = -1.0f;$/;"	m	struct:recogResult_t	typeref:typename:float
 selectAuthLogs	services/QSqliteService.cpp	/^bool QSqliteService::selectAuthLogs(int offset, int limit,$/;"	f	class:QSqliteService	typeref:typename:bool
 selectSystemLogs	services/QSqliteService.cpp	/^bool QSqliteService::selectSystemLogs(int offset, int limit,$/;"	f	class:QSqliteService	typeref:typename:bool
 sendCmdResult	ble/BleServer.cpp	/^void BleServer::sendCmdResult(const QString& cmd, bool ok, const QString& msg, const QJsonObject/;"	f	class:BleServer	typeref:typename:void
 sendFileOverBle	ble/BleServer.cpp	/^void BleServer::sendFileOverBle(const QString& path, const QString& mime, const QString& name) {$/;"	f	class:BleServer	typeref:typename:void
 sendJsonLine	ble/BleServer.cpp	/^void BleServer::sendJsonLine(const QJsonObject& obj) {$/;"	f	class:BleServer	typeref:typename:void
+seq	fsm/recognition_fsm.hpp	/^		qint32 seq = 0;$/;"	m	struct:FsmContext	typeref:typename:qint32
 seq_	include/capture/LatestFrameMailbox.hpp	/^    std::atomic<uint64_t> seq_{0};$/;"	m	class:LatestFrameMailbox	typeref:typename:std::atomic<uint64_t>
+seq_	services/FaceRecognitionService.hpp	/^		uint32_t seq_ = 0;$/;"	m	class:FaceRecognitionService	typeref:typename:uint32_t
 service	ble/BleServer.hpp	/^		FaceRecognitionService* service;$/;"	m	class:BleServer	typeref:typename:FaceRecognitionService *
 service	presenter/DoorSensorPresenter.hpp	/^				DoorSensorService* service;$/;"	m	class:DoorSensorPresenter	typeref:typename:DoorSensorService *
 service	presenter/FaceRecognitionPresenter.hpp	/^				QPointer<FaceRecognitionService> service;$/;"	m	class:FaceRecognitionPresenter	typeref:typename:QPointer<FaceRecognitionService>
@@ -917,40 +1033,41 @@ setAllowEntry	services/FaceRecognitionService.cpp	/^void FaceRecognitionService:
 setAuthLogs	gui/SingleLogDialog.cpp	/^void SingleLogDialog::setAuthLogs(const QVector<AuthLog>& rows)$/;"	f	class:SingleLogDialog	typeref:typename:void
 setAutoRefresh	gui/CpuInfoWidget.cpp	/^void CpuInfoWidget::setAutoRefresh(bool on){$/;"	f	class:CpuInfoWidget	typeref:typename:void
 setAutoRefresh	gui/MemInfoWidget.cpp	/^void MemInfoWidget::setAutoRefresh(bool on) {$/;"	f	class:MemInfoWidget	typeref:typename:void
-setCameraIndex	capture/FrameCapture.hpp	/^    void setCameraIndex(int idx) { useIndex_ = idx; devPath_.clear(); }$/;"	f	class:FrameCapture	typeref:typename:void
 setCurrentUiState	gui/MainWindow.cpp	/^void MainWindow::setCurrentUiState(UiState state)$/;"	f	class:MainWindow	typeref:typename:void
 setDbPath	ble/BleServer.hpp	/^		void setDbPath(const QString& p) { dbPath_ = p; }$/;"	f	class:BleServer	typeref:typename:void
 setDetectScore	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::setDetectScore(double v)				{ detectScore_ = v; facePresent_ = (v >/;"	f	class:FaceRecognitionService	typeref:typename:void
-setDevice	capture/FrameCapture.hpp	/^    void setDevice(const QString& devPath) { devPath_ = devPath; useIndex_ = -1; }$/;"	f	class:FrameCapture	typeref:typename:void
+setDoorCommandOpen	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::setDoorCommandOpen(bool v) $/;"	f	class:FaceRecognitionService	typeref:typename:void
 setDoorOpened	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::setDoorOpened(bool v)					{ doorOpened_ = v; }$/;"	f	class:FaceRecognitionService	typeref:typename:void
+setDoorSensorOpen	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::setDoorSensorOpen(bool v) { doorOpened_ = v; }$/;"	f	class:FaceRecognitionService	typeref:typename:void
 setDuplicate	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::setDuplicate(bool v)					{ isDup_ = v; }$/;"	f	class:FaceRecognitionService	typeref:typename:void
-setFourcc	capture/FrameCapture.hpp	/^    void setFourcc(int fourcc) { fourcc_ = fourcc; }$/;"	f	class:FrameCapture	typeref:typename:void
-setFps	capture/FrameCapture.hpp	/^    void setFps(double fps) { fpsReq_ = fps; }$/;"	f	class:FrameCapture	typeref:typename:void
-setGstPipeline	capture/FrameCapture.hpp	/^    void setGstPipeline(const QString& p) { gstPipeline_ = p; }$/;"	f	class:FrameCapture	typeref:typename:void
+setFacePresent	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::setFacePresent(bool v)					{ facePresent_ = v; }$/;"	f	class:FaceRecognitionService	typeref:typename:void
 setInterfaceName	ble/BleServer.hpp	/^		void setInterfaceName(const QString& ifname) { hciName_ = ifname; }$/;"	f	class:BleServer	typeref:typename:void
 setLivenessOk	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::setLivenessOk(bool v)					{ livenessOk_ = v; }$/;"	f	class:FaceRecognitionService	typeref:typename:void
+setLocked	gui/DoorIconLabel.hpp	/^    void setLocked(bool v) {$/;"	f	class:DoorIconLabel	typeref:typename:void
+setMode	gui/LedWidget.cpp	/^void LedWidget::setMode(Mode m) { mode_ = m; update(); }$/;"	f	class:LedWidget	typeref:typename:void
+setOpenProgress	gui/DoorIconLabel.hpp	/^    void setOpenProgress(qreal p) {$/;"	f	class:DoorIconLabel	typeref:typename:void
 setParams	match/SimilarityDecision.hpp	/^    void setParams(const DecisionParams& p) { p_ = p; }$/;"	f	class:SimilarityDecision	typeref:typename:void
 setPresenter	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::setPresenter(FaceRecognitionPresenter* _presenter)$/;"	f	class:FaceRecognitionService	typeref:typename:void
 setPresenter	services/UserImageService.cpp	/^void UserImageService::setPresenter(UserImagePresenter* p) { presenter = p; }$/;"	f	class:UserImageService	typeref:typename:void
 setRecogConfidence	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::setRecogConfidence(double v)		    { recogConf_ = v; }$/;"	f	class:FaceRecognitionService	typeref:typename:void
 setRegisterRequested	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::setRegisterRequested(bool v)           { regReq_ = v; }$/;"	f	class:FaceRecognitionService	typeref:typename:void
-setResolution	capture/FrameCapture.hpp	/^    void setResolution(int w, int h) { w_ = w; h_ = h; }$/;"	f	class:FrameCapture	typeref:typename:void
 setSystemLogs	gui/SingleLogDialog.cpp	/^void SingleLogDialog::setSystemLogs(const QVector<SystemLog>& rows)$/;"	f	class:SingleLogDialog	typeref:typename:void
 setUnlocked	hw/DoorlockController.cpp	/^bool DoorlockController::setUnlocked(bool on) $/;"	f	class:DoorlockController	typeref:typename:bool
-setUseGst	capture/FrameCapture.hpp	/^    void setUseGst(bool v) { useGst_ = v; }$/;"	f	class:FrameCapture	typeref:typename:void
-setUseV4L2	capture/FrameCapture.hpp	/^    void setUseV4L2(bool v) { useV4L2_ = v; }$/;"	f	class:FrameCapture	typeref:typename:void
 setupControlTab	gui/MainWindow.cpp	/^void MainWindow::setupControlTab()$/;"	f	class:MainWindow	typeref:typename:void
-setupGatt_	ble/BleServer.cpp	/^void BleServer::setupGatt_() {$/;"	f	class:BleServer	typeref:typename:void
+setupGatt_	ble/BleServer.cpp	/^void BleServer::setupGatt_()$/;"	f	class:BleServer	typeref:typename:void
 setupHeaders	gui/SingleLogDialog.cpp	/^void SingleLogDialog::setupHeaders() {$/;"	f	class:SingleLogDialog	typeref:typename:void
 setupRecognitionFsm	fsm/recognition_fsm_setup.hpp	/^inline void setupRecognitionFsm(RecognitionFsm& fsm, const FsmParams& P)$/;"	f	typeref:typename:void
 setupUi	gui/MainWindow.cpp	/^void MainWindow::setupUi() $/;"	f	class:MainWindow	typeref:typename:void
-shouldAllowEntry	services/AuthManager.cpp	/^bool AuthManager::shouldAllowEntry() const$/;"	f	class:AuthManager	typeref:typename:bool
+shouldAllowEntry	services/AuthManager.cpp	/^bool AuthManager::shouldAllowEntry(const QString& label) $/;"	f	class:AuthManager	typeref:typename:bool
 showActionResult	gui/ControlTabView.cpp	/^void ControlTabView::showActionResult(const QString& action, bool ok, const QString& message) {$/;"	f	class:ControlTabView	typeref:typename:void
 showCameraInfo	gui/ControlTabView.cpp	/^void ControlTabView::showCameraInfo(const QString& resolution,$/;"	f	class:ControlTabView	typeref:typename:void
+showDoorAuthUI	gui/MainWindow.cpp	/^void MainWindow::showDoorAuthUI(bool authorized, const QString& name, float sim, int latencyMs)$/;"	f	class:MainWindow	typeref:typename:void
 showError	gui/MainWindow.cpp	/^void MainWindow::showError(const QString& title, const QString& message) {$/;"	f	class:MainWindow	typeref:typename:void
 showErrorMessage	gui/MainWindow.cpp	/^void MainWindow::showErrorMessage(const QString& title, const QString& message)$/;"	f	class:MainWindow	typeref:typename:void
 showFaceEngineInfo	gui/ControlTabView.cpp	/^void ControlTabView::showFaceEngineInfo(const QString& engineType,$/;"	f	class:ControlTabView	typeref:typename:void
-showFarImage	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::showFarImage()$/;"	f	class:FaceRecognitionService	typeref:typename:void
+showFadeBanner	gui/MainWindow.cpp	/^void MainWindow::showFadeBanner(const QString& text, bool isAuth,int durationMs) {$/;"	f	class:MainWindow	typeref:typename:void
+showFarImage	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::showFarImage(Mat& frame)$/;"	f	class:FaceRecognitionService	typeref:typename:void
+showHUD	gui/MainWindow.cpp	/^void MainWindow::showHUD(const QString& lines, int ms) {$/;"	f	class:MainWindow	typeref:typename:void
 showImagePreview	gui/MainWindow.cpp	/^void MainWindow::showImagePreview(const QString& imagePath) $/;"	f	class:MainWindow	typeref:typename:void
 showInfo	gui/MainWindow.cpp	/^void MainWindow::showInfo(const QString& title, const QString& message)$/;"	f	class:MainWindow	typeref:typename:void
 showNetworkInfo	gui/ControlTabView.cpp	/^void ControlTabView::showNetworkInfo(const QString& ifname,$/;"	f	class:ControlTabView	typeref:typename:void
@@ -965,11 +1082,12 @@ showUserList	gui/MainWindow.cpp	/^void MainWindow::showUserList(const QStringLis
 shutdown	log/SystemLogger.cpp	/^void SystemLogger::shutdown() {$/;"	f	class:SystemLogger	typeref:typename:void
 sim	include/types.hpp	/^        float   sim  = -1.0f;$/;"	m	struct:MatchResult	typeref:typename:float
 sim	services/FaceRecognitionService.hpp	/^	float   sim = -1.0f;			\/\/ 임베딩 결과 $/;"	m	struct:recogResult_t	typeref:typename:float
+sizeHint	gui/LedWidget.h	/^    QSize sizeHint() const override { return {22,22}; }$/;"	f	class:LedWidget	typeref:typename:QSize
+snapMu_	services/FaceRecognitionService.hpp	/^		QMutex					snapMu_;$/;"	m	class:FaceRecognitionService	typeref:typename:QMutex
 softRestartBle	ble/BleServer.cpp	/^void BleServer::softRestartBle() $/;"	f	class:BleServer	typeref:typename:void
 softirq	gui/CpuInfoWidget.hpp	/^    struct CpuTimes { quint64 user=0,nice=0,system=0,idle=0,iowait=0,irq=0,softirq=0,steal=0,gue/;"	m	struct:CpuInfoWidget::CpuTimes	typeref:typename:quint64
 stack_	gui/DevInfoDialog.hpp	/^    QStackedWidget* stack_ = nullptr;$/;"	m	class:DevInfoDialog	typeref:typename:QStackedWidget *
 standbyOrig_	gui/MainWindow.hpp	/^		QPixmap standbyOrig_;$/;"	m	class:MainWindow	typeref:typename:QPixmap
-start	capture/FrameCapture.cpp	/^void FrameCapture::start(){ $/;"	f	class:FrameCapture	typeref:typename:void
 start	fsm/recognition_fsm.cpp	/^void RecognitionFsm::start(RecognitionState initial) $/;"	f	class:RecognitionFsm	typeref:typename:void
 start	hw/UltrasonicSensor.cpp	/^void UltrasonicSensor::start()$/;"	f	class:UltrasonicSensor	typeref:typename:void
 start	hw/UltrasonicSensor_back.cpp	/^void UnlockUntilReed::start()$/;"	f	class:UnlockUntilReed	typeref:typename:void
@@ -980,29 +1098,31 @@ startBle	presenter/MainPresenter.cpp	/^void MainPresenter::startBle()$/;"	f	clas
 startDirectCapture	services/FaceRecognitionService.cpp	/^bool FaceRecognitionService::startDirectCapture(int cam)$/;"	f	class:FaceRecognitionService	typeref:typename:bool
 startRegistering	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::startRegistering(const QString& name)$/;"	f	class:FaceRecognitionService	typeref:typename:void
 started_	ble/BleServer.hpp	/^		bool started_ = false;$/;"	m	class:BleServer	typeref:typename:bool
+state	fsm/recognition_fsm.hpp	/^		bool state() const { return state_; }$/;"	f	class:HysteresisGate	typeref:typename:bool
 state	services/AuthManager.hpp	/^		AuthState state;$/;"	m	class:AuthManager	typeref:typename:AuthState
-stateTimer_	services/FaceRecognitionService.hpp	/^		QElapsedTimer				stateTimer_;$/;"	m	class:FaceRecognitionService	typeref:typename:QElapsedTimer
+stateTimer_	services/FaceRecognitionService.hpp	/^		QElapsedTimer			stateTimer_;$/;"	m	class:FaceRecognitionService	typeref:typename:QElapsedTimer
 state_	fsm/recognition_fsm.hpp	/^	bool state_ = false;$/;"	m	class:HysteresisGate	typeref:typename:bool
 states_	fsm/recognition_fsm.hpp	/^		std::unordered_map<RecognitionState, std::unique_ptr<IFsmState>> states_;$/;"	m	class:RecognitionFsm	typeref:typename:std::unordered_map<RecognitionState,std::unique_ptr<IFsmState>>
 staticDoorStateChange	services/FaceRecognitionService.cpp	/^int FaceRecognitionService::staticDoorStateChange(bool state)$/;"	f	class:FaceRecognitionService	typeref:typename:int
+std	liveness/LivenessGate.hpp	/^	double std		= 0.0;$/;"	m	struct:QualResult	typeref:typename:double
 steal	gui/CpuInfoWidget.hpp	/^    struct CpuTimes { quint64 user=0,nice=0,system=0,idle=0,iowait=0,irq=0,softirq=0,steal=0,gue/;"	m	struct:CpuInfoWidget::CpuTimes	typeref:typename:quint64
 stop	ble/BleServer.cpp	/^void BleServer::stop() {$/;"	f	class:BleServer	typeref:typename:void
-stop	capture/FrameCapture.cpp	/^void FrameCapture::stop() { running_ = false; }$/;"	f	class:FrameCapture	typeref:typename:void
 stop	fsm/recognition_fsm.cpp	/^void RecognitionFsm::stop() $/;"	f	class:RecognitionFsm	typeref:typename:void
 stop	hw/UltrasonicSensor.cpp	/^void UltrasonicSensor::stop()$/;"	f	class:UltrasonicSensor	typeref:typename:void
 stop	hw/UltrasonicSensor_back.cpp	/^void FaceSensorService::stop()$/;"	f	class:FaceSensorService	typeref:typename:void
 stop	hw/UltrasonicSensor_back.cpp	/^void UnlockUntilReed::stop()$/;"	f	class:UnlockUntilReed	typeref:typename:void
 stop	hw/UnlockUntilReed.cpp	/^void UnlockUntilReed::stop()$/;"	f	class:UnlockUntilReed	typeref:typename:void
-stop	services/DoorSensorService.cpp	/^void DoorSensorService::stop() {$/;"	f	class:DoorSensorService	typeref:typename:void
-stop	services/FaceSensorService.cpp	/^void FaceSensorService::stop()$/;"	f	class:FaceSensorService	typeref:typename:void
 stopBle	presenter/MainPresenter.cpp	/^void MainPresenter::stopBle()$/;"	f	class:MainPresenter	typeref:typename:void
 stopDirectCapture	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::stopDirectCapture()$/;"	f	class:FaceRecognitionService	typeref:typename:void
+stopFaceEngine	presenter/MainPresenter.cpp	/^void MainPresenter::stopFaceEngine() $/;"	f	class:MainPresenter	typeref:typename:void
+stopImageService	presenter/MainPresenter.cpp	/^void MainPresenter::stopImageService()$/;"	f	class:MainPresenter	typeref:typename:void
 storeRelaxed	services/FaceRecognitionService.hpp	/^	void storeRelaxed(int x)            { v.store(x, std::memory_order_relaxed); }$/;"	f	struct:RelaxedAtomicInt	typeref:typename:void
 strongAcceptSim	match/SimilarityDecision.hpp	/^    float strongAcceptSim  = 0.98f; \/\/ 이 이상이면 StrongAccept$/;"	m	struct:DecisionParams	typeref:typename:float
 styleApplied_	gui/SingleLogDialog.hpp	/^    bool styleApplied_ = false;$/;"	m	class:SingleLogDialog	typeref:typename:bool
 styleNavButton	gui/DevInfoDialog.cpp	/^static void styleNavButton(QPushButton* b) {$/;"	f	typeref:typename:void	file:
-successHoldMs	fsm/recognition_fsm_setup.hpp	/^		int successHoldMs = 800;			\/\/ 성공 오버레이 유지 $/;"	m	struct:FsmParams	typeref:typename:int
+successHoldMs	fsm/recognition_fsm_setup.hpp	/^		int successHoldMs		  = 800;	\/\/ 성공 오버레이 유지 $/;"	m	struct:FsmParams	typeref:typename:int
 switchTo	gui/DevInfoDialog.cpp	/^void DevInfoDialog::switchTo(Page p)$/;"	f	class:DevInfoDialog	typeref:typename:void
+syncDoorOpenedFromReed	services/FaceRecognitionService.cpp	/^void FaceRecognitionService::syncDoorOpenedFromReed()$/;"	f	class:FaceRecognitionService	typeref:typename:void
 sysModel	gui/MainWindow.hpp	/^        QStandardItemModel* sysModel = nullptr;$/;"	m	class:MainWindow	typeref:typename:QStandardItemModel *
 sysPage	gui/MainWindow.hpp	/^        int authPage = 0, sysPage = 0;$/;"	m	class:MainWindow	typeref:typename:int
 sysProxy	gui/MainWindow.hpp	/^        QSortFilterProxyModel* sysProxy = nullptr;$/;"	m	class:MainWindow	typeref:typename:QSortFilterProxyModel *
@@ -1010,6 +1130,7 @@ syslog_detail	log/SystemLogger.cpp	/^namespace syslog_detail{$/;"	n	file:
 syslog_detail	log/SystemLogger.hpp	/^namespace syslog_detail { class SystemLogWriter; }$/;"	n
 system	gui/CpuInfoWidget.hpp	/^    struct CpuTimes { quint64 user=0,nice=0,system=0,idle=0,iowait=0,irq=0,softirq=0,steal=0,gue/;"	m	struct:CpuInfoWidget::CpuTimes	typeref:typename:quint64
 table_	gui/SingleLogDialog.hpp	/^    QTableView* table_ = nullptr;$/;"	m	class:SingleLogDialog	typeref:typename:QTableView *
+tag	include/LogDtos.hpp	/^    QString tag;$/;"	m	struct:SystemLog	typeref:typename:QString
 tag	log/SystemLogTypes.hpp	/^    QString tag;        \/\/ 예: "FRS", "FSM", "HW", "UI"$/;"	m	struct:SystemLogEntry	typeref:typename:QString
 tag	services/LogDtos.hpp	/^    QString tag;$/;"	m	struct:SystemLog	typeref:typename:QString
 target_	detect/FaceDetector.hpp	/^		int target_   = cv::dnn::DNN_TARGET_CPU;$/;"	m	class:FaceDetector	typeref:typename:int
@@ -1020,18 +1141,22 @@ th_	hw/UltrasonicSensor.hpp	/^		std::thread th_;$/;"	m	class:UltrasonicSensor	ty
 th_	hw/UnlockUntilReed.hpp	/^    std::thread th_;$/;"	m	class:UnlockUntilReed	typeref:typename:std::thread
 throttleTimer_	presenter/FaceRecognitionPresenter.hpp	/^				QTimer* throttleTimer_;$/;"	m	class:FaceRecognitionPresenter	typeref:typename:QTimer *
 tick	fsm/recognition_fsm.cpp	/^void RecognitionFsm::tick() $/;"	f	class:RecognitionFsm	typeref:typename:void
-tick_	services/FaceRecognitionService.hpp	/^		QTimer              tick_;$/;"	m	class:FaceRecognitionService	typeref:typename:QTimer
-timeout	fsm/recognition_fsm.hpp	/^		bool timeout = false;						\/\/ 상태 타임아웃 여부$/;"	m	struct:FsmContext	typeref:typename:bool
+tick_	services/FaceRecognitionService.hpp	/^		QTimer					tick_;$/;"	m	class:FaceRecognitionService	typeref:typename:QTimer
+timeout	fsm/recognition_fsm.hpp	/^		bool timeout = false;					\/\/ 상태 타임아웃 여부$/;"	m	struct:FsmContext	typeref:typename:bool
 timer	gui/MainWindow.hpp	/^		QTimer* timer = nullptr;$/;"	m	class:MainWindow	typeref:typename:QTimer *
 timer	services/AuthManager.hpp	/^		QElapsedTimer timer;								$/;"	m	class:AuthManager	typeref:typename:QElapsedTimer
 timer_	fsm/recognition_fsm.hpp	/^		QTimer timer_;$/;"	m	class:RecognitionFsm	typeref:typename:QTimer
 timer_	gui/CpuInfoWidget.hpp	/^    QTimer       timer_;$/;"	m	class:CpuInfoWidget	typeref:typename:QTimer
 timer_	gui/MemInfoWidget.hpp	/^    QTimer       timer_;$/;"	m	class:MemInfoWidget	typeref:typename:QTimer
 timestamp	ble/AuthLogRepo.h	/^    QString timestamp;   \/\/ ISO8601 텍스트$/;"	m	struct:AuthLogRow	typeref:typename:QString
+timestamp	include/LogDtos.hpp	/^    QDateTime timestamp;$/;"	m	struct:AuthLog	typeref:typename:QDateTime
+timestamp	include/LogDtos.hpp	/^    QDateTime timestamp;$/;"	m	struct:SystemLog	typeref:typename:QDateTime
 timestamp	services/LogDtos.hpp	/^    QDateTime timestamp;$/;"	m	struct:AuthLog	typeref:typename:QDateTime
 timestamp	services/LogDtos.hpp	/^    QDateTime timestamp;$/;"	m	struct:SystemLog	typeref:typename:QDateTime
 to	fsm/recognition_fsm.hpp	/^		RecognitionState to;$/;"	m	struct:Transition	typeref:typename:RecognitionState
 toAuthJson	ble/AuthLogRepo.h	/^    static QJsonObject toAuthJson(const QList<AuthLogRow>& rows) {$/;"	f	class:AuthLogRepo	typeref:typename:QJsonObject
+toBleText	gui/MainWindow.cpp	/^static inline const char* toBleText(States::BleState s) $/;"	f	typeref:typename:const char *	file:
+toColor	gui/LedWidget.cpp	/^QColor LedWidget::toColor(Mode m) const {$/;"	f	class:LedWidget	typeref:typename:QColor
 toJson	ble/AuthLogRepo.h	/^    QJsonObject toJson() const {$/;"	f	struct:AuthLogRow	typeref:typename:QJsonObject
 topK_	detect/FaceDetector.hpp	/^		int topK_ = 500;$/;"	m	class:FaceDetector	typeref:typename:int
 trans_	fsm/recognition_fsm.hpp	/^		std::vector<Transition> trans_;$/;"	m	class:RecognitionFsm	typeref:typename:std::vector<Transition>
@@ -1040,6 +1165,7 @@ tree_	gui/MemInfoWidget.hpp	/^    QTreeWidget* tree_ = nullptr;$/;"	m	class:MemI
 tree_	gui/NetworkInfoWidget.hpp	/^    QTreeWidget* tree_    = nullptr;$/;"	m	class:NetworkInfoWidget	typeref:typename:QTreeWidget *
 trimEachLine	gui/NetworkInfoWidget.cpp	/^static QString trimEachLine(const QString& s) {$/;"	f	typeref:typename:QString	file:
 tryConsume	include/capture/LatestFrameMailbox.hpp	/^    bool tryConsume(cv::Mat& out, uint64_t& lastSeq) {$/;"	f	class:LatestFrameMailbox	typeref:typename:bool
+tryIncStreakCooldown	services/FaceRecognitionService.cpp	/^static inline void tryIncStreakCooldown(int userIdx, std::function<void()> incAuthStreak)$/;"	f	typeref:typename:void	file:
 ts	log/SystemLogTypes.hpp	/^    QDateTime ts;$/;"	m	struct:SystemLogEntry	typeref:typename:QDateTime
 txBytes	gui/NetworkInfoWidget.hpp	/^        qulonglong rxBytes=0, txBytes=0;$/;"	m	struct:NetworkInfoWidget::IfStats	typeref:typename:qulonglong
 txPackets	gui/NetworkInfoWidget.hpp	/^        qulonglong rxPackets=0, txPackets=0;$/;"	m	struct:NetworkInfoWidget::IfStats	typeref:typename:qulonglong
@@ -1047,19 +1173,17 @@ ui	gui/MainWindow.hpp	/^		Ui::MainWindow* ui;$/;"	m	class:MainWindow	typeref:typ
 unlock	hw/DoorlockController.cpp	/^bool DoorlockController::unlock() { return setUnlocked(false); }$/;"	f	class:DoorlockController	typeref:typename:bool
 updateContext	fsm/recognition_fsm.cpp	/^void RecognitionFsm::updateContext(const FsmContext& c) $/;"	f	class:RecognitionFsm	typeref:typename:void
 usagePercent	gui/CpuInfoWidget.cpp	/^double CpuInfoWidget::usagePercent(const CpuTimes& p, const CpuTimes& c){$/;"	f	class:CpuInfoWidget	typeref:typename:double
-useGst_	capture/FrameCapture.hpp	/^    bool useGst_{false};$/;"	m	class:FrameCapture	typeref:typename:bool
-useIndex_	capture/FrameCapture.hpp	/^    int useIndex_{0};$/;"	m	class:FrameCapture	typeref:typename:int
 useRGB	ai/Embedder.hpp	/^				bool useRGB = true;			\/\/ 모델이 RGB 입력 모델$/;"	m	struct:Embedder::Options	typeref:typename:bool
-useV4L2_	capture/FrameCapture.hpp	/^    bool useV4L2_{true};$/;"	m	class:FrameCapture	typeref:typename:bool
+usedRoi	liveness/LivenessGate.hpp	/^	cv::Rect usedRoi;$/;"	m	struct:QualResult	typeref:typename:cv::Rect
 user	gui/CpuInfoWidget.hpp	/^    struct CpuTimes { quint64 user=0,nice=0,system=0,idle=0,iowait=0,irq=0,softirq=0,steal=0,gue/;"	m	struct:CpuInfoWidget::CpuTimes	typeref:typename:quint64
 userImagePresenter	presenter/MainPresenter.hpp	/^		UserImagePresenter* userImagePresenter;$/;"	m	class:MainPresenter	typeref:typename:UserImagePresenter *
 userImageService	presenter/MainPresenter.hpp	/^		UserImageService* userImageService;$/;"	m	class:MainPresenter	typeref:typename:UserImageService *
 userName	ble/AuthLogRepo.h	/^    QString userName;$/;"	m	struct:AuthLogRow	typeref:typename:QString
+userName	include/LogDtos.hpp	/^    QString userName;$/;"	m	struct:AuthLog	typeref:typename:QString
 userName	services/LogDtos.hpp	/^    QString userName;$/;"	m	struct:AuthLog	typeref:typename:QString
 userName	services/UserImageService.hpp	/^		QString userName;$/;"	m	struct:UserImage	typeref:typename:QString
 v	gui/ControlTabView.cpp	/^QLabel* ControlTabView::v(const QString& text) {$/;"	f	class:ControlTabView	typeref:typename:QLabel *
 v	services/FaceRecognitionService.hpp	/^	std::atomic<int> v{0};$/;"	m	struct:RelaxedAtomicInt	typeref:typename:std::atomic<int>
-v_	services/FaceRecognitionService.cpp	/^	std::deque<Item> q_; Vote v_;$/;"	m	class:Voter	typeref:typename:Vote	file:
 validSim	match/SimilarityDecision.cpp	/^inline bool validSim(float s) {$/;"	f	namespace:__anona1abfec70111	typeref:typename:bool
 view	presenter/DoorSensorPresenter.hpp	/^				MainWindow* view;$/;"	m	class:DoorSensorPresenter	typeref:typename:MainWindow *
 view	presenter/FaceRecognitionPresenter.hpp	/^				MainWindow* view;$/;"	m	class:FaceRecognitionPresenter	typeref:typename:MainWindow *
@@ -1067,7 +1191,7 @@ view	presenter/FaceRegisterPresenter.hpp	/^		MainWindow* view{nullptr};$/;"	m	cl
 view	presenter/FaceSensorPresenter.hpp	/^				MainWindow* view;$/;"	m	class:FaceSensorPresenter	typeref:typename:MainWindow *
 view	presenter/MainPresenter.hpp	/^		MainWindow* view;$/;"	m	class:MainPresenter	typeref:typename:MainWindow *
 view	presenter/UserImagePresenter.hpp	/^				MainWindow* view;$/;"	m	class:UserImagePresenter	typeref:typename:MainWindow *
-w_	capture/FrameCapture.hpp	/^    int w_{640}, h_{480};$/;"	m	class:FrameCapture	typeref:typename:int
+waitCloseHoldMs	fsm/recognition_fsm_setup.hpp	/^		int waitCloseHoldMs       = 200;	\/\/ 닫힘 확인 안정화$/;"	m	struct:FsmParams	typeref:typename:int
 waitClosePhase	hw/UltrasonicSensor_back.cpp	/^void UnlockUntilReed::waitClosePhase()$/;"	f	class:UnlockUntilReed	typeref:typename:void
 waitClosePhase	hw/UnlockUntilReed.cpp	/^void UnlockUntilReed::waitClosePhase()$/;"	f	class:UnlockUntilReed	typeref:typename:void
 waitOpenPhase	hw/UltrasonicSensor_back.cpp	/^bool UnlockUntilReed::waitOpenPhase()$/;"	f	class:UnlockUntilReed	typeref:typename:bool
@@ -1075,8 +1199,6 @@ waitOpenPhase	hw/UnlockUntilReed.cpp	/^bool UnlockUntilReed::waitOpenPhase()$/;"
 warn	log/SystemLogger.cpp	/^void SystemLogger::warn (const QString& tag, const QString& msg, const QString& extra){ post(Sys/;"	f	class:SystemLogger	typeref:typename:void
 warning	gui/StyledMsgBox.cpp	/^QMessageBox::StandardButton warning($/;"	f	namespace:StyledMsgBox	typeref:typename:QMessageBox::StandardButton
 win_	fsm/recognition_fsm.hpp	/^	int win_;		$/;"	m	class:HysteresisGate	typeref:typename:int
-wired	presenter/MainPresenter.hpp	/^    bool wired = false;     \/\/ 중복 연결 방지$/;"	m	class:MainPresenter	typeref:typename:bool
-worker_	capture/FrameCapture.hpp	/^    QThread worker_;$/;"	m	class:FrameCapture	typeref:typename:QThread
 wr	log/SystemLogger.hpp	/^	syslog_detail::SystemLogWriter* wr = nullptr;$/;"	m	class:SystemLogger	typeref:typename:syslog_detail::SystemLogWriter *
 write	log/logger.cpp	/^void Logger::write(const std::string& message) {$/;"	f	class:Logger	typeref:typename:void
 writef	log/logger.cpp	/^void Logger::writef(const char* format, ...)$/;"	f	class:Logger	typeref:typename:void
@@ -1084,12 +1206,11 @@ yunet_	detect/FaceDetector.hpp	/^		cv::Ptr<cv::FaceDetectorYN> yunet_;		\/\/ Yun
 yunet_	services/FaceRecognitionService.hpp	/^		cv::Ptr<cv::FaceDetectorYN> yunet_;$/;"	m	class:FaceRecognitionService	typeref:typename:cv::Ptr<cv::FaceDetectorYN>
 yunet_InputSize_	detect/FaceDetector.hpp	/^		mutable cv::Size yunet_InputSize_{0, 0};  \/\/ setInputSize chache$/;"	m	class:FaceDetector	typeref:typename:cv::Size
 yunet_InputSize_	services/FaceRecognitionService.hpp	/^		cv::Size                    yunet_InputSize_{0,0};$/;"	m	class:FaceRecognitionService	typeref:typename:cv::Size
-z_thr	services/FaceRecognitionService.cpp	/^struct Thresh { float T_in=0.84f, T_out=0.80f, DELTA=0.08f; float z_thr=2.5f; };$/;"	m	struct:Thresh	typeref:typename:float	file:
 ~BleServer	ble/BleServer.cpp	/^BleServer::~BleServer() { teardown_(); }$/;"	f	class:BleServer
 ~DoorSensorPresenter	presenter/DoorSensorPresenter.cpp	/^DoorSensorPresenter::~DoorSensorPresenter()$/;"	f	class:DoorSensorPresenter
 ~FaceRecognitionPresenter	presenter/FaceRecognitionPresenter.cpp	/^FaceRecognitionPresenter::~FaceRecognitionPresenter()$/;"	f	class:FaceRecognitionPresenter
+~FaceRegisterPresenter	presenter/FaceRegisterPresenter.cpp	/^FaceRegisterPresenter::~FaceRegisterPresenter() $/;"	f	class:FaceRegisterPresenter
 ~FaceSensorPresenter	presenter/FaceSensorPresenter.cpp	/^FaceSensorPresenter::~FaceSensorPresenter()$/;"	f	class:FaceSensorPresenter
-~FrameCapture	capture/FrameCapture.cpp	/^FrameCapture::~FrameCapture(){ $/;"	f	class:FrameCapture
 ~MainPresenter	presenter/MainPresenter.cpp	/^MainPresenter::~MainPresenter()$/;"	f	class:MainPresenter
 ~MainWindow	gui/MainWindow.cpp	/^MainWindow::~MainWindow() {$/;"	f	class:MainWindow
 ~SystemLogger	log/SystemLogger.cpp	/^SystemLogger::~SystemLogger() {}$/;"	f	class:SystemLogger

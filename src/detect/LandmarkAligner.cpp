@@ -39,6 +39,6 @@ cv::Mat LandmarkAligner::alignBy5pts(const cv::Mat& srcBgr,
 
 	cv::Mat out;
 	cv::resize(aligned112, out, outSize, 0, 0, cv::INTER_LINEAR);
-	imwrite("alignBy5pt.png", out);
+	imwrite("alignBy5pt.png", aligned112);
 	return out;
 }

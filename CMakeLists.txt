@@ -44,6 +44,8 @@ set(SOURCES
 	src/ble/BleServer.cpp
 	src/ble/BleUuid.cpp
 
+	src/util/textDrawUtil.cpp
+
 	src/hw/UltrasonicSensor.cpp
 	src/hw/DoorlockController.cpp
 	src/hw/ReedSensor.cpp
@@ -79,5 +81,8 @@ target_link_libraries(face_doorlock PRIVATE
 	${OpenCV_LIBS} 
 	wiringPi
 	PkgConfig::LIBGPIOD
+)
+target_sources(face_doorlock PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/gui/DoorIconLabel.hpp
 )
 

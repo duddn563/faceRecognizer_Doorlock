@@ -8,7 +8,7 @@ public:
 
 		AuthManager();
 
-		void handleAuthSuccess();
+		void handleAuthSuccess(int authStreak);
 		void handleAuthFailure(); 
 		bool isAuthValid() const;
 		void resetAuth();

@@ -33,6 +33,9 @@ public:
 							  QVector<AuthLog>* outRows, int *outTotal);
 		bool onSelectSystemLogs(int offset, int limit, int minLevel, const QString& tagLike, const QString& sinceIso,
                                 QVector<SystemLog>* outRows, int* outTotal);
+		bool onDelAuthLogs();
+		bool onDelSysLogs();
+		bool onDelAllLogs();
 public slots:
 		// Auth
 		void requestAuthPage(int page, int pageSize, const QString& userLike);

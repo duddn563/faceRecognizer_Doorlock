@@ -12,7 +12,7 @@ enum class Decision {
 
 // 판정 파라미터(필요시 setParams로 변경 가능)
 struct DecisionParams {
-		float acceptSim        = 0.97f; // 이 이상이면 Accept
+	float acceptSim        = 0.97f; // 이 이상이면 Accept
     float strongAcceptSim  = 0.98f; // 이 이상이면 StrongAccept
     float minTop2Gap       = 0.04f; // best - second 최소 간격
     float minBestOnly      = 0.40f; // second가 없을 때 허용 하한

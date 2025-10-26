@@ -14,6 +14,9 @@
 #include <QSizePolicy>
 #include <QPointer>
 #include <QFileDialog>
+#include <QPropertyAnimation>
+#include <QGraphicsBlurEffect>
+#include <QElapsedTimer>
 
 #include "ui_MainWindow.h"
 #include "styleConstants.hpp"
@@ -104,6 +107,12 @@ public slots:
 	void onBleStateChanged(States::BleState s);
 	void onDoorStateChanged(States::DoorState s);
 
+	//   문 열림 순간에 호출될 슬롯 (기존 흐름 건드리지 않음)
+    //  - name: 인식된 사용자명 (없으면 빈 문자열 전달해도 됨)
+    //  - sim : similarity (로그/HUD용)
+    //  - latencyMs: 인식 소요시간(선택)
+	void showDoorAuthUI(bool authorized, const QString& name, float sim, int latencyMs);
+
 private:
 		// == Setup helpers ===
 		void setupUi();
@@ -112,10 +121,20 @@ private:
 		void setupButtonLayout();
 		void showErrorMessage(const QString& title, const QString& message);
 		void closeEvent(QCloseEvent* e);
+
 		QList<QPushButton*> buttonList() const;
 		LogTab* logTab = nullptr;
 		DevInfoDialog* devInfoDlg_ = nullptr;
 		DevInfoTab* devInfoTab = nullptr;
+		QPointer<QLabel> doorIconLabel;
+	
+		// ----배너/HUD/아이콘 유틸----
+		void showFadeBanner(const QString& text, bool isAuth = false,int durationMs = 1000);
+	    void animateDoorIconOpen();                 // 아이콘 0→90도 회전
+		void showHUD(const QString& lines, int ms); // sim, latency 등
+		void flashBlur(int ms = 600);               // 선택: 배경 Blur 잠깐
+		void ensureDoorIconLabel();
+
 private:
 		// === Internal state/refs === 
 		QTimer* timer = nullptr;

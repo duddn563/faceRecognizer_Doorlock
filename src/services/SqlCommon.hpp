@@ -5,7 +5,7 @@
 #include <QThread>
 
 namespace SqlCommon {
-inline const char* KBaseConnName = "doorlock";
+	inline QString baseConnName() { return QStringLiteral("doorlock"); }
 
     inline QString dbFilePath() 
     {
@@ -16,8 +16,9 @@ inline const char* KBaseConnName = "doorlock";
 
     inline QString connectionNameForCurrentThread() 
     {
-        return QString("%1_%2").arg(KBaseConnName)
-                              .arg((qulonglong)QThread::currentThreadId());
+        return QString("%1_%2").arg(baseConnName())
+							   .arg(static_cast<qulonglong>(reinterpret_cast<quintptr>(QThread::currentThreadId())));
+                              //.arg((qulonglong)QThread::currentThreadId());
     }
 } // namespace SqlCommon
 

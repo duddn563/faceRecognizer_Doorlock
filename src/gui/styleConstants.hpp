@@ -31,7 +31,7 @@ QPushButton {
     border: 1px solid #3A3A3A;
     border-radius: 16px;
     padding: 14px 28px;         /* ← 더 넉넉한 패딩 */
-    font-size: 23px;            /* ← 글씨 크게 */
+    font-size: 32px;            /* ← 글씨 크게 */
     font-family: 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans CJK KR', sans-serif;
     font-weight: 600;           /* 살짝 굵게 */
 }

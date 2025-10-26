@@ -29,7 +29,7 @@ class FaceDetector {
 
 	private:
 		// YuNet 출력 파서 (네 parseYuNet 그대로)
-    static std::vector<FaceDet> parseYuNet(const cv::Mat& dets, float scoreThresh);
+		static std::vector<FaceDet> parseYuNet(const cv::Mat& dets, float scoreThresh);
 
 	private:
 		bool ready_ = false;

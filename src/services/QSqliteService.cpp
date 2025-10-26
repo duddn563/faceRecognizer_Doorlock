@@ -1,6 +1,8 @@
 #include "QSqliteService.hpp"
 #include "services/SqlCommon.hpp"
-
+#include <QCoreApplication>
+#include <QLibraryInfo>
+#include <QFileInfo>
 #include <QSqlDatabase>
 #include <QSqlDriver>
 #include <QSqlError>
@@ -11,7 +13,24 @@
 using namespace SqlCommon;
 
 // 무상태: 호출 시점에 동일 커넥션 확보
+/*
 static QSqlDatabase ensureOpenConnectionForThisThread() {
+	static bool s_inited = false;
+	if (!s_inited) {
+        s_inited = true;
+        // Qt 표준 플러그인 경로
+        QCoreApplication::addLibraryPath(QLibraryInfo::path(QLibraryInfo::PluginsPath));
+        // 배포/설치 경로(환경에 맞게 한두 줄 추가)
+        QCoreApplication::addLibraryPath(QStringLiteral("/opt/qt-6.9.2/plugins"));
+        QCoreApplication::addLibraryPath(QStringLiteral("/opt/qt-6.9.2/plugins/sqldrivers"));
+
+        if (!QSqlDatabase::drivers().contains(QStringLiteral("QSQLITE"))) {
+            qCritical() << "[SQL] QSQLITE driver NOT available. libraryPaths="
+                        << QCoreApplication::libraryPaths()
+                        << " drivers=" << QSqlDatabase::drivers();
+            return QSqlDatabase(); // invalid handle -> 호출측에서 isOpen() 검사로 걸림
+        }
+    }
     const QString name = SqlCommon::connectionNameForCurrentThread();
     QSqlDatabase db;
 
@@ -20,15 +39,46 @@ static QSqlDatabase ensureOpenConnectionForThisThread() {
         db.setDatabaseName(SqlCommon::dbFilePath());
     } else {
         db = QSqlDatabase::database(name);
+        if (db.databaseName().isEmpty()) {
+            db.setDatabaseName(SqlCommon::dbFilePath());
+		}
+    }
+    if (!db.isOpen()) {
+		if (!db.open()) {
+			qCritical() << "[SQL] DB open failed:" << db.lastError().text()
+            << " path=" << db.databaseName()
+            << " drivers=" << QSqlDatabase::drivers()
+			<< " libPaths=" << QCoreApplication::libraryPaths();
+		}
+	}
+    return db;
+}
+*/
+static QSqlDatabase ensureOpenConnectionForThisThread() {
+    const QString name = SqlCommon::connectionNameForCurrentThread();
+    QSqlDatabase db;
+
+    if (!QSqlDatabase::contains(name)) {
+        db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), name);
+        db.setDatabaseName(SqlCommon::dbFilePath()); // 절대경로 반환 OK
+    } else {
+        db = QSqlDatabase::database(name, /*open=*/false);
         if (db.databaseName().isEmpty())
             db.setDatabaseName(SqlCommon::dbFilePath());
     }
-    if (!db.isOpen()) db.open();
+
+    if (!db.isOpen() && !db.open()) {
+        qCritical() << "[SQL] DB open failed:" << db.lastError().text()
+                    << " path=" << db.databaseName()
+                    << " drivers=" << QSqlDatabase::drivers();
+    }
     return db;
 }
 
+
 bool QSqliteService::initializeDatabase()
 {
+	QMutexLocker locker(&dbMutex);
     QSqlDatabase db = ensureOpenConnectionForThisThread();
     if (!db.isOpen()) {
         qCritical() << "[SQL] Open failed:" << db.lastError().text()
@@ -90,6 +140,7 @@ bool QSqliteService::insertAuthLog(const QString& userName,
                                    const QDateTime& timestamp,
                                    const QByteArray& image)
 {
+	QMutexLocker locker(&dbMutex);
     QSqlDatabase db = ensureOpenConnectionForThisThread();
     if (!db.isOpen()) {
         qCritical() << "[SQL] DB open failed:" << db.lastError().text();
@@ -119,9 +170,39 @@ bool QSqliteService::insertAuthLog(const QString& userName,
     return true;
 }
 
+bool QSqliteService::deleteAuthLogs()
+{
+	QMutexLocker locker(&dbMutex);
+	QSqlDatabase db = ensureOpenConnectionForThisThread();	
+	if (!db.isOpen()) {
+		qCritical() << "[deleteAuthLog] DB open failed:" << db.lastError().text();
+		return false;
+	}
+
+	QSqlQuery q(db);
+	if (!q.exec("DELETE FROM auth_logs;")) {
+		qCritical() << "[deleteAuthLog] DELETE FROM auth_logs failed:" << q.lastError().text();
+		db.rollback();
+		return false;
+	}
+
+	if (!q.exec("DELETE FROM sqlite_sequence WHERE name='auth_logs';")) {
+		qWarning() << "[deleteAuthLog] reset sqlite_sequence failed (ignored):" << q.lastError().text();
+	}
+
+	QSqlQuery vacuum(db);
+	if (!vacuum.exec("VACUUM;")) {
+		qWarning() << "[deleteAuthLog] VACUUM failed (ignored):" << vacuum.lastError().text();
+	}
+
+	return true;
+}
+
+
 bool QSqliteService::insertSystemLog(int level, const QString& tag, const QString& message,
                                      const QDateTime& timestamp, const QString& extra)
 {
+	QMutexLocker locker(&dbMutex);
     QSqlDatabase db = ensureOpenConnectionForThisThread();
     if (!db.isOpen()) {
         qCritical() << "[SQL] DB open failed:" << db.lastError().text();
@@ -150,7 +231,7 @@ bool QSqliteService::selectAuthLogs(int offset, int limit,
                                     QVector<AuthLog>* outRows,
                                     int* outTotal)
 {
-	qDebug() << __func__;
+	QMutexLocker locker(&dbMutex);
     QSqlDatabase db = ensureOpenConnectionForThisThread();
     if (!db.isOpen()) return false;
 
@@ -204,6 +285,7 @@ bool QSqliteService::selectSystemLogs(int offset, int limit,
                                       int minLevel, const QString& tagLike, const QString& sinceIso,
                                       QVector<SystemLog>* outRows, int* outTotal)
 {
+	QMutexLocker locker(&dbMutex);
     QSqlDatabase db = ensureOpenConnectionForThisThread();
     if (!db.isOpen()) return false;
 
@@ -245,6 +327,57 @@ bool QSqliteService::selectSystemLogs(int offset, int limit,
         }
     }
     return true;
+}
+
+bool QSqliteService::deleteSysLogs()
+{
+	QMutexLocker locker(&dbMutex);
+    QSqlDatabase db = ensureOpenConnectionForThisThread();
+    if (!db.isOpen()) {
+        qCritical() << "[SQL] DB open failed:" << db.lastError().text();
+        return false;
+    }
+
+    QSqlQuery q(db);
+    if (!q.exec("DELETE FROM system_logs;")) {
+        qCritical() << "[SQL] DELETE FROM auth_logs failed:" << q.lastError().text();
+        db.rollback();
+        return false;
+    }
+
+    if (!q.exec("DELETE FROM sqlite_sequence WHERE name='system_logs';")) {
+        qWarning() << "[SQL] reset sqlite_sequence failed (ignored):" << q.lastError().text();
+        // 시퀀스 리셋 실패는 치명적이지 않으므로 롤백하지 않음
+    }
+
+    QSqlQuery vacuum(db);
+    if (!vacuum.exec("VACUUM;")) {
+        qWarning() << "[SQL] VACUUM failed (ignored):" << vacuum.lastError().text();
+    }
+
+    return true;
+}
+
+bool QSqliteService::deleteAllLogs()
+{
+	QMutexLocker locker(&dbMutex);
+	QSqlDatabase db = ensureOpenConnectionForThisThread();
+	if (!db.isOpen()) return false;
+
+	QSqlQuery q(db);
+	QStringList tables = {"auth_logs", "system_logs"};
+	for (const QString& t : tables) {
+		if (!q.exec(QString("DELETE FROM %1;").arg(t))) {
+			qCritical() << "[deleteAllLogs] Failed to clear" << t << ":" << q.lastError().text();
+			return false;
+		}
+	}
+
+	QSqlQuery vacuum(db);
+	if (!vacuum.exec("VACUUM;")) {
+		qWarning() << "[deleteAllLogs] VACUUM failed (ignored):" << vacuum.lastError().text();
+	}
+	return true;
 }
 
 

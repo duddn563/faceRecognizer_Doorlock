@@ -100,11 +100,22 @@ FaceRecognitionPresenter::FaceRecognitionPresenter(FaceRecognitionService* servi
 				}
 			});
 
+	connect(this, &FaceRecognitionPresenter::onDoorAuthUI, view, &MainWindow::showDoorAuthUI, Qt::QueuedConnection);
+			
+
 	// 카메라 다시 시작 버튼 방출
 	connect(view, &MainWindow::CamRestart, this, &FaceRecognitionPresenter::onCamRestart);
 	connect(view, &MainWindow::doorOpen, this, &FaceRecognitionPresenter::onDoorOpen);
 	connect(view, &MainWindow::doorClose, this, &FaceRecognitionPresenter::onDoorClose);
 	connect(view, &MainWindow::retrainRecog, this, &FaceRecognitionPresenter::onRetrainRecog);
+
+}
+
+void FaceRecognitionPresenter::onDoorAuth(bool authorized, int userId, float sim, int latencyMs)
+{
+	const QString userName = service ? service->nameFromId(userId) : QString();
+	
+	emit onDoorAuthUI(authorized, userName, sim, latencyMs);
 }
 
 void FaceRecognitionPresenter::repaintCameraLabel(QLabel* label, const QImage& img)
